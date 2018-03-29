@@ -13,7 +13,6 @@
 #define BACKWARD_OPEN 4
 #define BACKWARD_CLOSED 5
 
-
 int led_state =0;
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
@@ -69,26 +68,39 @@ int main(void)
 	float t = 0;
 	int t_ts = HAL_GetTick();
 	gl_angle = 0;
+	float f_motor = 2*PI*3;
+	float Va,Vb,Vc;
+	float A = .2;
+	int dir = 1;
 	while(1)
 	{
 		t = (float)(HAL_GetTick() - t_ts)/1000.0;
+		if(dir == 1)
+		{
+			Va = A*sin(t*f_motor);
+			Vb = A*sin(t*f_motor + 2*M_PI/3);
+			Vc = A*sin(t*f_motor + 4*M_PI/3);
+		}
+		else
 
-		float f_motor = 2*PI;
-		float Va = .6*sin(t*f_motor);
-		float Vb = .6*sin(t*f_motor + 2*M_PI/3);
-		float Vc = .6*sin(t*f_motor + 4*M_PI/3);
+		{
+			Vb = A*sin(t*f_motor);
+			Va = A*sin(t*f_motor + 2*M_PI/3);
+			Vc = A*sin(t*f_motor + 4*M_PI/3);
+		}
 		float Valpha, Vbeta;
 		clarke_transform(Va,Vb,Vc,&Valpha, &Vbeta);
 		uint32_t sector;
 		uint32_t tA,tB,tC;
-		sector = svm(Valpha, Vbeta, TIM1->ARR/2, &tA, &tB, &tC);
+		sector = svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
 		if(HAL_GetTick()>=led_ts)
 		{
+			dir = !dir&1;
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
 			led_state = !led_state & 1;
-			led_ts = HAL_GetTick() + 1000;
+			led_ts = HAL_GetTick() + 6000;
 		}
 	}
 

@@ -235,8 +235,8 @@ void MX_TIM1_Init(void)
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-	sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;	//VESC, this is set
-	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;	//VESC, this is set
+	sConfigOC.OCIdleState = TIM_OCIDLESTATE_SET;	//VESC, this is set
+	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_SET;	//VESC, this is set
 	if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
@@ -252,10 +252,10 @@ void MX_TIM1_Init(void)
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
-	sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;	//VESC, enabled
-	sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;	//VESC, enabled
+	sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_ENABLE;	//VESC, enabled
+	sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE;	//VESC, enabled
 	sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-	sBreakDeadTimeConfig.DeadTime = 0;							//VESC, nonzero
+	sBreakDeadTimeConfig.DeadTime = 1;							//VESC, nonzero
 	sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
 	sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
 	sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
