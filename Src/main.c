@@ -82,7 +82,6 @@ int main(void)
 			Vc = A*sin(t*f_motor + 4*M_PI/3);
 		}
 		else
-
 		{
 			Vb = A*sin(t*f_motor);
 			Va = A*sin(t*f_motor + 2*M_PI/3);
