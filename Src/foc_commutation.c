@@ -99,16 +99,7 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
  * procedure:
  * First divide (alpha,beta) vector into 4 quadrants.
  * Then, for each quadrant, check which sector. two possibilities for each.
- * Example check for sector 1:
- * is in sector one if: 0 < atan2(beta/alpha) < 60*PI/180
- * -> beta/alpha < tan(60*PI/180)
- * -> beta/alpha < sqrt(3)
- * -> beta/sqrt(3) < alpha
- *
- * once sectors are parsed, apply the vesc equations to convert to times.
- * note: every document i see has a slightly different version of these equations. i'm going
- * with vesc's since i don't understand it right now, but i know vesc works. hopefully so will this
- *
+ * once sectors are parsed, convert to times.
  */
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC)
 {

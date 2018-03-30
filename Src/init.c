@@ -8,138 +8,140 @@
 
 
 /** System Clock Configuration
- */
+*/
 void SystemClock_Config(void)
 {
 
-	RCC_OscInitTypeDef RCC_OscInitStruct;
-	RCC_ClkInitTypeDef RCC_ClkInitStruct;
-	RCC_PeriphCLKInitTypeDef PeriphClkInit;
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_PeriphCLKInitTypeDef PeriphClkInit;
 
-	/**Initializes the CPU, AHB and APB busses clocks
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSI14;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
-	RCC_OscInitStruct.HSICalibrationValue = 16;
-	RCC_OscInitStruct.HSI14CalibrationValue = 16;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;
-	RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
+    /**Initializes the CPU, AHB and APB busses clocks
+    */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSI14;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
+  RCC_OscInitStruct.HSICalibrationValue = 16;
+  RCC_OscInitStruct.HSI14CalibrationValue = 16;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;
+  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
-	/**Initializes the CPU, AHB and APB busses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+    /**Initializes the CPU, AHB and APB busses clocks
+    */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
-	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
-	PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-	PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
+  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
-	/**Configure the Systick interrupt time
-	 */
-	HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
+    /**Configure the Systick interrupt time
+    */
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-	/**Configure the Systick
-	 */
-	HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+    /**Configure the Systick
+    */
+  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
-	/* SysTick_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+  /* SysTick_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
+
+
 /* ADC init function */
 void MX_ADC_Init(void)
 {
 
-  ADC_ChannelConfTypeDef sConfig;
+	ADC_ChannelConfTypeDef sConfig;
 
-    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-    */
-  hadc.Instance = ADC1;
-  hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-  hadc.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
-  hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
-  hadc.Init.LowPowerAutoWait = DISABLE;
-  hadc.Init.LowPowerAutoPowerOff = DISABLE;
-  hadc.Init.ContinuousConvMode = ENABLE;
-  hadc.Init.DiscontinuousConvMode = DISABLE;
-  hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc.Init.DMAContinuousRequests = ENABLE;
-  hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  if (HAL_ADC_Init(&hadc) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
+	/**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+	 */
+	hadc.Instance = ADC1;
+	hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+	hadc.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
+	hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+	hadc.Init.LowPowerAutoWait = DISABLE;
+	hadc.Init.LowPowerAutoPowerOff = DISABLE;
+	hadc.Init.ContinuousConvMode = ENABLE;
+	hadc.Init.DiscontinuousConvMode = DISABLE;
+	hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	hadc.Init.DMAContinuousRequests = ENABLE;
+	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+	if (HAL_ADC_Init(&hadc) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
 
-    /**Configure for the selected ADC regular channel to be converted.
-    */
-  sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_0;
+	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
 
-    /**Configure for the selected ADC regular channel to be converted.
-    */
-  sConfig.Channel = ADC_CHANNEL_1;
-  if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_1;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
 
-    /**Configure for the selected ADC regular channel to be converted.
-    */
-  sConfig.Channel = ADC_CHANNEL_2;
-  if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_2;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
 
-    /**Configure for the selected ADC regular channel to be converted.
-    */
-  sConfig.Channel = ADC_CHANNEL_3;
-  if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_3;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
 
-    /**Configure for the selected ADC regular channel to be converted.
-    */
-  sConfig.Channel = ADC_CHANNEL_4;
-  if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_4;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
 
-    /**Configure for the selected ADC regular channel to be converted.
-    */
-  sConfig.Channel = ADC_CHANNEL_5;
-  if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_5;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
 
 }
 
@@ -275,7 +277,7 @@ void MX_TIM14_Init(void)
 	TIM_OC_InitTypeDef sConfigOC;
 
 	htim14.Instance = TIM14;
-	htim14.Init.Prescaler = 1;
+	htim14.Init.Prescaler = 48;
 	htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
 	htim14.Init.Period = 1000;
 	htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -285,21 +287,19 @@ void MX_TIM14_Init(void)
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
-	if (HAL_TIM_PWM_Init(&htim14) != HAL_OK)
+	if (HAL_TIM_OC_Init(&htim14) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
-	sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	sConfigOC.OCMode = TIM_OCMODE_TIMING;
 	sConfigOC.Pulse = 0;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-	if (HAL_TIM_PWM_ConfigChannel(&htim14, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+	if (HAL_TIM_OC_ConfigChannel(&htim14, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
-	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
-
 
 }
 

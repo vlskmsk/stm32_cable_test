@@ -42,9 +42,9 @@ int main(void)
 	MX_TIM14_Init();
 	//	MX_USART1_UART_Init();
 
-
+	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
 	start_pwm();
-	TIMER_UPDATE_DUTY(500,500,500);
+	TIMER_UPDATE_DUTY(0,0,0);
 
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
 	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data,2);	//think need to change DMA settings to word from byte or half word
@@ -66,15 +66,19 @@ int main(void)
 	int led_state = 1;
 
 	float t = 0;
-	int t_ts = HAL_GetTick();
+	int t_ts = TIM14_ms();
+//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
-	float f_motor = 2*PI*3;
+	float f_motor = 2*PI*20;
 	float Va,Vb,Vc;
-	float A = .2;
-	int dir = 1;
+	float A = .15;
+	int dir = 0;
+
 	while(1)
 	{
-		t = (float)(HAL_GetTick() - t_ts)/1000.0;
+//		f_motor = 20*sin(.5*t)+20;
+		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
+//		t = (float)(HAL_GetTick()- t_ts)/1000;
 		if(dir == 1)
 		{
 			Va = A*sin(t*f_motor);
@@ -87,6 +91,7 @@ int main(void)
 			Va = A*sin(t*f_motor + 2*M_PI/3);
 			Vc = A*sin(t*f_motor + 4*M_PI/3);
 		}
+
 		float Valpha, Vbeta;
 		clarke_transform(Va,Vb,Vc,&Valpha, &Vbeta);
 		uint32_t sector;
@@ -94,12 +99,12 @@ int main(void)
 		sector = svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
-		if(HAL_GetTick()>=led_ts)
+		if(TIM14_ms()>=led_ts)
 		{
-			dir = !dir&1;
+//			dir = !dir&1;
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
 			led_state = !led_state & 1;
-			led_ts = HAL_GetTick() + 6000;
+			led_ts = TIM14_ms() + 200;
 		}
 	}
 

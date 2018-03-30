@@ -9,5 +9,6 @@
 #define DELAY_US_H_
 
 void delay_T14_us(int cycles);
+unsigned long int TIM14_ms();
 
 #endif /* DELAY_US_H_ */
