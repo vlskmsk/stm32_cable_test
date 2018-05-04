@@ -35,12 +35,11 @@ int main(void)
 	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_ADC_Init();
-	//	MX_I2C1_Init();
 	MX_SPI1_Init();
+	//	  MX_USART1_UART_Init();
 	MX_TIM1_Init();
-
 	MX_TIM14_Init();
-	//	MX_USART1_UART_Init();
+	//  MX_I2C1_Init();
 
 	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
 	start_pwm();
@@ -67,7 +66,7 @@ int main(void)
 
 	float t = 0;
 	int t_ts = TIM14_ms();
-//	int t_ts = HAL_GetTick();
+	//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
 	float f_motor = 2*PI*20;
 	float Va,Vb,Vc;
@@ -76,9 +75,9 @@ int main(void)
 
 	while(1)
 	{
-//		f_motor = 20*sin(.5*t)+20;
+		//		f_motor = 20*sin(.5*t)+20;
 		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
-//		t = (float)(HAL_GetTick()- t_ts)/1000;
+		//		t = (float)(HAL_GetTick()- t_ts)/1000;
 		if(dir == 1)
 		{
 			Va = A*sin(t*f_motor);
@@ -101,13 +100,11 @@ int main(void)
 
 		if(TIM14_ms()>=led_ts)
 		{
-//			dir = !dir&1;
+			//			dir = !dir&1;
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
 			led_state = !led_state & 1;
 			led_ts = TIM14_ms() + 200;
 		}
 	}
-
-
-
 }
+

@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project>
-<ProjectName>C:\Users\Ocanath\Google Drive\workspace\bldc_f030_v4\\bldc_f030_v4</ProjectName>
+<ProjectName>C:\Users\Ocanath\Google Drive\workspace\foc_f030_v4\\foc_f030_v4</ProjectName>
+<ProjectNature>C</ProjectNature> 
 <CMSIS>..\Drivers\CMSIS</CMSIS>
 <HAL_Driver>C:\Users\Ocanath\STM32Cube\Repository\STM32Cube_FW_F0_V1.9.0\Drivers\CMSIS</HAL_Driver>
-
 <Toolchain>SW4STM32</Toolchain>
 <Version>0</Version>
 
 <filestoremove>
-	<file>
-	</file>
+    <file>
+    </file>
 </filestoremove>
 
 <inctoremove>
@@ -22,7 +22,7 @@
 
 <configs>
   <config>
-    <name>bldc_f030_v4</name>				
+    <name>foc_f030_v4</name>				
     <device>STM32F030C6Tx</device>		 
     <heapSize>0x200</heapSize>
     <stackSize>0x400</stackSize>
@@ -31,8 +31,8 @@
 			
     <usedDebug>true</usedDebug>
     	<debugprobe>swd</debugprobe>
-    <optimization>6</optimization>
-    <icfloc>0</icfloc>
+    <optimization>2</optimization>
+    <icfloc>1</icfloc>
     <Adefines>
         <define></define>
     </Adefines>   
@@ -54,8 +54,6 @@
         <Cdefines>
             <define>USE_FULL_LL_DRIVER</define>
             <define>MBEDTLS_CONFIG_FILE=&quot;mbedtls_config.h&quot;</define>
-            <define>_TIMEVAL_DEFINED</define>
-            <define>_SYS_TIME_H_</define>
         </Cdefines>         
     </definestoremove>
     
@@ -72,13 +70,14 @@
 
     <underRoot>true</underRoot>
     	<copyAsReference>false</copyAsReference>
+ 
 	  		<sourceEntries>
 		    	<sourceEntry>
 		    		<name>Inc</name>
 		    	</sourceEntry>
-		    	<sourceEntry>
-		    		<name>Src</name>
-		    	</sourceEntry>
+                <sourceEntry>
+                        <name>Src</name>
+                </sourceEntry>
 		    	<sourceEntry>
 		    		<name>Drivers</name>
 		    	</sourceEntry>

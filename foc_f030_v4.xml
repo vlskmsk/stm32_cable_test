@@ -10,8 +10,8 @@
 ]>
 
 <targetDefinitions>
-  <board id="bldc_f030_v4">
-    <name>bldc_f030_v4</name>
+  <board id="foc_f030_v4">
+    <name>foc_f030_v4</name>
     <dbgIF>SWD</dbgIF>
     <dbgDEV>ST-Link</dbgDEV>
     <mcuId>stm32f030c6tx</mcuId>
