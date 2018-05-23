@@ -76,15 +76,15 @@ int main(void)
 	float A = .3;
 	int dir = 0;
 
-	float theta = M_PI/6;
+	float theta = M_PI/6+3*M_PI/3;
 	while(1)
 	{
 		float i_a,i_b,i_c;
 		conv_raw_current(&i_a,&i_b, &i_c);
 
 		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
-		theta = sin(t*3)*M_PI/4*16*20;
-
+		f_motor = 3;
+		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
 
 		Va = A*sin(theta);
 		Vb = A*sin(theta + 2*M_PI/3);

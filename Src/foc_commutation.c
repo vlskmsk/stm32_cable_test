@@ -19,7 +19,8 @@ float R;
 #define TWO_BY_SQRT_3 	1.15470053838
 #define SQRT_3_BY_2 	0.866025404
 
-#define ADC_CURRENT_CONV_RATIO 0.002877371651785714285714
+//#define ADC_CURRENT_CONV_RATIO 0.002877371651785714285714	//	= (3.3/4096)/(40*.007)
+#define ADC_CURRENT_CONV_RATIO 0.00421428571	//adjustment calibrated to red handheld DMM
 
 void init_observer()
 {
@@ -85,6 +86,7 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
 		*i_b = -(*i_a+*i_c);
 	else if(TIM1->CCR3 > TIM1->CCR1 && TIM1->CCR3 > TIM1->CCR2)
 		*i_c = -(*i_a+*i_b);
+
 }
 
 #define SQRT_3 1.7320508075688772935274463415f
