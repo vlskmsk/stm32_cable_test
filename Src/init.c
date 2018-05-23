@@ -279,7 +279,7 @@ void MX_TIM14_Init(void)
 	TIM_OC_InitTypeDef sConfigOC;
 
 	htim14.Instance = TIM14;
-	htim14.Init.Prescaler = 48;
+	htim14.Init.Prescaler = 47;
 	htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
 	htim14.Init.Period = 1000;
 	htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -327,20 +327,20 @@ void MX_USART1_UART_Init(void)
 }
 
 /**
- * Enable DMA controller clock
- */
+  * Enable DMA controller clock
+  */
 void MX_DMA_Init(void)
 {
-	/* DMA controller clock enable */
-	__HAL_RCC_DMA1_CLK_ENABLE();
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
-	/* DMA interrupt init */
-	/* DMA1_Channel1_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-	/* DMA1_Channel2_3_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* DMA1_Channel2_3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
 
 }
 
