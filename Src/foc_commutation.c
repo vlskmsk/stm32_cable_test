@@ -30,11 +30,13 @@ void init_observer()
 /*
  * based on http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5200471
  */
-unsigned long int t;
+float gl_t_prev = 0;
+float gl_t = 0;
 float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
 {
-
-	float dt = .0001;	//TODO: estimate dt
+	gl_t_prev = gl_t;
+	gl_t = (float)((TIM14_ms()*1000+TIM14->CNT))*.000001;
+	float dt = gl_t-gl_t_prev;	//TODO: estimate dt
 
 	float y1,y2;
 	y1 = -R*i_a+v_a;

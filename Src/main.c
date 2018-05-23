@@ -73,7 +73,7 @@ int main(void)
 	gl_angle = 0;
 	float f_motor = 2*PI*40;
 	float Va,Vb,Vc;
-	float A = .2;
+	float A = .3;
 	int dir = 0;
 
 	float theta = M_PI/6;
@@ -83,7 +83,7 @@ int main(void)
 		conv_raw_current(&i_a,&i_b, &i_c);
 
 		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
-		theta = sin(t)*M_PI*4;
+		theta = sin(t*3)*M_PI/4*16*20;
 
 
 		Va = A*sin(theta);
