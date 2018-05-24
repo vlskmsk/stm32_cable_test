@@ -13,6 +13,13 @@
 #define BACKWARD_OPEN 4
 #define BACKWARD_CLOSED 5
 
+char msg_buf[32];
+void print_string(char * c)
+{
+	int i;
+	for(i=0; c[i] != 0; i++);
+	HAL_UART_Transmit(&huart1, (uint8_t*)c, i, 100);
+}
 
 int led_state =0;
 
@@ -26,6 +33,7 @@ int idx = 0;
 volatile int total_delay = 0;
 
 float gl_angle = 89;
+
 
 int main(void)
 {
@@ -42,7 +50,7 @@ int main(void)
 	MX_TIM14_Init();
 	//  MX_I2C1_Init();
 
-//	HAL_TIM_Base_Start(&htim14);
+	//	HAL_TIM_Base_Start(&htim14);
 	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
@@ -64,6 +72,9 @@ int main(void)
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 	gl_zero_cross_point = initZeroCrossPoint(dma_adc_raw);
 
+
+	init_observer();
+
 	int led_ts = HAL_GetTick()+100;
 	int led_state = 1;
 
@@ -73,19 +84,18 @@ int main(void)
 	gl_angle = 0;
 	float f_motor = 2*PI*40;
 	float Va,Vb,Vc;
-	float A = 1;
+	float A = .3;
 	int dir = 0;
 
-	float theta = M_PI/6+M_PI/2;
+	float theta = 0;
 	while(1)
 	{
 		float i_a,i_b,i_c;
 		conv_raw_current(&i_a,&i_b, &i_c);
 
-//		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
-//		f_motor = .1;
-//		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
-
+		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
+		f_motor = 3;
+		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
 
 		Va = A*sin(theta);
 		Vb = A*sin(theta + 2*M_PI/3);
@@ -141,7 +151,7 @@ int main(void)
 			led_state = !led_state & 1;
 			led_ts = TIM14_ms() + 200;
 		}
-//		float i_a,i_b,i_c;
-//		conv_raw_current(&i_a,&i_b, &i_c);
+		//		float i_a,i_b,i_c;
+		//		conv_raw_current(&i_a,&i_b, &i_c);
 	}
 }
