@@ -37,7 +37,7 @@ int main(void)
 	MX_DMA_Init();
 	MX_ADC_Init();
 	MX_SPI1_Init();
-	//	  MX_USART1_UART_Init();
+	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
 	//  MX_I2C1_Init();
@@ -73,18 +73,19 @@ int main(void)
 	gl_angle = 0;
 	float f_motor = 2*PI*40;
 	float Va,Vb,Vc;
-	float A = .3;
+	float A = 1;
 	int dir = 0;
 
-	float theta = M_PI/6+3*M_PI/3;
+	float theta = M_PI/6+M_PI/2;
 	while(1)
 	{
 		float i_a,i_b,i_c;
 		conv_raw_current(&i_a,&i_b, &i_c);
 
-		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
-		f_motor = 3;
-		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
+//		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
+//		f_motor = .1;
+//		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
+
 
 		Va = A*sin(theta);
 		Vb = A*sin(theta + 2*M_PI/3);

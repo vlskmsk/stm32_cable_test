@@ -19,8 +19,8 @@ float R;
 #define TWO_BY_SQRT_3 	1.15470053838
 #define SQRT_3_BY_2 	0.866025404
 
-//#define ADC_CURRENT_CONV_RATIO 0.002877371651785714285714	//	= (3.3/4096)/(40*.007)
-#define ADC_CURRENT_CONV_RATIO 0.00421428571	//adjustment calibrated to red handheld DMM
+#define ADC_CURRENT_CONV_RATIO 0.002877371651785714285714	//	= (3.3/4096)/(40*.007)
+//#define ADC_CURRENT_CONV_RATIO 0.00421428571	//adjustment calibrated to red handheld DMM
 
 void init_observer()
 {
@@ -71,6 +71,8 @@ float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, fl
 #define INHC 4
 #define INLC 5
 
+int gl_sector=1;
+
 /*
  *	convert each phase adc voltage to actual current value
  */
@@ -80,13 +82,44 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
 	*i_b = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_B])*ADC_CURRENT_CONV_RATIO;
 	*i_c = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_C])*ADC_CURRENT_CONV_RATIO;
 
-	if(TIM1->CCR1 > TIM1->CCR2 && TIM1->CCR1 > TIM1->CCR3)
-		*i_a = -(*i_b+*i_c);
-	else if(TIM1->CCR2 > TIM1->CCR1 && TIM1->CCR2 > TIM1->CCR3)
-		*i_b = -(*i_a+*i_c);
-	else if(TIM1->CCR3 > TIM1->CCR1 && TIM1->CCR3 > TIM1->CCR2)
-		*i_c = -(*i_a+*i_b);
-
+	uint8_t state = 0x7 & ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
+	// c , b , a
+	switch (state)
+	{
+		case 1:
+		{
+			*i_a = -(*i_b + *i_c);
+			break;
+		}
+		case 2:
+		{
+			*i_b = -(*i_a + *i_c);
+			break;
+		}
+		case 3:
+		{
+			*i_a = *i_c*-.5;
+			*i_b = *i_a;
+			break;
+		}
+		case 4:
+		{
+			*i_c = -(*i_a + *i_b);
+			break;
+		}
+		case 5:
+		{
+			*i_a = *i_b*-.5;
+			*i_c = *i_a;
+			break;
+		}
+		case 6:
+		{
+			*i_b = *i_a*-.5;
+			*i_c = *i_b;
+			break;
+		}
+	}
 }
 
 #define SQRT_3 1.7320508075688772935274463415f
@@ -138,63 +171,63 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 
 	switch (sector)
 	{
-		case 1:
-		{
-			uint32_t t1 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
-			uint32_t t2 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
-			*tA = (pwm_half_period - t1 - t2) / 2;
-			*tB = *tA + t1;
-			*tC = *tB + t2;
-			break;
-		}
-		case 2:
-		{
-			uint32_t t2 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
-			uint32_t t3 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
-			*tB = (pwm_half_period - t2 - t3) / 2;
-			*tA = *tB + t3;
-			*tC = *tA + t2;
-			break;
-		}
-		case 3:
-		{
-			uint32_t t3 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
-			uint32_t t4 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
-			*tB = (pwm_half_period - t3 - t4) / 2;
-			*tC = *tB + t3;
-			*tA = *tC + t4;
-			break;
-		}
-		case 4:
-		{
-			uint32_t t4 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
-			uint32_t t5 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
-			*tC = (pwm_half_period - t4 - t5) / 2;
-			*tB = *tC + t5;
-			*tA = *tB + t4;
-
-			break;
-		}
-		case 5:
-		{
-			uint32_t t5 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
-			uint32_t t6 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
-			*tC = (pwm_half_period - t5 - t6) / 2;
-			*tA = *tC + t5;
-			*tB = *tA + t6;
-			break;
-		}
-		case 6:
-		{
-			uint32_t t6 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
-			uint32_t t1 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
-			*tA = (pwm_half_period - t6 - t1) / 2;
-			*tC = *tA + t1;
-			*tB = *tC + t6;
-			break;
-		}
+	case 1:
+	{
+		uint32_t t1 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t2 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
+		*tA = (pwm_half_period - t1 - t2) / 2;
+		*tB = *tA + t1;
+		*tC = *tB + t2;
+		break;
 	}
+	case 2:
+	{
+		uint32_t t2 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t3 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		*tB = (pwm_half_period - t2 - t3) / 2;
+		*tA = *tB + t3;
+		*tC = *tA + t2;
+		break;
+	}
+	case 3:
+	{
+		uint32_t t3 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t4 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		*tB = (pwm_half_period - t3 - t4) / 2;
+		*tC = *tB + t3;
+		*tA = *tC + t4;
+		break;
+	}
+	case 4:
+	{
+		uint32_t t4 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t5 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
+		*tC = (pwm_half_period - t4 - t5) / 2;
+		*tB = *tC + t5;
+		*tA = *tB + t4;
 
+		break;
+	}
+	case 5:
+	{
+		uint32_t t5 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t6 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		*tC = (pwm_half_period - t5 - t6) / 2;
+		*tA = *tC + t5;
+		*tB = *tA + t6;
+		break;
+	}
+	case 6:
+	{
+		uint32_t t6 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t1 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		*tA = (pwm_half_period - t6 - t1) / 2;
+		*tC = *tA + t1;
+		*tB = *tC + t6;
+		break;
+	}
+	}
+	gl_sector = sector;
 	return sector;
 }
 
