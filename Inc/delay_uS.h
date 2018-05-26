@@ -8,6 +8,11 @@
 #ifndef DELAY_US_H_
 #define DELAY_US_H_
 
+
+
+#define CONST_MS_TO_TICK 6000	//Formula: (SYSCLK/TIM14->Prescaler)/1000
+const float seconds_per_tick;
+
 void delay_T14_us(int cycles);
 unsigned long int TIM14_ms();
 

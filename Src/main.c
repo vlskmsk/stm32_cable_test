@@ -84,18 +84,43 @@ int main(void)
 	gl_angle = 0;
 	float f_motor = 2*PI*40;
 	float Va,Vb,Vc;
-	float A = .3;
+	float A = .25;
 	int dir = 0;
 
+
+
+//	int i;
+//	for(i=0;i<10;i++)
+//	{
+//		TIMER_UPDATE_DUTY(1000,1000,1000);
+//		TIM14->CNT = 0;
+//		while(TIM14->CNT < 50);
+//		TIMER_UPDATE_DUTY(0,0,0);
+//		TIM14->CNT = 0;
+//		while(TIM14->CNT < 50);
+//	}
+//	while(1);
+
+	//for vishan, 1/e of max value is hit in approximately 2 microseconds
+	//
 	float theta = 0;
+	float x1,x2;
 	while(1)
 	{
-		float i_a,i_b,i_c;
+		float i_a,i_b,i_c , Va_m, Vb_m, Vc_m;
 		conv_raw_current(&i_a,&i_b, &i_c);
+		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
 
-		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
+		float Valpha_m, Vbeta_m, Ialpha_m, Ibeta_m;
+		clarke_transform(Va_m,Vb_m,Vc_m,&Valpha_m, &Vbeta_m);
+		clarke_transform(i_a,i_b,i_c,&Ialpha_m, &Ibeta_m);
+
+		observer_update(Valpha_m, Vbeta_m, Ialpha_m, Ibeta_m, &x1, &x2);
+
+		t = (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT) - t_ts)*seconds_per_tick;
 		f_motor = 3;
-		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
+//		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
+		theta = cos(t*f_motor)*M_PI*10*8;
 
 		Va = A*sin(theta);
 		Vb = A*sin(theta + 2*M_PI/3);

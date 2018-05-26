@@ -9,9 +9,9 @@
 #include "commutation.h"
 #include <math.h>
 #include "delay_uS.h"
-float mL = 1;
-float mR = 1;
-float Psi = 1;
+float mL = 0;
+float mR = 0;
+float V_psi = 0;
 float L;
 float R;
 
@@ -24,8 +24,15 @@ float R;
 
 void init_observer()
 {
-	L = 3.0/2.0*mL;
-	est_R();
+	//for vishan:
+	//Resistance of a single coil to CT = 0.86
+	//Inductance (measured from scope) of a SINGLE COIL to CT = 1.462
+	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
+
+	//	est_R();
+	R = .86;			//R (single coil)
+	L = 0.000001462;	//L (single coil)
+	V_psi = .0012655;
 }
 
 /*
@@ -36,7 +43,7 @@ float gl_t = 0;
 float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
 {
 	gl_t_prev = gl_t;
-	gl_t = (float)((TIM14_ms()*1000+TIM14->CNT))*.000001;
+	gl_t = (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT))*seconds_per_tick;
 	float dt = gl_t-gl_t_prev;	//TODO: estimate dt
 
 	float y1,y2;
@@ -49,7 +56,7 @@ float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, fl
 	float n1,n2;
 	n1 = *x1-L_i_a;
 	n2 = *x2-L_i_b;
-	float e = Psi*Psi - (n1*n1+n2*n2);
+	float e = V_psi*V_psi - (n1*n1+n2*n2);
 	float xdot1,xdot2;
 	xdot1 = y1 + gamma*.5 + n1*e;
 	xdot2 = y2 + gamma*.5 + n2*e;
@@ -120,6 +127,13 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
 		break;
 	}
 	}
+}
+
+void convert_phase_voltage(float * va, float * vb, float * vc)
+{
+	*va = (float)dma_adc_raw[ADC_CHAN_BEMF_A] * 0.00261619718;
+	*vb = (float)dma_adc_raw[ADC_CHAN_BEMF_B] * 0.00261619718;
+	*vc = (float)dma_adc_raw[ADC_CHAN_BEMF_C] * 0.00261619718;
 }
 
 #define SQRT_3 1.7320508075688772935274463415f
@@ -285,6 +299,7 @@ float est_R()
 float gl_I;
 float gl_T;
 float gl_V = 7.4;
+
 float est_L()
 {
 	float coil_r = R;

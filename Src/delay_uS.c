@@ -8,12 +8,14 @@
 #include "delay_uS.h"
 #include "comm.h"
 
+const float seconds_per_tick = 8.0/48000000.0;
+
 unsigned long int TIM14_ms_count = 0;
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == TIM14)
 	{
-		TIM14_ms_count++;
+		TIM14_ms_count+= 8;	//see init.c
 	}
 }
 
