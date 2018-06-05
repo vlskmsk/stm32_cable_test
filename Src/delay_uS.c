@@ -9,6 +9,8 @@
 #include "comm.h"
 
 const float seconds_per_tick = 8.0/48000000.0;
+const float milliseconds_per_tick = 8.0/48000.0;
+const float microseconds_per_tick = 8.0/48.0;
 
 unsigned long int TIM14_ms_count = 0;
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
@@ -17,6 +19,18 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		TIM14_ms_count+= 8;	//see init.c
 	}
+}
+float time_seconds()
+{
+	return (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT))*seconds_per_tick;
+}
+float time_milliseconds()
+{
+	return (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT))*milliseconds_per_tick;
+}
+float time_microseconds()
+{
+	return (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT))*microseconds_per_tick;
 }
 
 unsigned long int TIM14_ms()

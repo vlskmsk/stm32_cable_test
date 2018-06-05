@@ -84,7 +84,7 @@ int main(void)
 	gl_angle = 0;
 	float f_motor = 2*PI*40;
 	float Va,Vb,Vc;
-	float A = .25;
+	float A = .2;
 	int dir = 0;
 
 
@@ -120,7 +120,10 @@ int main(void)
 		t = (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT) - t_ts)*seconds_per_tick;
 		f_motor = 3;
 //		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
-		theta = cos(t*f_motor)*M_PI*10*8;
+//		theta = cos(t*f_motor)*M_PI*10*12;
+//		theta = cos(t*f_motor)*M_PI*12;
+
+		theta = cos(t*f_motor)*12*M_PI * 3 ;
 
 		Va = A*sin(theta);
 		Vb = A*sin(theta + 2*M_PI/3);

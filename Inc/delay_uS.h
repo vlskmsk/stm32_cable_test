@@ -16,4 +16,9 @@ const float seconds_per_tick;
 void delay_T14_us(int cycles);
 unsigned long int TIM14_ms();
 
+float time_seconds();
+float time_milliseconds();
+float time_microseconds();
+
+
 #endif /* DELAY_US_H_ */
