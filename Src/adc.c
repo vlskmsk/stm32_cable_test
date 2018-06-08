@@ -42,7 +42,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 }
 
-
 float adc_to_V(int adc)
 {
 	return ((float)adc) *( 3.3 / ((float)0xFFF) ) ;
