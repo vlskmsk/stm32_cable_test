@@ -1,7 +1,7 @@
 
-Fs = 55555;
+Fs = 9259;
 t = 0:1/Fs:2;
-sig = sin(t*23500*2*pi)+sin(t*1000*2*pi);
+sig = 100*sin(t*23500*2*pi)+sin(t*500*2*pi);
 w = zeros(3,3);
 filtsig_iirsos = zeros(1,length(t));
 filt = 0;
@@ -35,10 +35,10 @@ for i=2:length(t)
 end
 P =mean(avg_st);
 Fs = 1/P;
-I_mA_filt = sosfilt(SOS,I_mA);
+% I_mA_filt = sosfilt(SOS,I_mA);
 
-figure(1)
-plot(t, I_mA_filt);
+% figure(1)
+% plot(t, I_mA_filt);
 figure(2)
 plot(t, I_mA);
 %%

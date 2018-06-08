@@ -83,9 +83,9 @@ int main(void)
 	int t_ts = TIM14_ms();
 	//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
-	float f_motor = 2*PI*30;
+	float f_motor = 2*PI*10;
 	float Va,Vb,Vc;
-	float A = .35;
+	float A = .25;
 	int dir = 0;
 
 	float theta = 0;
@@ -99,6 +99,9 @@ int main(void)
 		t = time_seconds();
 
 //		sprintf(msg_buf, "%d,%d,%d\r\n", (int)(i_a*1000), (int)i_b*1000, (int)i_c*1000);
+//		print_string(msg_buf);
+
+//		sprintf(msg_buf, "%d,%d\r\n", (int)(i_a*1000), (int)time_milliseconds());
 //		print_string(msg_buf);
 
 //		f_motor = 3;
@@ -137,3 +140,4 @@ int main(void)
 	}
 
 }
+
