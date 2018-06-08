@@ -9,6 +9,9 @@
 #define ADC_H_
 #include "init.h"
 #include "circ.h"
+#include "iirSOS.h"
+
+iirSOS filt[3];
 
 
 #define NUM_ADC 6
@@ -34,5 +37,7 @@ int rotor_pos;
 
 float adc_to_V(int adc);
 int zeroCrossDetect(circularBuffer buf, int zcp, int polarity);
+float iA_filt;
+void init_23kHz_filt_coef();
 
 #endif /* ADC_H_ */

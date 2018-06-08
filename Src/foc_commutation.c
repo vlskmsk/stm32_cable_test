@@ -85,11 +85,17 @@ int gl_sector=1;
  */
 void conv_raw_current(float * i_a, float * i_b, float * i_c)
 {
-	*i_a = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_A])*ADC_CURRENT_CONV_RATIO;
+//	*i_a = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_A])*ADC_CURRENT_CONV_RATIO;
+	*i_a = (float)(gl_current_input_offset - iA_filt)*ADC_CURRENT_CONV_RATIO;
 	*i_b = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_B])*ADC_CURRENT_CONV_RATIO;
 	*i_c = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_C])*ADC_CURRENT_CONV_RATIO;
 
 	uint8_t state = 0x7 & ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
+//	uint8_t state = shunt_state;
+	/*
+	 * NOTE: test out setting shunt state variable in the handler, at a decimated sampling frequency.
+	 */
+
 	// c , b , a
 	switch (state)
 	{

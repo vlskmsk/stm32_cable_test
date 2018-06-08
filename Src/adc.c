@@ -19,87 +19,55 @@ int below_thresh_prev[3] = {0};
 int gl_bemf_adc_record_idx = 0;
 int gl_adc_capture_flag = 0;
 
-//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-//{
-//
-//	//check for zero cross event
-////	int i;
-////	for(i=0;i<3;i++)
-////	{
-////		updateCircBuf(&gl_adcBuffer[bemf_adc_map[i]],dma_adc_raw[bemf_adc_map[i]]);
-//////		rollingAverage_2(&gl_adcBuffer[bemf_adc_map[i]],dma_adc_raw[bemf_adc_map[i]]);
-////	}
-//}
+float iA_filt = 0;
+uint8_t shunt_state;
 
-//int zeroCrossDetect(circularBuffer buf, int zcp, int polarity)
-//{
-//	int middleIdx = (CIRC_BUF_SIZE-1)/2;
-//	int i;
-//	int low_flag = 0;
-//	int high_flag = 0;
-//
-//	for(i=0;i<middleIdx;i++)
-//	{
-//		if(buf.buf[i] > zcp)
-//			low_flag = 1;
-//	}
-//	for(i=middleIdx;i<CIRC_BUF_SIZE;i++)
-//	{
-//		if(buf.buf[i] <= zcp)
-//			high_flag = 1;
-//	}
-//	int cross_event = 0;
-//	if(high_flag == 1 && low_flag == 1)
-//		cross_event = 1;
-//	return cross_event;
-//}
+/*
+ * TODO: implement single section IIR filter at a decimated adc frequency.
+ * Most likely, 2kHz will be a sufficient cutoff frequency at a 5khz sampling frequency.
+ * Experiment with filtering the raw adc values (requiring 3 filters) and
+ * filtering the converted adc values (requiring only 2 filters but conversion in the
+ * handler).
+ *
+ * Also, try decimation through changing the ADC timer base from the 14Mhz internal clock to a prescaled SYSCLK.
+ * if the appropriate prescaler can be used, it will save some time in the handler.
+ */
 
-int zeroCrossDetect(circularBuffer buf, int zcp, int polarity)
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	int middleIdx = (CIRC_BUF_SIZE-1)/2;
-	int i;
-	int low_flag = 1;
-	int high_flag = 1;
+//	iA_filt = sos_f(&filt[0], (float)dma_adc_raw[ADC_CHAN_CURRENT_A]);
+//	iA_filt = sos_f(&filt[1], iA_filt);
+//	iA_filt = sos_f(&filt[2], iA_filt);
 
-	if(polarity == FALLING)
-	{
-		for(i=0;i<middleIdx;i++)
-		{
-			if(!(buf.buf[i] < zcp))
-				low_flag = 0;
-		}
-		for(i=middleIdx;i<CIRC_BUF_SIZE;i++)
-		{
-			if(!(buf.buf[i] >= zcp))
-				high_flag = 0;
-		}
-		int cross_event = 0;
-		if(high_flag == 1 && low_flag == 1)
-			cross_event = 1;
-		return cross_event;
-	}
-	else if (polarity == RISING)
-	{
-		for(i=0;i<=middleIdx;i++)
-		{
-			if(!(buf.buf[i] > zcp))
-				low_flag = 0;
-		}
-		for(i=middleIdx+1;i<CIRC_BUF_SIZE;i++)
-		{
-			if(!(buf.buf[i] <= zcp))
-				high_flag = 0;
-		}
-		int cross_event = 0;
-		if(high_flag == 1 && low_flag == 1)
-			cross_event = 1;
-		return cross_event;
-	}
-	else
-		return 0;
+//	shunt_state = ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
 }
+
 
 float adc_to_V(int adc)
 {
 	return ((float)adc) *( 3.3 / ((float)0xFFF) ) ;
+}
+
+void init_23kHz_filt_coef()
+{
+	filt[0].b0 = 1;
+	filt[0].b1 = 2;
+	filt[0].b2 = 1;
+	filt[0].a1 = -1.68227315337581;
+	filt[0].a2 = 0.726246047297329;
+	filt[0].gain = 0.0109932234803806;
+//
+//	filt[1].a1 = 0.234667672575741;
+//	filt[1].a2 = 0.144597823632472;
+//	filt[1].b0 = 1;
+//	filt[1].b1 = 1.73114829153189;
+//	filt[1].b2 = 1;
+//	filt[1].gain = 0.369662470756940;
+//
+//	filt[2].a1 = 0.132122696010434;
+//	filt[2].a2 = 0;
+//	filt[2].b0 = 1;
+//	filt[0].b1 = 1;
+//	filt[2].b2 = 0;
+//	filt[2].gain = 0.566061348005217;
 }

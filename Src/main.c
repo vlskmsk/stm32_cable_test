@@ -55,11 +55,12 @@ int main(void)
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
 
+	init_23kHz_filt_coef();
+
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
 	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data,2);	//think need to change DMA settings to word from byte or half word
 
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
-
 
 	//	int i;
 	HAL_Delay(100);
@@ -82,27 +83,11 @@ int main(void)
 	int t_ts = TIM14_ms();
 	//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
-	float f_motor = 2*PI*40;
+	float f_motor = 2*PI*30;
 	float Va,Vb,Vc;
-	float A = .2;
+	float A = .35;
 	int dir = 0;
 
-
-
-//	int i;
-//	for(i=0;i<10;i++)
-//	{
-//		TIMER_UPDATE_DUTY(1000,1000,1000);
-//		TIM14->CNT = 0;
-//		while(TIM14->CNT < 50);
-//		TIMER_UPDATE_DUTY(0,0,0);
-//		TIM14->CNT = 0;
-//		while(TIM14->CNT < 50);
-//	}
-//	while(1);
-
-	//for vishan, 1/e of max value is hit in approximately 2 microseconds
-	//
 	float theta = 0;
 	float x1,x2;
 	while(1)
@@ -111,23 +96,29 @@ int main(void)
 		conv_raw_current(&i_a,&i_b, &i_c);
 		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
 
-		float Valpha_m, Vbeta_m, Ialpha_m, Ibeta_m;
-		clarke_transform(Va_m,Vb_m,Vc_m,&Valpha_m, &Vbeta_m);
-		clarke_transform(i_a,i_b,i_c,&Ialpha_m, &Ibeta_m);
+		t = time_seconds();
 
-		observer_update(Valpha_m, Vbeta_m, Ialpha_m, Ibeta_m, &x1, &x2);
+//		sprintf(msg_buf, "%d,%d,%d\r\n", (int)(i_a*1000), (int)i_b*1000, (int)i_c*1000);
+//		print_string(msg_buf);
 
-		t = (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT) - t_ts)*seconds_per_tick;
-		f_motor = 3;
-//		theta = cos(t*f_motor)*M_PI/2*.5*21.3*20;
-//		theta = cos(t*f_motor)*M_PI*10*12;
-//		theta = cos(t*f_motor)*M_PI*12;
+//		f_motor = 3;
+//		theta = cos(t*f_motor)*12*M_PI * 3 ;
+//
+//		Va = A*sin(theta);
+//		Vb = A*sin(theta + 2*M_PI/3);
+//		Vc = A*sin(theta + 4*M_PI/3);
 
-		theta = cos(t*f_motor)*12*M_PI * 3 ;
+		Va = A*sin(f_motor*t);
+		Vb = A*sin(f_motor*t + 2*M_PI/3);
+		Vc = A*sin(f_motor*t + 4*M_PI/3);
 
-		Va = A*sin(theta);
-		Vb = A*sin(theta + 2*M_PI/3);
-		Vc = A*sin(theta + 4*M_PI/3);
+//		A+=.1;
+//		if(A > .3)
+//			A = .3;
+//		f_motor+=.1;
+		if(f_motor >= 2*M_PI*100)
+			f_motor = 2*M_PI*100;
+
 
 		float Valpha, Vbeta;
 		uint32_t tA,tB,tC;
@@ -145,41 +136,4 @@ int main(void)
 		}
 	}
 
-
-
-	while(1)
-	{
-		//		f_motor = 20*sin(.5*t)+20;
-		t = (float)((TIM14_ms()*1000+TIM14->CNT) - t_ts)*.000001;
-		//		t = (float)(HAL_GetTick()- t_ts)/1000;
-		if(dir == 1)
-		{
-			Va = A*sin(t*f_motor);
-			Vb = A*sin(t*f_motor + 2*M_PI/3);
-			Vc = A*sin(t*f_motor + 4*M_PI/3);
-		}
-		else
-		{
-			Vb = A*sin(t*f_motor);
-			Va = A*sin(t*f_motor + 2*M_PI/3);
-			Vc = A*sin(t*f_motor + 4*M_PI/3);
-		}
-
-		float Valpha, Vbeta;
-		clarke_transform(Va,Vb,Vc,&Valpha, &Vbeta);
-		uint32_t sector;
-		uint32_t tA,tB,tC;
-		sector = svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
-		TIMER_UPDATE_DUTY(tA,tB,tC);
-
-		if(TIM14_ms()>=led_ts)
-		{
-			//			dir = !dir&1;
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
-			led_state = !led_state & 1;
-			led_ts = TIM14_ms() + 200;
-		}
-		//		float i_a,i_b,i_c;
-		//		conv_raw_current(&i_a,&i_b, &i_c);
-	}
 }
