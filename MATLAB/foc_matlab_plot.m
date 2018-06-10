@@ -28,36 +28,62 @@ plot(filtsig_iirsos(1:300));
 hold off
 
 %% 
-t = (t_ms-t_ms(1))/1000;
+t = (tms-tms(1))/1000;
 avg_st=zeros(length(t),1);
 for i=2:length(t)
    avg_st(i) = t(i)-t(i-1); 
 end
 P =mean(avg_st);
 Fs = 1/P;
-% I_mA_filt = sosfilt(SOS,I_mA);
+% curr_filt = sosfilt(SOS,curr);
 
 % figure(1)
-% plot(t, I_mA_filt);
+% plot(t, curr_filt);
 figure(2)
-plot(t, I_mA);
+plot(t, curr);
+
+
+%%
+Fs = 10000;
+t = 0:1/Fs:.333;
+I_emul = sin(t*2*pi*30);
+for i = 1:length(t)
+    if(I_emul(i) > 0)
+        I_emul(i) = 0;
+    end
+end
+plot(t,I_emul)
 %%
 s = serial('com7');
 s.BaudRate = 921600;
 s.Terminator = 'CR/LF';
 fopen(s);
 
-figure;
-H = uicontrol('Style','text','String', 'close figure to exit',...
-                'Position',[20,20,100,50]);
-         
-while(ishandle(H))
-    serLog = fscanf(s,'%s');
-    disp(serLog);
-    pause(0.0000001);
-end
+% figure;
+% H = uicontrol('Style','text','String', 'close figure to exit',...
+%                 'Position',[20,20,100,50]);
 
+log = zeros(1000,1);
+time = zeros(length(log),1);
+log_idx = 1;
+
+% while(ishandle(H))
+tic;
+while(1)
+    serLog = fread(s,1,'int16');
+    disp(serLog);
+    log(log_idx) = serLog;
+    time(log_idx)= toc;
+    log_idx = log_idx + 1;
+    if(log_idx > length(log))
+%         log_idx = 1;            %wrap around when overflow
+        break;  %quit when buffer is full
+    end
+    pause(0.0000000001);
+end
 
 fclose(s);
 delete(s);
 clear s;
+
+plot(time,log);

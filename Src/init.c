@@ -77,17 +77,17 @@ void MX_ADC_Init(void)
 	/**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
 	 */
 	hadc.Instance = ADC1;
-	hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+	hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
 	hadc.Init.Resolution = ADC_RESOLUTION_12B;
 	hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 	hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
 	hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
 	hadc.Init.LowPowerAutoWait = DISABLE;
 	hadc.Init.LowPowerAutoPowerOff = DISABLE;
-	hadc.Init.ContinuousConvMode = DISABLE;
+	hadc.Init.ContinuousConvMode = DISABLE;				//for asynchronous, enable.						//pwm, disable
 	hadc.Init.DiscontinuousConvMode = DISABLE;
-	hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
-	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+	hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;		//for asynchronous, software		//pwm, ADC_EXTERNALTRIGCONV_T1_TRGO
+	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;	//for asynchronous, none		//psm, ADC_EXTERNALTRIGCONVEDGE_RISING?
 	hadc.Init.DMAContinuousRequests = ENABLE;
 	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
 	if (HAL_ADC_Init(&hadc) != HAL_OK)
@@ -99,7 +99,7 @@ void MX_ADC_Init(void)
 	 */
 	sConfig.Channel = ADC_CHANNEL_0;
 	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;				//asynchronous, gotta drop this down a ton. synchronous... debatable, but i've had it at 1_5
 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
@@ -217,7 +217,7 @@ void MX_TIM1_Init(void)
 
 	htim1.Instance = TIM1;
 	htim1.Init.Prescaler = 0;
-	htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
+	htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
 	htim1.Init.Period = COMM_PWM_PERIOD;
 	htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim1.Init.RepetitionCounter = 0;
@@ -227,7 +227,16 @@ void MX_TIM1_Init(void)
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+	/*
+	 * NOTE:
+	 * if you choose TRGO_UPDATE the interrupt will trigger when current it actively flowing through the fets.
+	 * I think the pwm mode is irrelevant in this case, but I choose CENTERALIGNED3 and get good results
+	 *
+	 *
+	 * if you choose TRGO_OC1 AND the PWM mode is TIM_COUNTERMODE_CENTERALIGNED2, the interrupt will trigger
+	 * when ALL THREE low side fets are on.
+	 */
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC1;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
 	if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
 	{

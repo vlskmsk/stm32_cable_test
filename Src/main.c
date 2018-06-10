@@ -83,10 +83,23 @@ int main(void)
 	int t_ts = TIM14_ms();
 	//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
-	float f_motor = 2*PI*20;
+	float f_motor = 2*PI*50;
 	float Va,Vb,Vc;
-	float A = .3;
-	int dir = 0;
+	float A = .1;
+
+	int16_t val = 0;
+
+//	while(1)
+//	{
+//		float t = time_seconds();
+//
+//		val = (int16_t)(200.0*sin(t*2*M_PI*50));
+//
+//		msg_buf[0] = (val & 0x00FF);
+//		msg_buf[1] = (val & 0xFF00)>>8;
+//		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 2, 100);
+//
+//	}
 
 	float theta = 0;
 	float x1,x2;
@@ -98,27 +111,25 @@ int main(void)
 
 		t = time_seconds();
 
-//		sprintf(msg_buf, "%d,%d,%d\r\n", (int)(i_a*1000), (int)i_b*1000, (int)i_c*1000);
-//		print_string(msg_buf);
+		//		sprintf(msg_buf, "%d,%d\r\n", (int)(i_a*1000), (int)time_milliseconds());
+		//		print_string(msg_buf);
 
-//		sprintf(msg_buf, "%d,%d\r\n", (int)(i_a*1000), (int)time_milliseconds());
-//		print_string(msg_buf);
+		int16_t pval = (int16_t)(i_a*1000);
+		msg_buf[0] = (pval & 0x00FF);
+		msg_buf[1] = (pval & 0xFF00)>>8;
+		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 2, 1);
 
-		f_motor = 3;
-		theta = cos(t*f_motor)*12*M_PI * 5;
+		//		f_motor = 3;
+		//		theta = cos(t*f_motor)*12*M_PI * 5;
+		//
+		//		Va = A*sin(theta);
+		//		Vb = A*sin(theta + 2*M_PI/3);
+		//		Vc = A*sin(theta + 4*M_PI/3);
+//		t = 0;
+		Va = A*sin(f_motor*t);
+		Vb = A*sin(f_motor*t + 2*M_PI/3);
+		Vc = A*sin(f_motor*t + 4*M_PI/3);
 
-		Va = A*sin(theta);
-		Vb = A*sin(theta + 2*M_PI/3);
-		Vc = A*sin(theta + 4*M_PI/3);
-
-//		Va = A*sin(f_motor*t);
-//		Vb = A*sin(f_motor*t + 2*M_PI/3);
-//		Vc = A*sin(f_motor*t + 4*M_PI/3);
-
-//		A+=.1;
-//		if(A > .3)
-//			A = .3;
-//		f_motor+=.1;
 		if(f_motor >= 2*M_PI*100)
 			f_motor = 2*M_PI*100;
 
@@ -130,13 +141,13 @@ int main(void)
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
 		//		TIMER_UPDATE_DUTY(1000,1000,1000);
-		if(TIM14_ms()>=led_ts)
-		{
-			//			dir = !dir&1;
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
-			led_state = !led_state & 1;
-			led_ts = TIM14_ms() + 200;
-		}
+		//		if(TIM14_ms()>=led_ts)
+		//		{
+		//			//			dir = !dir&1;
+		//			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
+		//			led_state = !led_state & 1;
+		//			led_ts = TIM14_ms() + 200;
+		//		}
 	}
 
 }

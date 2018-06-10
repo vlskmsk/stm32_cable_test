@@ -88,52 +88,55 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
 	/*
 	 * NOTE: test out setting shunt state variable in the handler, at a decimated sampling frequency.
 	 */
-//	uint8_t state = 0x7 & ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
+	//	uint8_t state = 0x7 & ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
 
-//	*i_a = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_A])*ADC_CURRENT_CONV_RATIO;
-//	*i_b = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_B])*ADC_CURRENT_CONV_RATIO;
-	*i_a = (float)(gl_current_input_offset - iA_filt)*ADC_CURRENT_CONV_RATIO;
-	*i_b = (float)(gl_current_input_offset - iB_filt)*ADC_CURRENT_CONV_RATIO;
+	*i_a = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_A])*ADC_CURRENT_CONV_RATIO;
+	*i_b = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_B])*ADC_CURRENT_CONV_RATIO;
 	*i_c = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_C])*ADC_CURRENT_CONV_RATIO;
 
+
+
+/*
 	uint8_t state = shunt_state;
 	// c , b , a
 	switch (state)
 	{
-	case 1:
-	{
-		*i_a = -(*i_b + *i_c);
-		break;
-	}
-	case 2:
-	{
-		*i_b = -(*i_a + *i_c);
-		break;
-	}
-	case 3:
-	{
-		*i_a = *i_c*-.5;
-		*i_b = *i_a;
-		break;
-	}
-	case 4:
-	{
-		*i_c = -(*i_a + *i_b);
-		break;
-	}
-	case 5:
-	{
-		*i_a = *i_b*-.5;
-		*i_c = *i_a;
-		break;
-	}
-	case 6:
-	{
-		*i_b = *i_a*-.5;
-		*i_c = *i_b;
-		break;
-	}
-	}
+		case 1:
+		{
+			*i_a = -(*i_b + *i_c);
+			break;
+		}
+		case 2:
+		{
+			*i_b = -(*i_a + *i_c);
+			break;
+		}
+		case 3:
+		{
+			*i_a = *i_c*-.5;
+			*i_b = *i_a;
+			break;
+		}
+		case 4:
+		{
+			*i_c = -(*i_a + *i_b);
+			break;
+		}
+		case 5:
+		{
+			*i_a = *i_b*-.5;
+			*i_c = *i_a;
+			break;
+		}
+		case 6:
+		{
+			*i_b = *i_a*-.5;
+			*i_c = *i_b;
+			break;
+		}
+	}*/
+
+
 }
 
 void convert_phase_voltage(float * va, float * vb, float * vc)

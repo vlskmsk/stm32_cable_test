@@ -35,11 +35,10 @@ uint8_t shunt_state;
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	shunt_state = ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
-
-
-	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
-	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+//	shunt_state = ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
+//	if(shunt_state == 0b001)
+//	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+//	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 }
 
 float adc_to_V(int adc)
@@ -57,18 +56,18 @@ void init_23kHz_filt_coef()
 	filt[0].gain = 0.233001784169918;
 
 
-//
-//	filt[1].a1 = 0.234667672575741;
-//	filt[1].a2 = 0.144597823632472;
-//	filt[1].b0 = 1;
-//	filt[1].b1 = 1.73114829153189;
-//	filt[1].b2 = 1;
-//	filt[1].gain = 0.369662470756940;
-//
-//	filt[2].a1 = 0.132122696010434;
-//	filt[2].a2 = 0;
-//	filt[2].b0 = 1;
-//	filt[0].b1 = 1;
-//	filt[2].b2 = 0;
-//	filt[2].gain = 0.566061348005217;
+	//
+	//	filt[1].a1 = 0.234667672575741;
+	//	filt[1].a2 = 0.144597823632472;
+	//	filt[1].b0 = 1;
+	//	filt[1].b1 = 1.73114829153189;
+	//	filt[1].b2 = 1;
+	//	filt[1].gain = 0.369662470756940;
+	//
+	//	filt[2].a1 = 0.132122696010434;
+	//	filt[2].a2 = 0;
+	//	filt[2].b0 = 1;
+	//	filt[0].b1 = 1;
+	//	filt[2].b2 = 0;
+	//	filt[2].gain = 0.566061348005217;
 }
