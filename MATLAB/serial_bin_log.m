@@ -8,16 +8,18 @@ fopen(s);
 % H = uicontrol('Style','text','String', 'close figure to exit',...
 %                 'Position',[20,20,100,50]);
 
-log = zeros(1000,1);
+numReadVals = 3;
+valScale = 1;
+log = zeros(1000,numReadVals);
 time = zeros(length(log),1);
 log_idx = 1;
 
 % while(ishandle(H))
 tic;
 while(1)
-    serLog = fread(s,1,'int16');
+    serLog = fread(s,numReadVals,'int32');
 %     disp(serLog);
-    log(log_idx) = serLog;
+    log(log_idx,:) = serLog;
     time(log_idx)= toc;
     log_idx = log_idx + 1;
     if(log_idx > length(log))
@@ -31,7 +33,14 @@ fclose(s);
 delete(s);
 clear s;
 
-plot(time,log/1000);
+hold off
+plot(time,log(:,1)*valScale);
+hold on
+for i = 2:size(log,2);
+    plot(time,log(:,i)*valScale);
+end
+hold off
+
 %% fft
 
 avg_st=zeros(length(time),1);

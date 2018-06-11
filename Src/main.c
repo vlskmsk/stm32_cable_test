@@ -65,9 +65,10 @@ int main(void)
 	//	int i;
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 1);
-	HAL_Delay(10);
+	HAL_Delay(100);
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
-	HAL_Delay(10);
+	HAL_Delay(100);
+
 	gl_current_input_offset = (dma_adc_raw[ADC_CHAN_CURRENT_A]+dma_adc_raw[ADC_CHAN_CURRENT_B]+dma_adc_raw[ADC_CHAN_CURRENT_C])/3;
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
@@ -80,29 +81,29 @@ int main(void)
 	int led_state = 1;
 
 	float t = 0;
-	int t_ts = TIM14_ms();
+
 	//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
-	float f_motor = 2*PI*50;
+	float f_motor = 2*PI*10;
 	float Va,Vb,Vc;
-	float A = .1;
+	float A = .2;
 
-	int16_t val = 0;
+	//	int16_t val = 0;
 
-//	while(1)
-//	{
-//		float t = time_seconds();
-//
-//		val = (int16_t)(200.0*sin(t*2*M_PI*50));
-//
-//		msg_buf[0] = (val & 0x00FF);
-//		msg_buf[1] = (val & 0xFF00)>>8;
-//		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 2, 100);
-//
-//	}
+	//	while(1)
+	//	{
+	//		float t = time_seconds();
+	//
+	//		val = (int16_t)(200.0*sin(t*2*M_PI*50));
+	//
+	//		msg_buf[0] = (val & 0x00FF);
+	//		msg_buf[1] = (val & 0xFF00)>>8;
+	//		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 2, 100);
+	//
+	//	}
 
-	float theta = 0;
-	float x1,x2;
+
+	//	float x1,x2;
 	while(1)
 	{
 		float i_a,i_b,i_c , Va_m, Vb_m, Vc_m;
@@ -114,18 +115,34 @@ int main(void)
 		//		sprintf(msg_buf, "%d,%d\r\n", (int)(i_a*1000), (int)time_milliseconds());
 		//		print_string(msg_buf);
 
-		int16_t pval = (int16_t)(i_a*1000);
-		msg_buf[0] = (pval & 0x00FF);
-		msg_buf[1] = (pval & 0xFF00)>>8;
-		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 2, 1);
+		int32_t val1 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_A];
+		msg_buf[0] = (val1 & 0x00FF);
+		msg_buf[1] = (val1 & 0xFF00)>>8;
+		msg_buf[2] = (val1 & 0xFF0000)>>16;
+		msg_buf[3] = (val1 & 0xFF000000)>>24;
+
+		int32_t val2 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_B];
+		msg_buf[4] = (val2 & 0x00FF);
+		msg_buf[5] = (val2 & 0xFF00)>>8;
+		msg_buf[6] = (val2 & 0xFF0000)>>16;
+		msg_buf[7] = (val2 & 0xFF000000)>>24;
+
+//		int16_t val3 = (int16_t)(i_c*500);
+		int32_t val3 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_C];
+		msg_buf[8] = (val3 & 0x00FF);
+		msg_buf[9] = (val3 & 0xFF00)>>8;
+		msg_buf[10] = (val3 & 0xFF0000)>>16;
+		msg_buf[11] = (val3 & 0xFF000000)>>24;
+
+		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 12, 10);
 
 		//		f_motor = 3;
-		//		theta = cos(t*f_motor)*12*M_PI * 5;
+		//		float theta = cos(t*f_motor)*12*M_PI * 5;
 		//
 		//		Va = A*sin(theta);
 		//		Vb = A*sin(theta + 2*M_PI/3);
 		//		Vc = A*sin(theta + 4*M_PI/3);
-//		t = 0;
+		//		t = 0;
 		Va = A*sin(f_motor*t);
 		Vb = A*sin(f_motor*t + 2*M_PI/3);
 		Vc = A*sin(f_motor*t + 4*M_PI/3);
@@ -140,14 +157,14 @@ int main(void)
 		svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
-		//		TIMER_UPDATE_DUTY(1000,1000,1000);
-		//		if(TIM14_ms()>=led_ts)
-		//		{
-		//			//			dir = !dir&1;
-		//			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
-		//			led_state = !led_state & 1;
-		//			led_ts = TIM14_ms() + 200;
-		//		}
+
+		if(TIM14_ms()>=led_ts)
+		{
+			//			dir = !dir&1;
+			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
+			led_state = !led_state & 1;
+			led_ts = TIM14_ms() + 200;
+		}
 	}
 
 }

@@ -94,8 +94,6 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
 	*i_b = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_B])*ADC_CURRENT_CONV_RATIO;
 	*i_c = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_C])*ADC_CURRENT_CONV_RATIO;
 
-
-
 /*
 	uint8_t state = shunt_state;
 	// c , b , a

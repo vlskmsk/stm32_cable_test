@@ -87,7 +87,7 @@ void MX_ADC_Init(void)
 	hadc.Init.ContinuousConvMode = DISABLE;				//for asynchronous, enable.						//pwm, disable
 	hadc.Init.DiscontinuousConvMode = DISABLE;
 	hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;		//for asynchronous, software		//pwm, ADC_EXTERNALTRIGCONV_T1_TRGO
-	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;	//for asynchronous, none		//psm, ADC_EXTERNALTRIGCONVEDGE_RISING?
+	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_FALLING;	//for asynchronous, none		//psm, ADC_EXTERNALTRIGCONVEDGE_RISING?
 	hadc.Init.DMAContinuousRequests = ENABLE;
 	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
 	if (HAL_ADC_Init(&hadc) != HAL_OK)
@@ -99,7 +99,7 @@ void MX_ADC_Init(void)
 	 */
 	sConfig.Channel = ADC_CHANNEL_0;
 	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;				//asynchronous, gotta drop this down a ton. synchronous... debatable, but i've had it at 1_5
+	sConfig.SamplingTime = ADC_SAMPLETIME_28CYCLES_5;				//asynchronous, gotta drop this down a ton. synchronous... debatable, but i've had it at 1_5
 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
