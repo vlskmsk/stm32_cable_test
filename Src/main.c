@@ -20,6 +20,21 @@ void print_string(char * c)
 	for(i=0; c[i] != 0; i++);
 	HAL_UART_Transmit(&huart1, (uint8_t*)c, i, 100);
 }
+void print_int16(int16_t val)
+{
+	msg_buf[0] = (val & 0x00FF);
+	msg_buf[1] = (val & 0xFF00)>>8;
+	HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 2, 100);
+}
+void print_int32(int32_t val)
+{
+	msg_buf[0] = (val & 0x00FF);
+	msg_buf[1] = (val & 0xFF00)>>8;
+	msg_buf[2] = (val & 0xFF0000)>>16;
+	msg_buf[3] = (val & 0xFF000000)>>24;
+	HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 4, 100);
+}
+
 
 int led_state =0;
 
@@ -84,26 +99,46 @@ int main(void)
 
 	//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
-	float f_motor = 2*PI*10;
+	float f_motor = 2*PI;
 	float Va,Vb,Vc;
-	float A = .2;
+	float A = .1;
 
 	//	int16_t val = 0;
+	int16_t cos_top = 856;
+	int16_t cos_bot = 681;
+	int16_t cos_mid = (cos_top+cos_bot)/2;
 
-	//	while(1)
-	//	{
-	//		float t = time_seconds();
-	//
-	//		val = (int16_t)(200.0*sin(t*2*M_PI*50));
-	//
-	//		msg_buf[0] = (val & 0x00FF);
-	//		msg_buf[1] = (val & 0xFF00)>>8;
-	//		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 2, 100);
-	//
-	//	}
+	int16_t sin_bot = 638;
+	int16_t sin_top = 814;
+	int16_t sin_mid = (sin_top+sin_bot)/2;
 
 
-	//	float x1,x2;
+//	TIMER_UPDATE_DUTY(0,0,0);
+//	while(1)
+//	{
+//
+////		print_int16(dma_adc_raw[ADC_CHAN_BEMF_C]);
+////		print_int16(dma_adc_raw[ADC_CHAN_BEMF_A]);
+//
+//		int16_t sinVal = dma_adc_raw[ADC_CHAN_BEMF_A]-sin_mid;
+//		int16_t cosVal = dma_adc_raw[ADC_CHAN_BEMF_C]-cos_mid;
+//		float angleRad = atan2((float)sinVal,(float)cosVal);
+//		int16_t angleDeg = (int16_t)(angleRad*180.0/M_PI);
+//		sprintf(msg_buf, "%d\r\n",angleDeg);
+//		print_string(msg_buf);
+//
+////		print_int16(dma_adc_raw[ADC_CHAN_BEMF_B]);
+//
+//		HAL_Delay(10);
+//		if(TIM14_ms()>=led_ts)
+//		{
+//			//			dir = !dir&1;
+//			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
+//			led_state = !led_state & 1;
+//			led_ts = TIM14_ms() + 200;
+//		}
+//	}
+
 	while(1)
 	{
 		float i_a,i_b,i_c , Va_m, Vb_m, Vc_m;
@@ -116,25 +151,25 @@ int main(void)
 		//		print_string(msg_buf);
 
 		int32_t val1 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_A];
-		msg_buf[0] = (val1 & 0x00FF);
-		msg_buf[1] = (val1 & 0xFF00)>>8;
-		msg_buf[2] = (val1 & 0xFF0000)>>16;
-		msg_buf[3] = (val1 & 0xFF000000)>>24;
-
+		print_int32(val1);
+		//		msg_buf[0] = (val1 & 0x00FF);
+		//		msg_buf[1] = (val1 & 0xFF00)>>8;
+		//		msg_buf[2] = (val1 & 0xFF0000)>>16;
+		//		msg_buf[3] = (val1 & 0xFF000000)>>24;
 		int32_t val2 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_B];
-		msg_buf[4] = (val2 & 0x00FF);
-		msg_buf[5] = (val2 & 0xFF00)>>8;
-		msg_buf[6] = (val2 & 0xFF0000)>>16;
-		msg_buf[7] = (val2 & 0xFF000000)>>24;
-
-//		int16_t val3 = (int16_t)(i_c*500);
+		print_int32(val2);
+		//		msg_buf[4] = (val2 & 0x00FF);
+		//		msg_buf[5] = (val2 & 0xFF00)>>8;
+		//		msg_buf[6] = (val2 & 0xFF0000)>>16;
+		//		msg_buf[7] = (val2 & 0xFF000000)>>24;
 		int32_t val3 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_C];
-		msg_buf[8] = (val3 & 0x00FF);
-		msg_buf[9] = (val3 & 0xFF00)>>8;
-		msg_buf[10] = (val3 & 0xFF0000)>>16;
-		msg_buf[11] = (val3 & 0xFF000000)>>24;
+		print_int32(val3);
+		//		msg_buf[8] = (val3 & 0x00FF);
+		//		msg_buf[9] = (val3 & 0xFF00)>>8;
+		//		msg_buf[10] = (val3 & 0xFF0000)>>16;
+		//		msg_buf[11] = (val3 & 0xFF000000)>>24;
+		//		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 12, 10);
 
-		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 12, 10);
 
 		//		f_motor = 3;
 		//		float theta = cos(t*f_motor)*12*M_PI * 5;

@@ -4,13 +4,64 @@ s.BaudRate = 921600;
 s.Terminator = 'CR/LF';
 fopen(s);
 
+figure;
+H = uicontrol();
+
+numReadVals = 2;
+bufSize = 500;
+buf1 = nan(1,bufSize);
+buf2 = nan(1,bufSize);
+
+tic;
+while(ishandle(H))
+    serLog = fread(s,numReadVals,'int16');
+    
+    buf1 = [buf1(2:end), serLog(1)];
+    buf2 = [buf2(2:end), serLog(2)];
+
+    hold off
+    plot(buf1(1,:));
+    hold on
+    plot(buf2(1,:));
+    hold off
+    
+    pause(0.00001);
+end
+
+fclose(s);
+delete(s);
+clear s;
+
+
+
+
+
+
+
+%%
+plot(buf1);
+hold on
+plot(buf2);
+hold off
+
+
+
+
+
+
+%%
+s = serial('com7');
+s.BaudRate = 921600;
+s.Terminator = 'CR/LF';
+fopen(s);
+
 % figure;
 % H = uicontrol('Style','text','String', 'close figure to exit',...
 %                 'Position',[20,20,100,50]);
 
 numReadVals = 3;
 valScale = 1;
-log = zeros(1000,numReadVals);
+log = zeros(5000,numReadVals);
 time = zeros(length(log),1);
 log_idx = 1;
 
@@ -69,3 +120,18 @@ plot(log)
 hold on
 plot(filtsig);
 hold off
+
+%% more post
+
+iA = log(:,1);
+iB = log(:,2);
+iC = log(:,3);
+
+plot(time, iA);
+hold on
+plot(time, iB);
+plot(time, iC);
+% plot(time, iA+iB+iC);
+hold off
+
+
