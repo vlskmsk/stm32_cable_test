@@ -35,7 +35,6 @@ void print_int32(int32_t val)
 	HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 4, 100);
 }
 
-
 int led_state =0;
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
@@ -101,7 +100,7 @@ int main(void)
 	gl_angle = 0;
 	float f_motor = 2*PI;
 	float Va,Vb,Vc;
-	float A = .1;
+	float A = .15;
 
 	//	int16_t val = 0;
 	int16_t cos_top = 856;
@@ -147,29 +146,15 @@ int main(void)
 
 		t = time_seconds();
 
-		//		sprintf(msg_buf, "%d,%d\r\n", (int)(i_a*1000), (int)time_milliseconds());
-		//		print_string(msg_buf);
-
 		int32_t val1 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_A];
+//		int32_t val1 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_A]);
 		print_int32(val1);
-		//		msg_buf[0] = (val1 & 0x00FF);
-		//		msg_buf[1] = (val1 & 0xFF00)>>8;
-		//		msg_buf[2] = (val1 & 0xFF0000)>>16;
-		//		msg_buf[3] = (val1 & 0xFF000000)>>24;
 		int32_t val2 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_B];
+//		int32_t val2 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_B]);
 		print_int32(val2);
-		//		msg_buf[4] = (val2 & 0x00FF);
-		//		msg_buf[5] = (val2 & 0xFF00)>>8;
-		//		msg_buf[6] = (val2 & 0xFF0000)>>16;
-		//		msg_buf[7] = (val2 & 0xFF000000)>>24;
 		int32_t val3 = (int32_t)gl_current_input_offset-(int32_t)dma_adc_raw[ADC_CHAN_CURRENT_C];
+//		int32_t val3 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_C]);
 		print_int32(val3);
-		//		msg_buf[8] = (val3 & 0x00FF);
-		//		msg_buf[9] = (val3 & 0xFF00)>>8;
-		//		msg_buf[10] = (val3 & 0xFF0000)>>16;
-		//		msg_buf[11] = (val3 & 0xFF000000)>>24;
-		//		HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 12, 10);
-
 
 		//		f_motor = 3;
 		//		float theta = cos(t*f_motor)*12*M_PI * 5;
