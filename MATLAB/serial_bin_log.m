@@ -17,11 +17,11 @@ tic;
 while(ishandle(H))
     serLog = fread(s,numReadVals,'int32');
     
-    buf1 = [buf1(2:end), serLog(1)];
+%     buf1 = [buf1(2:end), serLog(1)];
 %     buf2 = [buf2(2:end), serLog(2)];
-
+    disp(serLog);
 %     hold off
-    plot(buf1(1,:));
+%     plot(buf1(1,:));
 %     hold on
 %     plot(buf2(1,:));
 %     hold off
@@ -81,7 +81,6 @@ while(1)
     end
 %     pause(0.01);
 end
-
 
 fclose(s);
 delete(s);

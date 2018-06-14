@@ -81,13 +81,13 @@ void MX_ADC_Init(void)
 	hadc.Init.Resolution = ADC_RESOLUTION_12B;
 	hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 	hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
-	hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+	hadc.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 	hadc.Init.LowPowerAutoWait = DISABLE;
 	hadc.Init.LowPowerAutoPowerOff = DISABLE;
 	hadc.Init.ContinuousConvMode = DISABLE;				//for asynchronous, enable.						//pwm, disable
 	hadc.Init.DiscontinuousConvMode = DISABLE;
 	hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;		//for asynchronous, software		//pwm, ADC_EXTERNALTRIGCONV_T1_TRGO
-	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_FALLING;	//for asynchronous, none		//psm, ADC_EXTERNALTRIGCONVEDGE_RISING?
+	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;	//for asynchronous, none		//psm, ADC_EXTERNALTRIGCONVEDGE_RISING?
 	hadc.Init.DMAContinuousRequests = ENABLE;
 	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
 	if (HAL_ADC_Init(&hadc) != HAL_OK)
@@ -99,7 +99,7 @@ void MX_ADC_Init(void)
 	 */
 	sConfig.Channel = ADC_CHANNEL_0;
 	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-	sConfig.SamplingTime = ADC_SAMPLETIME_28CYCLES_5;				//asynchronous, gotta drop this down a ton. synchronous... debatable, but i've had it at 1_5
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;				//asynchronous, gotta drop this down a ton. synchronous... debatable, but i've had it at 1_5
 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
@@ -236,7 +236,7 @@ void MX_TIM1_Init(void)
 	 * if you choose TRGO_OC1 AND the PWM mode is TIM_COUNTERMODE_CENTERALIGNED2, the interrupt will trigger
 	 * when ALL THREE low side fets are on.
 	 */
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC1;
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC4REF;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
 	if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
 	{
@@ -261,6 +261,13 @@ void MX_TIM1_Init(void)
 	}
 
 	if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
+//	sConfigOC.Pulse = 500;
+	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+	if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
@@ -336,20 +343,20 @@ void MX_USART1_UART_Init(void)
 }
 
 /**
-  * Enable DMA controller clock
-  */
+ * Enable DMA controller clock
+ */
 void MX_DMA_Init(void)
 {
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
+	/* DMA controller clock enable */
+	__HAL_RCC_DMA1_CLK_ENABLE();
 
-  /* DMA interrupt init */
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-  /* DMA1_Channel2_3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+	/* DMA interrupt init */
+	/* DMA1_Channel1_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 1, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+	/* DMA1_Channel2_3_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
 
 }
 
