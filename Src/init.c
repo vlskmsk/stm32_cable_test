@@ -86,8 +86,8 @@ void MX_ADC_Init(void)
 	hadc.Init.LowPowerAutoPowerOff = DISABLE;
 	hadc.Init.ContinuousConvMode = DISABLE;				//for asynchronous, enable.						//pwm, disable
 	hadc.Init.DiscontinuousConvMode = DISABLE;
-	hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;		//for asynchronous, software		//pwm, ADC_EXTERNALTRIGCONV_T1_TRGO
-	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;	//for asynchronous, none		//psm, ADC_EXTERNALTRIGCONVEDGE_RISING?
+	hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;		//external trigger, CC4!!!
+	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_FALLING;	//for CC4 type trigger, FALLING for curent, RISING for voltage!!!
 	hadc.Init.DMAContinuousRequests = ENABLE;
 	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
 	if (HAL_ADC_Init(&hadc) != HAL_OK)
@@ -99,7 +99,13 @@ void MX_ADC_Init(void)
 	 */
 	sConfig.Channel = ADC_CHANNEL_0;
 	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;				//asynchronous, gotta drop this down a ton. synchronous... debatable, but i've had it at 1_5
+	/*
+	 * you want to keep at 1_cycles 5 to try and minimize any error. unsure what amp source is but
+	 * likely this is major cause. maybe scaling?
+	 * you want to set CC4 so the first 3 samples catch right at the middle. i tried 600, but it was
+	 * a blind guess. got me decent results, but needs some config.
+	 */
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
@@ -228,13 +234,13 @@ void MX_TIM1_Init(void)
 	}
 
 	/*
-	 * NOTE:
-	 * if you choose TRGO_UPDATE the interrupt will trigger when current it actively flowing through the fets.
-	 * I think the pwm mode is irrelevant in this case, but I choose CENTERALIGNED3 and get good results
+	 * OC4REF lets you choose exactly when the trigger hits.
+	 * for adc, you can choose which edge. for current it's FALLING, for voltage it's RISING.
+	 *
+	 * for both, you'll have to trigger both and parse each sample somehow. this is a little uncertain to me
+	 * how to do right now, but you can test in the handler
 	 *
 	 *
-	 * if you choose TRGO_OC1 AND the PWM mode is TIM_COUNTERMODE_CENTERALIGNED2, the interrupt will trigger
-	 * when ALL THREE low side fets are on.
 	 */
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC4REF;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
@@ -264,7 +270,9 @@ void MX_TIM1_Init(void)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
-
+	/*
+	 * you need to configure this channel for the CC4 trigger to function proper
+	 */
 //	sConfigOC.Pulse = 500;
 	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
 	if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)

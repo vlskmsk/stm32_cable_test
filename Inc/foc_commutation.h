@@ -35,6 +35,6 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 void sector_check(float alpha, float beta, float * theta, uint32_t * sector);
 float est_R();
 float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2);
-
+void obtain_encoder_offset();
 
 #endif /* FOC_COMMUTATION_H_ */

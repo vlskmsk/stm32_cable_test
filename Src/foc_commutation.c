@@ -9,6 +9,7 @@
 #include "commutation.h"
 #include <math.h>
 #include "delay_uS.h"
+#include "mag-encoder.h"
 float mL = 0;
 float mR = 0;
 float V_psi = 0;
@@ -346,4 +347,20 @@ float est_L()
 		//		float max_cur = coil_r
 	}
 	return 0;
+}
+
+
+void obtain_encoder_offset()
+{
+	float A = .1;
+	float Va = A*sin(0);
+	float Vb = A*sin(0 + 2*M_PI/3);
+	float Vc = A*sin(0 + 4*M_PI/3);
+	float Valpha, Vbeta;
+	uint32_t tA,tB,tC;
+	clarke_transform(Va,Vb,Vc,&Valpha, &Vbeta);
+	svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
+	TIMER_UPDATE_DUTY(tA,tB,tC);
+	HAL_Delay(50);
+	align_offset = theta_abs_rad();
 }

@@ -10,33 +10,86 @@ H = uicontrol();
 numReadVals = 2;
 bufSize = 500;
 buf1 = nan(1,bufSize);
-buf2 = nan(1,bufSize);
+% buf2 = nan(1,bufSize);
 
+fwrite(s,'P');
 tic;
+min_v = [4096,4096];
+max_v = [0,0];
+eq_v = zeros(200,1);     %this might not trigger properly. adding some tolerance might be necessary
+eq_v_idx = 1;
 while(ishandle(H))
     serLog = fread(s,numReadVals,'int16');
+    for i = 1:2
+        if(serLog(i) < min_v(i))
+            min_v(i) = serLog(i);
+%             disp(serLog);
+        end
+        if(serLog(i) > max_v(i))
+            max_v(i) = serLog(i);
+%             disp(serLog);
+        end
+    end
     
-    buf1 = [buf1(2:end), serLog(1)];
-    buf2 = [buf2(2:end), serLog(2)];
+    abs_diff = abs(serLog(1)-serLog(2));
+    if(abs_diff < 10)
+        disp(serLog);
+        eq_v(eq_v_idx) = serLog(1);
+        eq_v_idx = eq_v_idx+1;
+        if(eq_v_idx>length(eq_v))
+            eq_v_idx = 1;           %just fucking wrap that shit i guess
+        end
+    end
+  
+    
+%     buf1 = [buf1(2:end), serLog(1)];
+%     buf2 = [buf2(2:end), serLog(2)];
+%     hold off
+%     plot(buf1(1,:));
+%     hold on
+%     plot(buf2(1,:));
+%     hold off
 
-    hold off
-    plot(buf1(1,:));
-    hold on
-    plot(buf2(1,:));
-    hold off
+
+
+
+%     disp(serLog);
+
+
+
+
     
     pause(0.00001);
 end
+fwrite(s,'P');
 
 fclose(s);
 delete(s);
 clear s;
+%%
 
+mid_sin = (max_v(1)+min_v(1))/2;
+mid_cos = (max_v(2)+min_v(2))/2;
+Ad = max_v(1)-min_v(1);
+Av = Ad*3.3/4096;
 
-
-
-
-
+top_45 = 0;
+bottom_45 = 0;
+for i = 1 : length(eq_v)
+    if(eq_v(i) ~= 0)
+        if(eq_v(i) > mid_cos)
+            top_45(i) = eq_v(i);
+        end
+        if(eq_v(i) < mid_cos)
+            bottom_45(i) = eq_v(i);
+        end
+    end
+end
+avg_top = mean(top_45);
+avg_bottom = mean(bottom_45);
+est_max = avg_top/(sin(pi/4));
+est_min = avg_bottom/(sin(pi/4));
+est_mid = (avg_top+avg_bottom)
 
 %%
 plot(buf1);
@@ -131,6 +184,7 @@ plot(time, iA);
 hold on
 plot(time, iB);
 plot(time, iC);
+% plot(time, iA+iB+iC);
 hold off
 
 
