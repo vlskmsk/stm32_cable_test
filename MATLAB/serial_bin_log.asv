@@ -7,7 +7,7 @@ fopen(s);
 figure;
 H = uicontrol();
 
-numReadVals = 2;
+numReadVals = 1;
 bufSize = 500;
 buf1 = nan(1,bufSize);
 % buf2 = nan(1,bufSize);
@@ -20,27 +20,30 @@ eq_v = zeros(200,1);     %this might not trigger properly. adding some tolerance
 eq_v_idx = 1;
 while(ishandle(H))
     serLog = fread(s,numReadVals,'int16');
-    for i = 1:2
-        if(serLog(i) < min_v(i))
-            min_v(i) = serLog(i);
-%             disp(serLog);
-        end
-        if(serLog(i) > max_v(i))
-            max_v(i) = serLog(i);
-%             disp(serLog);
-        end
-    end
     
-    abs_diff = abs(serLog(1)-serLog(2));
-    if(abs_diff < 10)
-        disp(serLog);
-        eq_v(eq_v_idx) = serLog(1);
-        eq_v_idx = eq_v_idx+1;
-        if(eq_v_idx>length(eq_v))
-            eq_v_idx = 1;           %just fucking wrap that shit i guess
-        end
-    end
-  
+    
+    
+%     for i = 1:2
+%         if(serLog(i) < min_v(i))
+%             min_v(i) = serLog(i);
+% %             disp(serLog);
+%         end
+%         if(serLog(i) > max_v(i))
+%             max_v(i) = serLog(i);
+% %             disp(serLog);
+%         end
+%     end
+%     
+%     abs_diff = abs(serLog(1)-serLog(2));
+%     if(abs_diff < 1)
+%         disp(serLog);
+%         eq_v(eq_v_idx) = serLog(1);
+%         eq_v_idx = eq_v_idx+1;
+%         if(eq_v_idx>length(eq_v))
+%             eq_v_idx = 1;           %just fucking wrap that shit i guess
+%         end
+%     end
+%   
     
 %     buf1 = [buf1(2:end), serLog(1)];
 %     buf2 = [buf2(2:end), serLog(2)];
@@ -50,14 +53,7 @@ while(ishandle(H))
 %     plot(buf2(1,:));
 %     hold off
 
-
-
-
-%     disp(serLog);
-
-
-
-
+    disp(serLog);
     
     pause(0.00001);
 end
@@ -89,15 +85,14 @@ avg_top = mean(top_45);
 avg_bottom = mean(bottom_45);
 est_max = avg_top/(sin(pi/4));
 est_min = avg_bottom/(sin(pi/4));
-est_mid = (avg_top+avg_bottom)
+est_mid = (avg_top+avg_bottom)/2;
 
 %%
-plot(buf1);
-hold on
-plot(buf2);
-hold off
-
-
+theta = 5*pi/4;
+ang_deg = atan2(sin(theta),cos(theta))*180/pi;
+if(ang_deg < 0)
+    ang_deg = ang_deg+360
+end
 
 
 
@@ -176,15 +171,24 @@ hold off
 
 %% more post
 
-iA = log(:,1);
-iB = log(:,2);
-iC = log(:,3);
+iAd = log(:,1);
+iBd = log(:,2);
+iCd = log(:,3);
 
-plot(time, iA);
+plot(time, iAd);
 hold on
-plot(time, iB);
-plot(time, iC);
+plot(time, iBd);
+plot(time, iCd);
 % plot(time, iA+iB+iC);
 hold off
+
+Ad_a = max(iAd)-min(iAd);
+midA_d = (max(iAd)+min(iAd))/2;
+
+Ad_b = max(iBd)-min(iBd);
+midB_d = (max(iBd)+min(iBd))/2;
+
+Ad_c = max(iCd)-min(iCd);
+midC_d = round((max(iCd)+min(iCd))/2);
 
 

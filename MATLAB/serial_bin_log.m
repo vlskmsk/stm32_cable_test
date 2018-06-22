@@ -107,7 +107,7 @@ fopen(s);
 % H = uicontrol('Style','text','String', 'close figure to exit',...
 %                 'Position',[20,20,100,50]);
 
-numReadVals = 3;
+numReadVals = 1;
 valScale = 1;
 log = zeros(5000,numReadVals);
 time = zeros(length(log),1);
@@ -169,17 +169,43 @@ hold on
 plot(filtsig);
 hold off
 
-%% more post
+%% get midpoint, scales
 
-iA = log(:,1);
-iB = log(:,2);
-iC = log(:,3);
+iAd = log(:,1);
+iBd = log(:,2);
+iCd = log(:,3);
 
+plot(time, iAd);
+hold on
+plot(time, iBd);
+plot(time, iCd);
+% plot(time, iA+iB+iC);
+hold off
+
+Ad_a = max(iAd)-min(iAd);
+midA_d = round((max(iAd)+min(iAd))/2);
+
+Ad_b = max(iBd)-min(iBd);
+midB_d = round((max(iBd)+min(iBd))/2);
+
+Ad_c = max(iCd)-min(iCd);
+midC_d = round((max(iCd)+min(iCd))/2);
+
+aScale = Ad_c/Ad_a;
+bScale = Ad_c/Ad_b;
+cScale = 1;
+
+convScale = 1/(.007*20*4096/3.3);
+%% Use scales
+iA = (iAd-midA_d)*convScale*aScale;
+iB = (iBd-midB_d)*convScale*bScale;
+iC = (iCd-midC_d)*convScale;
+figure(2)
 plot(time, iA);
 hold on
 plot(time, iB);
 plot(time, iC);
-% plot(time, iA+iB+iC);
 hold off
+
 
 

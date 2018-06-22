@@ -20,7 +20,11 @@ float R;
 #define TWO_BY_SQRT_3 	1.15470053838
 #define SQRT_3_BY_2 	0.866025404
 
-#define ADC_CURRENT_CONV_RATIO 0.002877371651785714285714	//	= (3.3/4096)/(40*.007)
+//#define ADC_CURRENT_CONV_RATIO 0.002877371651785714285714	//	= (3.3/4096)/(40*.007)
+const float adc_conv_A = 0.005754743303571*1.574414186193794;
+const float adc_conv_B = 0.005754743303571*1.126926563916591;
+const float adc_conv_C = 0.005754743303571;
+
 //#define ADC_CURRENT_CONV_RATIO 0.00421428571	//adjustment calibrated to red handheld DMM
 
 void init_observer()
@@ -81,6 +85,31 @@ float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, fl
 
 int gl_sector=1;
 
+
+void get_current_cal_offsets()
+{
+	TIMER_UPDATE_DUTY(0,0,0);
+	gl_current_input_offset_A = 0;
+	gl_current_input_offset_B = 0;
+	gl_current_input_offset_C = 0;
+	int i;
+	const int numSamples = 1000;
+	for(i=0;i<numSamples;i++)
+	{
+		gl_current_input_offset_A += dma_adc_raw[ADC_CHAN_CURRENT_A];
+		gl_current_input_offset_B += dma_adc_raw[ADC_CHAN_CURRENT_B];
+		gl_current_input_offset_C += dma_adc_raw[ADC_CHAN_CURRENT_C];
+		uint32_t uS_ts = time_microseconds()+100;
+		while(time_microseconds() < uS_ts);
+	}
+	gl_current_input_offset_A /= numSamples;
+	gl_current_input_offset_B /= numSamples;
+	gl_current_input_offset_C /= numSamples;
+
+//	gl_current_input_offset_A = 1993;
+//	gl_current_input_offset_B = 1971;
+//	gl_current_input_offset_C = 1966;
+}
 /*
  *	convert each phase adc voltage to actual current value
  */
@@ -91,9 +120,9 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
 	 */
 	//	uint8_t state = 0x7 & ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
 
-	*i_a = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_A])*ADC_CURRENT_CONV_RATIO;
-	*i_b = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_B])*ADC_CURRENT_CONV_RATIO;
-	*i_c = (float)(gl_current_input_offset - dma_adc_raw[ADC_CHAN_CURRENT_C])*ADC_CURRENT_CONV_RATIO;
+	*i_a = (float)(gl_current_input_offset_A - dma_adc_raw[ADC_CHAN_CURRENT_A])*adc_conv_A;
+	*i_b = (float)(gl_current_input_offset_B - dma_adc_raw[ADC_CHAN_CURRENT_B])*adc_conv_B;
+	*i_c = (float)(gl_current_input_offset_C - dma_adc_raw[ADC_CHAN_CURRENT_C])*adc_conv_C;
 
 /*
 	uint8_t state = shunt_state;
@@ -140,9 +169,15 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
 
 void convert_phase_voltage(float * va, float * vb, float * vc)
 {
-	*va = (float)dma_adc_raw[ADC_CHAN_BEMF_A] * 0.00261619718;
-	*vb = (float)dma_adc_raw[ADC_CHAN_BEMF_B] * 0.00261619718;
-	*vc = (float)dma_adc_raw[ADC_CHAN_BEMF_C] * 0.00261619718;
+//	*va = (float)dma_adc_raw[ADC_CHAN_BEMF_A] * 0.00261619718;
+//	*vb = (float)dma_adc_raw[ADC_CHAN_BEMF_B] * 0.00261619718;
+//	*vc = (float)dma_adc_raw[ADC_CHAN_BEMF_C] * 0.00261619718;
+	int16_t t1 = TIM1->CCR1;
+	int16_t t2 = TIM1->CCR2;
+	int16_t t3 = TIM1->CCR3;
+	*va = (float)t1/1000.0;	//period
+	*vb = (float)t2/1000.0;	//period
+	*vc = (float)t3/1000.0;	//period
 }
 
 #define SQRT_3 1.7320508075688772935274463415f
