@@ -11,6 +11,8 @@
 #define ADC_SIN_CHAN 	5
 #define ADC_COS_CHAN 	3
 
+const float rad_to_deg;
+
 float align_offset;				//offset angle IN RADIANS
 float theta_abs_rad();
 float theta_rel_rad();

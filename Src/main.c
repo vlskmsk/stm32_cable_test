@@ -103,106 +103,106 @@ int main(void)
 
 	//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
-	float f_motor = 2*PI*1;
-	float Va,Vb,Vc;
-	float A = .09;
+	float f_motor = 2*PI*5;
 
 
 	TIMER_UPDATE_DUTY(0,0,0);
 	float theta = 0;
-	float tstart = time_seconds();
-	float f = 2*M_PI;
 
 	bang_test_state bang_state = ADVANCE_TO_ZERO;
 	int angle_set = 0;
 	int angle_inc = 90;
 	obtain_encoder_offset();
+	float tstart = time_seconds();
 
-	/*
-		while(1)
+	while(1)
+	{
+		int16_t angleDeg = (int16_t)(theta_rel_deg());
+		if(angleDeg < 0)
+			angleDeg += 360;
+		//		print_int32(angleDeg);
+		print_int16(-angleDeg*12);
+		print_int16(theta*rad_to_deg);
+		//		print_int16(dma_adc_raw[ADC_CHAN_BEMF_C]);
+
+		float t = time_seconds()-tstart;
+
+		switch (bang_state)
 		{
-			int16_t angleDeg = (int16_t)(theta_rel_deg());
-			if(angleDeg < 0)
-				angleDeg += 360;
-	//		print_int32(angleDeg);
-			print_int16(angleDeg);
-	//		print_int16(dma_adc_raw[ADC_CHAN_BEMF_C]);
-
-			float t = time_seconds()-tstart;
-
-			switch (bang_state)
+		case ADVANCE_TO_ZERO:
+		{
+			if(angleDeg != 0)
 			{
-				case ADVANCE_TO_ZERO:
-				{
-					if(angleDeg != 0)
-					{
-						theta+=.05;
-					}
-					else if (angleDeg == 0)
-					{
-						bang_state = REST_AT_ZERO;
-						tstart = time_seconds();
-					}
-					break;
-				}
-				case REST_AT_ZERO:
-				{
-					if(t > 2)
-						bang_state = ADVANCE_TO_ANGLE;
-					break;
-				}
-				case ADVANCE_TO_ANGLE:
-				{
-					if(angleDeg != angle_set)
-					{
-						theta-=.05;
-					}
-					else if (angleDeg - angle_set < 1 && angleDeg-angle_set > - 1)
-					{
-						bang_state = REST_AT_ANGLE;
-						tstart = time_seconds();
-					}
-					break;
-				}
-				case REST_AT_ANGLE:
-				{
-					if(t > 2)
-					{
-						angle_set += angle_inc;
-						if(angle_set >= 360)
-							angle_set = 0;
-						bang_state = ADVANCE_TO_ANGLE;
-					}
-					break;
-				}
-				default:
-				{
-					break;
-				}
+				theta+=.05;
 			}
-
-			Va = A*sin(theta);
-			Vb = A*sin(theta + 2*M_PI/3);
-			Vc = A*sin(theta + 4*M_PI/3);
-			float Valpha, Vbeta;
-			uint32_t tA,tB,tC;
-			clarke_transform(Va,Vb,Vc,&Valpha, &Vbeta);
-			svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
-	 		TIMER_UPDATE_DUTY(tA,tB,tC);
-
-			HAL_Delay(10);
-			if(TIM14_ms()>=led_ts)
+			else if (angleDeg == 0)
 			{
-				//			dir = !dir&1;
-				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
-				led_state = !led_state & 1;
-				led_ts = TIM14_ms() + 200;
+				bang_state = REST_AT_ZERO;
+				tstart = time_seconds();
 			}
+			break;
 		}
-	 */
+		case REST_AT_ZERO:
+		{
+			if(t > 2)
+				bang_state = ADVANCE_TO_ANGLE;
+			break;
+		}
+		case ADVANCE_TO_ANGLE:
+		{
+			if(angleDeg != angle_set)
+			{
+				theta-=.05;
+			}
+			else if (angleDeg - angle_set < 1 && angleDeg-angle_set > - 1)
+			{
+				bang_state = REST_AT_ANGLE;
+				tstart = time_seconds();
+			}
+			break;
+		}
+		case REST_AT_ANGLE:
+		{
+			if(t > 2)
+			{
+				angle_set += angle_inc;
+				if(angle_set >= 360)
+					angle_set = 0;
+				bang_state = ADVANCE_TO_ANGLE;
+			}
+			break;
+		}
+		default:
+		{
+			break;
+		}
 
-	float x1,x2;
-	x1 = 0; x2 = 0;
+		}
+		float i_alpha,i_beta;
+		uint32_t tA,tB,tC;
+		inverse_park_transform(.1, 0, theta, &i_alpha, &i_beta);	//maybe call theta rel again?
+		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+		TIMER_UPDATE_DUTY(tA,tB,tC);
+
+//		HAL_Delay(10);
+		if(TIM14_ms()>=led_ts)
+		{
+			//			dir = !dir&1;
+			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
+			led_state = !led_state & 1;
+			led_ts = TIM14_ms() + 200;
+		}
+	}
+
+
+
+	float x_iq_PI = 0;	//torque pi state
+	float x_id_PI = 0;	//flux pi state
+	float uq = 0;
+	float ud = 0;
+
+	//	float x1,x2;
+	//	x1 = 0; x2 = 0;
 	while(1)
 	{
 		float i_a,i_b,i_c;
@@ -213,36 +213,51 @@ int main(void)
 		float i_alpha,i_beta;
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 		float i_q, i_d;
-		park_transform(i_alpha, i_beta, theta_rel_rad(), &i_q, &i_d);
+		t = time_seconds()-tstart;
+		float theta_m = theta_abs_rad()*-12.0;
+		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
 
-		t = time_seconds();
-		Va = A*sin(f_motor*t);
-		Vb = A*sin(f_motor*t + 2*M_PI/3);
-		Vc = A*sin(f_motor*t + 4*M_PI/3);
+//		controller_PI(.1, i_q, .01, 0.01, &x_iq_PI, &uq);
+//		controller_PI(0, i_d, 0.01, .01, &x_id_PI, &ud);
 
-		float Valpha, Vbeta;
 		uint32_t tA,tB,tC;
-		clarke_transform(Va,Vb,Vc,&Valpha, &Vbeta);
-		svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
+		uq = .05;
+		ud = 0;
+		theta_m = f_motor*t;
+		inverse_park_transform(uq, ud, theta_m, &i_alpha, &i_beta);	//maybe call theta rel again?
+		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
+
+		//		theta = f_motor*t;
+		//		Va = A*sin(theta);
+		//		Vb = A*sin(theta + 2*M_PI/3);
+		//		Vc = A*sin(theta + 4*M_PI/3);
+		//		float Valpha, Vbeta;
+		//		uint32_t tA,tB,tC;
+		//		clarke_transform(Va,Vb,Vc,&Valpha, &Vbeta);
+		//		svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
+		//		TIMER_UPDATE_DUTY(tA,tB,tC);
+
 
 		//		int32_t val1 = (int32_t)dma_adc_raw[ADC_CHAN_CURRENT_A];
 		//		int32_t val1 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_A]);
 		int32_t val1 = (int32_t)(i_q*1000.0);
-//		int32_t val1 = tA;
+		//		int32_t val1 = tA;
+		//		int32_t val1 = (int32_t)(theta*rad_to_deg);
 		print_int32(val1);
 
 		//		int32_t val2 = (int32_t)dma_adc_raw[ADC_CHAN_CURRENT_B];
 		//		int32_t val2 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_B]);
-//		int32_t val2 = (int32_t)(i_b*1000.0);
-//		int32_t val2 = tB;
-//		print_int32(val2);
+		//				int32_t val2 = (int32_t)(i_b*1000.0);
+		//		int32_t val2 = tB;
+		//		int32_t val2 = (int32_t)(theta_m*rad_to_deg);
+		//		print_int32(val2);
 
 		//		int32_t val3 = (int32_t)dma_adc_raw[ADC_CHAN_CURRENT_C];
 		//		int32_t val3 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_C]);
-//		int32_t val3 = (int32_t)(i_c*1000.0);
-//		int32_t val3 = tC;
-//		print_int32(val3);
+		//				int32_t val3 = (int32_t)(i_c*1000.0);
+		//		int32_t val3 = tC;
+		//		print_int32(val3);
 
 		if(TIM14_ms()>=led_ts)
 		{

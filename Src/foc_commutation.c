@@ -123,48 +123,6 @@ void conv_raw_current(float * i_a, float * i_b, float * i_c)
 	*i_a = (float)(gl_current_input_offset_A - dma_adc_raw[ADC_CHAN_CURRENT_A])*adc_conv_A;
 	*i_b = (float)(gl_current_input_offset_B - dma_adc_raw[ADC_CHAN_CURRENT_B])*adc_conv_B;
 	*i_c = (float)(gl_current_input_offset_C - dma_adc_raw[ADC_CHAN_CURRENT_C])*adc_conv_C;
-
-/*
-	uint8_t state = shunt_state;
-	// c , b , a
-	switch (state)
-	{
-		case 1:
-		{
-			*i_a = -(*i_b + *i_c);
-			break;
-		}
-		case 2:
-		{
-			*i_b = -(*i_a + *i_c);
-			break;
-		}
-		case 3:
-		{
-			*i_a = *i_c*-.5;
-			*i_b = *i_a;
-			break;
-		}
-		case 4:
-		{
-			*i_c = -(*i_a + *i_b);
-			break;
-		}
-		case 5:
-		{
-			*i_a = *i_b*-.5;
-			*i_c = *i_a;
-			break;
-		}
-		case 6:
-		{
-			*i_b = *i_a*-.5;
-			*i_c = *i_b;
-			break;
-		}
-	}*/
-
-
 }
 
 void convert_phase_voltage(float * va, float * vb, float * vc)
@@ -289,6 +247,26 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	return sector;
 }
 
+//const float Kcor = 0;
+//const float u_max = 6.0;
+//const float u_min = 6.0;
+/*
+ * x is state variable for integral delay
+ */
+void controller_PI(float i_q_ref, float i_q, float Kp, float Ki, float * x, float * u)
+{
+//	float err = i_q_ref-i_q;
+//	float uk = *x + Ki*err;
+//	if(uk > u_max)
+//		*u = u_max;
+//	if(uk < u_min)
+//		*u = u_min;
+//	float elk = uk - *u;
+//	*x = *x + Ki*err + Kcor*elk;
+	float err = i_q_ref-i_q;
+	*u = *x + Kp*err;
+	*x = *x + Ki*err;
+}
 void clarke_transform(float i_a, float i_b, float i_c, float * i_alpha, float * i_beta)
 {
 	(*i_alpha) = i_a;
@@ -387,15 +365,12 @@ float est_L()
 
 void obtain_encoder_offset()
 {
-	float A = .1;
-	float Va = A*sin(0);
-	float Vb = A*sin(0 + 2*M_PI/3);
-	float Vc = A*sin(0 + 4*M_PI/3);
-	float Valpha, Vbeta;
+	float i_alpha,i_beta;
+	inverse_park_transform(.1, 0, 0, &i_alpha, &i_beta);	//maybe call theta rel again?
 	uint32_t tA,tB,tC;
-	clarke_transform(Va,Vb,Vc,&Valpha, &Vbeta);
-	svm(Valpha, Vbeta, TIM1->ARR, &tA, &tB, &tC);
+	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 	TIMER_UPDATE_DUTY(tA,tB,tC);
 	HAL_Delay(50);
 	align_offset = theta_abs_rad();
+	TIMER_UPDATE_DUTY(0,0,0);
 }
