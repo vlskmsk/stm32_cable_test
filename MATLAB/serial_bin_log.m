@@ -7,7 +7,7 @@ fopen(s);
 figure;
 H = uicontrol();
 
-numReadVals = 2;
+numReadVals = 1;
 bufSize = 500;
 buf1 = nan(1,bufSize);
 % buf2 = nan(1,bufSize);
@@ -19,7 +19,7 @@ max_v = [0,0];
 eq_v = zeros(200,1);     %this might not trigger properly. adding some tolerance might be necessary
 eq_v_idx = 1;
 while(ishandle(H))
-    serLog = fread(s,numReadVals,'int16');    
+    serLog = fread(s,numReadVals,'int32');    
 %     for i = 1:2
 %         if(serLog(i) < min_v(i))
 %             min_v(i) = serLog(i);
@@ -50,11 +50,11 @@ while(ishandle(H))
 %     plot(buf2(1,:));
 %     hold off
 
-    disp(serLog(1));
-    disp(serLog(2));
     
-%   disp(serLog);
-    
+    disp(serLog);
+%     str = sprintf('%f,%f, dif: %f\n', mod(serLog(1),360),serLog(2),  mod(serLog(1),360)-serLog(2));
+%     disp(str);
+
     pause(0.00001);
 end
 fwrite(s,'P');
@@ -108,7 +108,6 @@ fopen(s);
 %                 'Position',[20,20,100,50]);
 
 numReadVals = 1;
-valScale = 1;
 log = zeros(5000,numReadVals);
 time = zeros(length(log),1);
 log_idx = 1;
@@ -131,7 +130,8 @@ end
 fclose(s);
 delete(s);
 clear s;
-
+%%
+valScale = 1/1000;
 hold off
 plot(time,log(:,1)*valScale);
 hold on

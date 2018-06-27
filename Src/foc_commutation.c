@@ -20,6 +20,7 @@ float R;
 #define TWO_BY_SQRT_3 	1.15470053838
 #define SQRT_3_BY_2 	0.866025404
 
+
 //#define ADC_CURRENT_CONV_RATIO 0.002877371651785714285714	//	= (3.3/4096)/(40*.007)
 const float adc_conv_A = 0.005754743303571*1.574414186193794;
 const float adc_conv_B = 0.005754743303571*1.126926563916591;
@@ -247,25 +248,26 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	return sector;
 }
 
-//const float Kcor = 0;
-//const float u_max = 6.0;
-//const float u_min = 6.0;
+const float Kcor = 0.1;
+const float u_max = .25;
+const float u_min = -.25;
 /*
  * x is state variable for integral delay
  */
 void controller_PI(float i_q_ref, float i_q, float Kp, float Ki, float * x, float * u)
 {
-//	float err = i_q_ref-i_q;
-//	float uk = *x + Ki*err;
-//	if(uk > u_max)
-//		*u = u_max;
-//	if(uk < u_min)
-//		*u = u_min;
-//	float elk = uk - *u;
-//	*x = *x + Ki*err + Kcor*elk;
 	float err = i_q_ref-i_q;
-	*u = *x + Kp*err;
-	*x = *x + Ki*err;
+	float uk = *x + Kp*err;
+	*u = uk;
+	if(uk > u_max)
+		*u = u_max;
+	if(uk < u_min)
+		*u = u_min;
+	float elk = uk - *u;
+	*x = *x + Ki*err + Kcor*elk;
+//	float err = i_q_ref-i_q;
+//	*u = *x + Kp*err;
+//	*x = *x + Ki*err;
 }
 void clarke_transform(float i_a, float i_b, float i_c, float * i_alpha, float * i_beta)
 {
@@ -370,7 +372,7 @@ void obtain_encoder_offset()
 	uint32_t tA,tB,tC;
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 	TIMER_UPDATE_DUTY(tA,tB,tC);
-	HAL_Delay(50);
+	HAL_Delay(500);
 	align_offset = theta_abs_rad();
 	TIMER_UPDATE_DUTY(0,0,0);
 }

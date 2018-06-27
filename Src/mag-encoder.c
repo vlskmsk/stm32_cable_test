@@ -6,8 +6,10 @@
  */
 #include "mag-encoder.h"
 #include <math.h>
-const int16_t cos_mid = 1992;
-const int16_t sin_mid = 1992;		//extrapolated from min-max midpoint only
+//const int16_t cos_mid = 1992;
+//const int16_t sin_mid = 1992;		//extrapolated from min-max midpoint only
+const int16_t sin_mid = 1250;
+const int16_t cos_mid = 1243.5;
 float align_offset = 0;				//offset angle IN RADIANS
 
 float theta_abs_rad()
@@ -21,7 +23,7 @@ float theta_rel_rad()
 {
 	int16_t sinVal = dma_adc_raw[ADC_SIN_CHAN]-sin_mid;
 	int16_t cosVal = dma_adc_raw[ADC_COS_CHAN]-cos_mid;
-	return (atan2((float)sinVal,(float)cosVal)-align_offset);
+	return atan2((float)sinVal,(float)cosVal) - align_offset;
 }
 const float rad_to_deg = 180.0/M_PI;
 float theta_abs_deg()
