@@ -130,14 +130,24 @@ end
 fclose(s);
 delete(s);
 clear s;
-%%
-valScale = 1/1000;
+
+valScale = 1/100000;
 hold off
 plot(time,log(:,1)*valScale);
 hold on
 for i = 2:size(log,2);
     plot(time,log(:,i)*valScale);
 end
+hold off
+
+%%
+i_q = log(:,1)*valScale;
+err = (-.3-i_q);
+uq = err*.5;
+plot(time,i_q);
+hold on
+plot(time,err);
+plot(time,uq);
 hold off
 
 %% fft

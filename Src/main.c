@@ -59,151 +59,58 @@ int main(void)
 	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_ADC_Init();
-	//	MX_SPI1_Init();
+	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
-	MX_TIM14_Init();
+	//	MX_TIM14_Init();
 	//  MX_I2C1_Init();
 
 	//	HAL_TIM_Base_Start(&htim14);
-	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
+	//	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
+
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
-	TIM1->CCR4 = 700;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
-
-
-	//	init_23kHz_filt_coef();
+	TIM1->CCR4 = 650;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
 	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data,2);	//think need to change DMA settings to word from byte or half word
 
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 
-	//	int i;
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 1);
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
 	HAL_Delay(100);
 
-	//	gl_current_input_offset = (dma_adc_raw[ADC_CHAN_CURRENT_A]+dma_adc_raw[ADC_CHAN_CURRENT_B]+dma_adc_raw[ADC_CHAN_CURRENT_C])/3;
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 	get_current_cal_offsets();
-
-
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-	//	gl_zero_cross_point = initZeroCrossPoint(dma_adc_raw);
 
-
-	//	init_observer();
+	init_observer();
 
 	int led_ts = HAL_GetTick()+100;
 	int led_state = 1;
 
 	float t = 0;
 
-	//	int t_ts = HAL_GetTick();
 	gl_angle = 0;
-	float f_motor = 2*PI*5;
-
 
 	TIMER_UPDATE_DUTY(0,0,0);
-	float theta = 0;
 
-	bang_test_state bang_state = ADVANCE_TO_ZERO;
-	int angle_set = 0;
-	int angle_inc = 30;
 	obtain_encoder_offset();
 	float tstart = time_seconds();
-
-
-	/*
-	while(1)
-	{
-		int16_t angleDeg = (int16_t)(theta_rel_deg());
-
-		//		print_int32(angleDeg);
-		print_int16(-angleDeg*12);
-		print_int16(theta*rad_to_deg);
-		//		print_int16(dma_adc_raw[ADC_CHAN_BEMF_C]);
-
-		float t = time_seconds()-tstart;
-
-		switch (bang_state)
-		{
-		case ADVANCE_TO_ZERO:
-		{
-			if(angleDeg != 0)
-			{
-				theta+=.01;
-			}
-			else if (angleDeg == 0)
-			{
-				bang_state = REST_AT_ZERO;
-				tstart = time_seconds();
-			}
-			break;
-		}
-		case REST_AT_ZERO:
-		{
-			if(t > 2)
-				bang_state = ADVANCE_TO_ANGLE;
-			break;
-		}
-		case ADVANCE_TO_ANGLE:
-		{
-			if(angleDeg != angle_set)
-			{
-				theta-=.01;
-			}
-			else if (angleDeg - angle_set < 1 && angleDeg-angle_set > - 1)
-			{
-				bang_state = REST_AT_ANGLE;
-				tstart = time_seconds();
-			}
-			break;
-		}
-		case REST_AT_ANGLE:
-		{
-			if(t > 2)
-			{
-				angle_set += angle_inc;
-				bang_state = ADVANCE_TO_ANGLE;
-			}
-			break;
-		}
-		default:
-		{
-			break;
-		}
-
-		}
-
-		float i_alpha,i_beta;
-		uint32_t tA,tB,tC;
-		inverse_park_transform(.1, 0, theta, &i_alpha, &i_beta);	//maybe call theta rel again?
-		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-		TIMER_UPDATE_DUTY(tA,tB,tC);
-
-		//		HAL_Delay(10);
-		if(TIM14_ms()>=led_ts)
-		{
-			//			dir = !dir&1;
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
-			led_state = !led_state & 1;
-			led_ts = TIM14_ms() + 200;
-		}
-	}
-	 */
 
 
 	float x_iq_PI = 0;	//torque pi state
 	float x_id_PI = 0;	//flux pi state
 	float uq = 0;
 	float ud = 0;
+	float x1 = 0;
+	float x2 = 0;
 
 	while(1)
 	{
-
 		float i_a,i_b,i_c;
 		conv_raw_current(&i_a,&i_b, &i_c);
 		//		float Va_m, Vb_m, Vc_m;
@@ -213,52 +120,43 @@ int main(void)
 		float i_alpha,i_beta;
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
-		//		float theta_m = TWO_PI - theta_rel_rad()*11.0;		//test this! it has 11 pole pairs ya fuck
-		float theta_m = theta_rel_rad();							//work with only steven motor
+		float theta_m = theta_rel_rad()*11.0;		//test this! it has 11 pole pairs ya fuck
+		//		float theta_m = theta_rel_rad();							//work with only steven motor
 
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
 
-		controller_PI(.0001, i_q, 0.02, 0.00, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(-0.1, i_d, 0.5, 0.0001, &x_id_PI, &ud);		//high current
+		controller_PI(-1.1, i_q, 0.03, 0.0001, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(0.0, i_d, 0.0, 0.0, &x_id_PI, &ud);		//high current
 
-		//		uq=0.001;					//this also works with no manual spin
-		//		ud= -0.1;					//low current, and feedback, but technically not foc
-
+//		const float thresh = .05;
+//		if(uq > thresh)
+//			uq = thresh;
+//		if(uq < -thresh)
+//			uq = -thresh;
+//		if(ud > thresh)
+//			ud = thresh;
+//		if(ud < -thresh)
+//			ud = -thresh;
+//
+		uq=-0.05;					//this also works with no manual spin
+//		ud= -0.0;					//low current, and feedback, but technically not foc
 
 		uint32_t tA,tB,tC;
 		inverse_park_transform(uq, ud, theta_m, &i_alpha, &i_beta);	//maybe call theta rel again?
 		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
-		//		int32_t val1 = (int32_t)dma_adc_raw[ADC_CHAN_CURRENT_A];
-		//		int32_t val1 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_A]);
-		//		int32_t val1 = (int32_t)(i_q*1000.0);
-		//		int32_t val1 = tA;
-		//		int32_t val1 = (int32_t)(theta_rel_deg());
-		//		int32_t val1 = (int32_t)(i_a*1000.0);
-		//		int32_t val1 = (int32_t)(i_q*1000);
-		//		print_int32(val1);
+		int32_t v1 = (int32_t)(uq*100000.0);
+		print_int32(v1);
 
-		//		int32_t val2 = (int32_t)dma_adc_raw[ADC_CHAN_CURRENT_B];
-		//		int32_t val2 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_B]);
-		//		int32_t val2 = (int32_t)(i_b*1000.0);
-		//		int32_t val2 = tB;
-		//		int32_t val2 = (int32_t)(theta_m*rad_to_deg);
-		//		print_int32(val2);
 
-		//		int32_t val3 = (int32_t)dma_adc_raw[ADC_CHAN_CURRENT_C];
-		//		int32_t val3 = (int32_t)(dma_adc_raw[ADC_CHAN_BEMF_C]);
-		//		int32_t val3 = (int32_t)(i_c*1000.0);
-		//		int32_t val3 = tC;
-		//		print_int32(val3);
-
-		if(TIM14_ms()>=led_ts)
+		if(HAL_GetTick()>=led_ts)
 		{
 			//			dir = !dir&1;
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
 			led_state = !led_state & 1;
-			led_ts = TIM14_ms() + 200;
+			led_ts = HAL_GetTick() + 200;
 		}
 	}
 

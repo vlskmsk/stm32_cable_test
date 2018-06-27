@@ -19,127 +19,18 @@ float R;
 #define ONE_BY_SQRT_3 	0.57735026919
 #define TWO_BY_SQRT_3 	1.15470053838
 #define SQRT_3_BY_2 	0.866025404
+#define SQRT_3 			1.7320508075688772935274463415f
 
 
-//#define ADC_CURRENT_CONV_RATIO 0.002877371651785714285714	//	= (3.3/4096)/(40*.007)
 const float adc_conv_A = 0.005754743303571*1.574414186193794;
 const float adc_conv_B = 0.005754743303571*1.126926563916591;
 const float adc_conv_C = 0.005754743303571;
 
-//#define ADC_CURRENT_CONV_RATIO 0.00421428571	//adjustment calibrated to red handheld DMM
-
-void init_observer()
-{
-	//for vishan:
-	//Resistance of a single coil to CT = 0.86
-	//Inductance (measured from scope) of a SINGLE COIL to CT = 1.462
-	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
-
-	//	est_R();
-	R = .86;			//R (single coil)
-	L = 0.000001462;	//L (single coil)
-	V_psi = .0012655;
-}
-
-/*
- * based on http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5200471
- */
-float gl_t_prev = 0;
-float gl_t = 0;
-float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
-{
-	gl_t_prev = gl_t;
-	gl_t = (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT))*seconds_per_tick;
-	float dt = gl_t-gl_t_prev;	//TODO: estimate dt
-
-	float y1,y2;
-	y1 = -R*i_a+v_a;
-	y2 = -R*i_b+v_b;
-
-	float gamma = 1;	//find later
-	float L_i_a = L*i_a;
-	float L_i_b = L*i_b;
-	float n1,n2;
-	n1 = *x1-L_i_a;
-	n2 = *x2-L_i_b;
-	float e = V_psi*V_psi - (n1*n1+n2*n2);
-	float xdot1,xdot2;
-	xdot1 = y1 + gamma*.5 + n1*e;
-	xdot2 = y2 + gamma*.5 + n2*e;
-	*x1 += xdot1*dt;
-	*x2 += xdot2*dt;
-
-	/*
-	 * TODO: try putting the observer in a loop, as in vesc.
-	 */
-
-	return atan2((*x2-L_i_b),(*x1-L_i_a));
-
-}
-
-#define INHA 0
-#define INLA 1
-#define INHB 2
-#define INLB 3
-#define INHC 4
-#define INLC 5
-
-int gl_sector=1;
+int gl_sector=1;	//for SVM
 
 
-void get_current_cal_offsets()
-{
-	TIMER_UPDATE_DUTY(0,0,0);
-	gl_current_input_offset_A = 0;
-	gl_current_input_offset_B = 0;
-	gl_current_input_offset_C = 0;
-	int i;
-	const int numSamples = 1000;
-	for(i=0;i<numSamples;i++)
-	{
-		gl_current_input_offset_A += dma_adc_raw[ADC_CHAN_CURRENT_A];
-		gl_current_input_offset_B += dma_adc_raw[ADC_CHAN_CURRENT_B];
-		gl_current_input_offset_C += dma_adc_raw[ADC_CHAN_CURRENT_C];
-		uint32_t uS_ts = time_microseconds()+100;
-		while(time_microseconds() < uS_ts);
-	}
-	gl_current_input_offset_A /= numSamples;
-	gl_current_input_offset_B /= numSamples;
-	gl_current_input_offset_C /= numSamples;
 
-//	gl_current_input_offset_A = 1993;
-//	gl_current_input_offset_B = 1971;
-//	gl_current_input_offset_C = 1966;
-}
-/*
- *	convert each phase adc voltage to actual current value
- */
-void conv_raw_current(float * i_a, float * i_b, float * i_c)
-{
-	/*
-	 * NOTE: test out setting shunt state variable in the handler, at a decimated sampling frequency.
-	 */
-	//	uint8_t state = 0x7 & ((HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_10) << 2) | (HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_9) << 1) | HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_8));
 
-	*i_a = (float)(gl_current_input_offset_A - dma_adc_raw[ADC_CHAN_CURRENT_A])*adc_conv_A;
-	*i_b = (float)(gl_current_input_offset_B - dma_adc_raw[ADC_CHAN_CURRENT_B])*adc_conv_B;
-	*i_c = (float)(gl_current_input_offset_C - dma_adc_raw[ADC_CHAN_CURRENT_C])*adc_conv_C;
-}
-
-void convert_phase_voltage(float * va, float * vb, float * vc)
-{
-//	*va = (float)dma_adc_raw[ADC_CHAN_BEMF_A] * 0.00261619718;
-//	*vb = (float)dma_adc_raw[ADC_CHAN_BEMF_B] * 0.00261619718;
-//	*vc = (float)dma_adc_raw[ADC_CHAN_BEMF_C] * 0.00261619718;
-	int16_t t1 = TIM1->CCR1;
-	int16_t t2 = TIM1->CCR2;
-	int16_t t3 = TIM1->CCR3;
-	*va = (float)t1/1000.0;	//period
-	*vb = (float)t2/1000.0;	//period
-	*vc = (float)t3/1000.0;	//period
-}
-
-#define SQRT_3 1.7320508075688772935274463415f
 
 /*
  * procedure:
@@ -248,27 +139,19 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	return sector;
 }
 
-const float Kcor = 0.1;
-const float u_max = .25;
-const float u_min = -.25;
+const float Kcor = 0.0;
+const float u_max = .3;
+const float u_min = -.3;
 /*
  * x is state variable for integral delay
  */
 void controller_PI(float i_q_ref, float i_q, float Kp, float Ki, float * x, float * u)
 {
 	float err = i_q_ref-i_q;
-	float uk = *x + Kp*err;
-	*u = uk;
-	if(uk > u_max)
-		*u = u_max;
-	if(uk < u_min)
-		*u = u_min;
-	float elk = uk - *u;
-	*x = *x + Ki*err + Kcor*elk;
-//	float err = i_q_ref-i_q;
-//	*u = *x + Kp*err;
-//	*x = *x + Ki*err;
+	*u = *x + Kp*err;
+	*x = *x + Ki*err;
 }
+
 void clarke_transform(float i_a, float i_b, float i_c, float * i_alpha, float * i_beta)
 {
 	(*i_alpha) = i_a;
@@ -291,8 +174,66 @@ void inverse_park_transform(float i_q, float i_d, float theta, float * i_alpha, 
 	*i_beta = i_d*sin(theta) + i_q*cos(theta);
 }
 
+void obtain_encoder_offset()
+{
+	float i_alpha,i_beta;
+	inverse_park_transform(0, 0.15, 0, &i_alpha, &i_beta);	//maybe call theta rel again?
+	uint32_t tA,tB,tC;
+	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+	TIMER_UPDATE_DUTY(tA,tB,tC);
+	HAL_Delay(500);
+	align_offset = theta_abs_rad();
+	TIMER_UPDATE_DUTY(0,0,0);
+	HAL_Delay(100);
+}
+
+void get_current_cal_offsets()
+{
+	TIMER_UPDATE_DUTY(0,0,0);
+	gl_current_input_offset_A = 0;
+	gl_current_input_offset_B = 0;
+	gl_current_input_offset_C = 0;
+	int i;
+	const int numSamples = 1000;
+	for(i=0;i<numSamples;i++)
+	{
+		gl_current_input_offset_A += dma_adc_raw[ADC_CHAN_CURRENT_A];
+		gl_current_input_offset_B += dma_adc_raw[ADC_CHAN_CURRENT_B];
+		gl_current_input_offset_C += dma_adc_raw[ADC_CHAN_CURRENT_C];
+		HAL_Delay(1);
+	}
+	gl_current_input_offset_A /= numSamples;
+	gl_current_input_offset_B /= numSamples;
+	gl_current_input_offset_C /= numSamples;
+}
+
 /*
- * Seems to work... not particularly accurate unfortunately
+ *	convert each phase adc voltage to actual current value
+ */
+void conv_raw_current(float * i_a, float * i_b, float * i_c)
+{
+	*i_a = (float)(gl_current_input_offset_A - dma_adc_raw[ADC_CHAN_CURRENT_A])*adc_conv_A;
+	*i_b = (float)(gl_current_input_offset_B - dma_adc_raw[ADC_CHAN_CURRENT_B])*adc_conv_B;
+	*i_c = (float)(gl_current_input_offset_C - dma_adc_raw[ADC_CHAN_CURRENT_C])*adc_conv_C;
+}
+
+/*
+ * returns phase voltage based on svm output
+ * TODO: scale outputs to bus voltage
+ */
+void convert_phase_voltage(float * va, float * vb, float * vc)
+{
+	int16_t t1 = TIM1->CCR1;
+	int16_t t2 = TIM1->CCR2;
+	int16_t t3 = TIM1->CCR3;
+	*va = (float)t1/1000.0;	//period
+	*vb = (float)t2/1000.0;	//period
+	*vc = (float)t3/1000.0;	//period
+}
+
+/*
+ * Seems to work...?
+ * TODO: fix+test this
  */
 float est_R()
 {
@@ -365,14 +306,54 @@ float est_L()
 }
 
 
-void obtain_encoder_offset()
+/*
+ * TODO: write this properly. init l,r,vphz
+ */
+void init_observer()
 {
-	float i_alpha,i_beta;
-	inverse_park_transform(.1, 0, 0, &i_alpha, &i_beta);	//maybe call theta rel again?
-	uint32_t tA,tB,tC;
-	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-	TIMER_UPDATE_DUTY(tA,tB,tC);
-	HAL_Delay(500);
-	align_offset = theta_abs_rad();
-	TIMER_UPDATE_DUTY(0,0,0);
+	//for vishan:
+	//Resistance of a single coil to CT = 0.86
+	//Inductance (measured from scope) of a SINGLE COIL to CT = 1.462
+	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
+	//	est_R();
+	R = .86;			//R (single coil)
+	L = 0.000001462;	//L (single coil)
+	V_psi = .0012655;
 }
+
+/*
+ * based on http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5200471
+ */
+float gl_t_prev = 0;
+float gl_t = 0;
+float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
+{
+	gl_t_prev = gl_t;
+	gl_t = (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT))*seconds_per_tick;
+	float dt = gl_t-gl_t_prev;	//TODO: estimate dt
+
+	float y1,y2;
+	y1 = -R*i_a+v_a;
+	y2 = -R*i_b+v_b;
+
+	float gamma = 1;	//find later
+	float L_i_a = L*i_a;
+	float L_i_b = L*i_b;
+	float n1,n2;
+	n1 = *x1-L_i_a;
+	n2 = *x2-L_i_b;
+	float e = V_psi*V_psi - (n1*n1+n2*n2);
+	float xdot1,xdot2;
+	xdot1 = y1 + gamma*.5 + n1*e;
+	xdot2 = y2 + gamma*.5 + n2*e;
+	*x1 += xdot1*dt;
+	*x2 += xdot2*dt;
+
+	/*
+	 * TODO: try putting the observer in a loop, as in vesc.
+	 */
+
+	return atan2((*x2-L_i_b),(*x1-L_i_a));
+
+}
+
