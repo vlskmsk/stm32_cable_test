@@ -131,7 +131,7 @@ int main(void)
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
 
-		controller_PI(4.5, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(10.5, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
 		controller_PI(0.0, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
 
 //		uq=0.03;					//this also works with no manual spin

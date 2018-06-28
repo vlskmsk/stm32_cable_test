@@ -159,19 +159,25 @@ void clarke_transform(float i_a, float i_b, float i_c, float * i_alpha, float * 
 }
 void park_transform(float i_alpha, float i_beta, float theta, float * i_q, float * i_d)
 {
-	*i_d = i_alpha*cos(theta)+i_beta*sin(theta);
-	*i_q = -i_alpha*sin(theta)+i_beta*cos(theta);
+	float c,s;
+	c = cos(theta);		s = sin(theta);
+	*i_d = i_alpha*c+i_beta*s;
+	*i_q = -i_alpha*s+i_beta*c;
 }
+
 void inverse_clarke_transform(float i_alpha, float i_beta, float * i_a, float * i_b, float * i_c)
 {
 	*i_a = i_alpha;
 	*i_b = -.5*i_alpha + SQRT_3_BY_2*i_beta;
 	*i_c = -.5*i_alpha - SQRT_3_BY_2*i_beta;
 }
+
 void inverse_park_transform(float i_q, float i_d, float theta, float * i_alpha, float * i_beta)
 {
-	*i_alpha = i_d*cos(theta) - i_q*sin(theta);
-	*i_beta = i_d*sin(theta) + i_q*cos(theta);
+	float c,s;
+	c = cos(theta);		s = sin(theta);
+	*i_alpha = i_d*c - i_q*s;
+	*i_beta = i_d*s + i_q*c;
 }
 
 void obtain_encoder_offset()
