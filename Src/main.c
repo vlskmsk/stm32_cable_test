@@ -125,14 +125,14 @@ int main(void)
 		float i_alpha,i_beta;
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
-//		float theta_m = theta_rel_rad()*11.0;		//test this! MS motor has 22 pole pairs, which means multiply by 11
-		float theta_m = theta_rel_rad();							//work with only steven motor
+		float theta_m = theta_rel_rad()*11.0;		//test this! MS motor has 22 pole pairs, which means multiply by 11
+//		float theta_m = theta_rel_rad();							//work with only steven motor
 
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
 
-		controller_PI(-5.5, i_q, 0.02, 0.000001, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(0.0, i_d, 0.001,0.000001, &x_id_PI, &ud);		//high current
+		controller_PI(6.5, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(0.0, i_d, 0.01, 0.0000000000, &x_id_PI, &ud);		//high current
 
 //		const float thresh = .05;
 //		if(uq > thresh)
@@ -143,8 +143,9 @@ int main(void)
 //			ud = thresh;
 //		if(ud < -thresh)
 //			ud = -thresh;
-//
-//		uq=-0.1;					//this also works with no manual spin
+
+
+//		uq=0.03;					//this also works with no manual spin
 //		ud= 0.0;					//low current, and feedback, but technically not foc
 
 		uint32_t tA,tB,tC;
