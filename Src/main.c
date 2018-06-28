@@ -131,8 +131,8 @@ int main(void)
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
 
-		controller_PI(-.5, i_q, 0.015, 0.000005, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(0.0, i_d, 0.001, 0.0001, &x_id_PI, &ud);		//high current
+		controller_PI(-5.5, i_q, 0.02, 0.000001, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(0.0, i_d, 0.001,0.000001, &x_id_PI, &ud);		//high current
 
 //		const float thresh = .05;
 //		if(uq > thresh)
