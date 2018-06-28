@@ -109,6 +109,11 @@ int main(void)
 	float x1 = 0;
 	float x2 = 0;
 
+//	while(1)
+//	{
+//		print_int32(theta_rel_deg()*7.0);
+//		HAL_Delay(1);
+//	}
 	while(1)
 	{
 		float i_a,i_b,i_c;
@@ -120,14 +125,14 @@ int main(void)
 		float i_alpha,i_beta;
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
-		float theta_m = theta_rel_rad()*11.0;		//test this! it has 11 pole pairs ya fuck
-		//		float theta_m = theta_rel_rad();							//work with only steven motor
+//		float theta_m = theta_rel_rad()*11.0;		//test this! MS motor has 22 pole pairs, which means multiply by 11
+		float theta_m = theta_rel_rad();							//work with only steven motor
 
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
 
-		controller_PI(-1.1, i_q, 0.03, 0.0001, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(0.0, i_d, 0.0, 0.0, &x_id_PI, &ud);		//high current
+		controller_PI(-.5, i_q, 0.015, 0.000005, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(0.0, i_d, 0.001, 0.0001, &x_id_PI, &ud);		//high current
 
 //		const float thresh = .05;
 //		if(uq > thresh)
@@ -139,15 +144,15 @@ int main(void)
 //		if(ud < -thresh)
 //			ud = -thresh;
 //
-		uq=-0.05;					//this also works with no manual spin
-//		ud= -0.0;					//low current, and feedback, but technically not foc
+//		uq=-0.1;					//this also works with no manual spin
+//		ud= 0.0;					//low current, and feedback, but technically not foc
 
 		uint32_t tA,tB,tC;
 		inverse_park_transform(uq, ud, theta_m, &i_alpha, &i_beta);	//maybe call theta rel again?
 		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
-		int32_t v1 = (int32_t)(uq*100000.0);
+		int32_t v1 = (int32_t)(i_q*10000.0);
 		print_int32(v1);
 
 

@@ -6,10 +6,13 @@
  */
 #include "mag-encoder.h"
 #include <math.h>
-const int16_t cos_mid = 1992;
-const int16_t sin_mid = 1992;		//extrapolated from min-max midpoint only
-//const int16_t sin_mid = 1250;
-//const int16_t cos_mid = 1243.5;
+
+//const int16_t cos_mid = 1992;
+//const int16_t sin_mid = 1992;		//my encoder
+
+const int16_t sin_mid = 1250;		//steven encoder
+const int16_t cos_mid = 1243.5;
+
 float align_offset = 0;				//offset angle IN RADIANS
 
 float theta_abs_rad()

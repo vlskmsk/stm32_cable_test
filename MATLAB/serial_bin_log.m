@@ -131,7 +131,7 @@ fclose(s);
 delete(s);
 clear s;
 
-valScale = 1/100000;
+valScale = 1/10000;
 hold off
 plot(time,log(:,1)*valScale);
 hold on
@@ -216,6 +216,12 @@ hold on
 plot(time, iB);
 plot(time, iC);
 hold off
+
+%% sanity check
+
+iq_ref = -.03;
+
+
 
 
 
