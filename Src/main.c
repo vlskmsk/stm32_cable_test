@@ -59,10 +59,10 @@ int main(void)
 	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_ADC_Init();
-	MX_SPI1_Init();
+//	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
-	//	MX_TIM14_Init();
+	MX_TIM14_Init();
 	//  MX_I2C1_Init();
 
 	//	HAL_TIM_Base_Start(&htim14);
@@ -118,9 +118,9 @@ int main(void)
 	{
 		float i_a,i_b,i_c;
 		conv_raw_current(&i_a,&i_b, &i_c);
-		//		float Va_m, Vb_m, Vc_m;
-		//		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
-		//		float theta_observer = observer_update(Va_m, Vb_m, i_a, i_b, &x1, &x2);
+//		float Va_m, Vb_m, Vc_m;
+//		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
+//		float theta_observer = observer_update(Va_m, Vb_m, i_a, i_b, &x1, &x2);
 
 		float i_alpha,i_beta;
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
@@ -131,19 +131,8 @@ int main(void)
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
 
-		controller_PI(6.5, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(0.0, i_d, 0.01, 0.0000000000, &x_id_PI, &ud);		//high current
-
-//		const float thresh = .05;
-//		if(uq > thresh)
-//			uq = thresh;
-//		if(uq < -thresh)
-//			uq = -thresh;
-//		if(ud > thresh)
-//			ud = thresh;
-//		if(ud < -thresh)
-//			ud = -thresh;
-
+		controller_PI(4.5, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(0.0, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
 
 //		uq=0.03;					//this also works with no manual spin
 //		ud= 0.0;					//low current, and feedback, but technically not foc
@@ -153,8 +142,8 @@ int main(void)
 		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
-		int32_t v1 = (int32_t)(i_q*10000.0);
-		print_int32(v1);
+//		int32_t v1 = (int32_t)(i_q*10000.0);
+//		print_int32(v1);
 
 
 		if(HAL_GetTick()>=led_ts)

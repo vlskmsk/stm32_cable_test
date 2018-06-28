@@ -10,6 +10,7 @@
 const int16_t cos_mid = 1992;
 const int16_t sin_mid = 1992;		//my encoder
 
+
 //const int16_t sin_mid = 1250;		//steven encoder
 //const int16_t cos_mid = 1243.5;
 
