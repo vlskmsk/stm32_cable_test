@@ -4,10 +4,14 @@ s.BaudRate = 921600;
 s.Terminator = 'CR/LF';
 fopen(s);
 
+
+
+
+
 figure;
 H = uicontrol();
 
-numReadVals = 1;
+numReadVals = 2;
 bufSize = 500;
 buf1 = nan(1,bufSize);
 % buf2 = nan(1,bufSize);
@@ -19,28 +23,28 @@ max_v = [0,0];
 eq_v = zeros(200,1);     %this might not trigger properly. adding some tolerance might be necessary
 eq_v_idx = 1;
 while(ishandle(H))
-    serLog = fread(s,numReadVals,'int32');    
-%     for i = 1:2
-%         if(serLog(i) < min_v(i))
-%             min_v(i) = serLog(i);
-% %             disp(serLog);
-%         end
-%         if(serLog(i) > max_v(i))
-%             max_v(i) = serLog(i);
-% %             disp(serLog);
-%         end
-%     end
-%     
-%     abs_diff = abs(serLog(1)-serLog(2));
-%     if(abs_diff < 1)
-%         disp(serLog);
-%         eq_v(eq_v_idx) = serLog(1);
-%         eq_v_idx = eq_v_idx+1;
-%         if(eq_v_idx>length(eq_v))
-%             eq_v_idx = 1;           %just fucking wrap that shit i guess
-%         end
-%     end
-%   
+    serLog = fread(s,numReadVals,'int16');    
+    for i = 1:2
+        if(serLog(i) < min_v(i))
+            min_v(i) = serLog(i);
+%             disp(serLog);
+        end
+        if(serLog(i) > max_v(i))
+            max_v(i) = serLog(i);
+%             disp(serLog);
+        end
+    end
+    
+    abs_diff = abs(serLog(1)-serLog(2));
+    if(abs_diff < 1)
+        disp(serLog);
+        eq_v(eq_v_idx) = serLog(1);
+        eq_v_idx = eq_v_idx+1;
+        if(eq_v_idx>length(eq_v))
+            eq_v_idx = 1;           %just fucking wrap that shit i guess
+        end
+    end
+  
     
 %     buf1 = [buf1(2:end), serLog(1)];
 %     buf2 = [buf2(2:end), serLog(2)];
@@ -115,7 +119,7 @@ log_idx = 1;
 % while(ishandle(H))
 tic;
 while(1)
-    serLog = fread(s,numReadVals,'int32');
+    serLog = fread(s,numReadVals,'int16');
 %     disp(serLog);
     log(log_idx,:) = serLog;
     time(log_idx)= toc;

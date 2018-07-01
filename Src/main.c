@@ -114,25 +114,26 @@ int main(void)
 //		print_int32(theta_rel_deg()*7.0);
 //		HAL_Delay(1);
 //	}
+
 	while(1)
 	{
 		float i_a,i_b,i_c;
 		conv_raw_current(&i_a,&i_b, &i_c);
 //		float Va_m, Vb_m, Vc_m;
 //		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
-//		float theta_observer = observer_update(Va_m, Vb_m, i_a, i_b, &x1, &x2);
+//		float theta_observer = observer _update(Va_m, Vb_m, i_a, i_b, &x1, &x2);
 
 		float i_alpha,i_beta;
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
-		float theta_m = theta_rel_rad()*11.0;		//test this! MS motor has 22 pole pairs, which means multiply by 11
-//		float theta_m = theta_rel_rad();							//work with only steven motor
+//		float theta_m = theta_rel_rad()*11.0;		//test this! MS motor has 22 pole pairs, which means multiply by 11
+		float theta_m = theta_rel_rad();							//work with only steven motor
 
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
 
-		controller_PI(10.5, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(0.0, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
+		controller_PI(5.5, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(-12.0, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
 
 //		uq=0.03;					//this also works with no manual spin
 //		ud= 0.0;					//low current, and feedback, but technically not foc
@@ -144,7 +145,6 @@ int main(void)
 
 //		int32_t v1 = (int32_t)(i_q*10000.0);
 //		print_int32(v1);
-
 
 		if(HAL_GetTick()>=led_ts)
 		{

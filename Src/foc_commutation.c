@@ -183,12 +183,20 @@ void inverse_park_transform(float i_q, float i_d, float theta, float * i_alpha, 
 void obtain_encoder_offset()
 {
 	float i_alpha,i_beta;
-	inverse_park_transform(0, 0.15, 0, &i_alpha, &i_beta);	//maybe call theta rel again?
+	inverse_park_transform(0, 0.2, 0, &i_alpha, &i_beta);	//maybe call theta rel again?
 	uint32_t tA,tB,tC;
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 	TIMER_UPDATE_DUTY(tA,tB,tC);
-	HAL_Delay(500);
-	align_offset = theta_abs_rad();
+	float avg_offset = 0;
+	int i;
+	int num_samples = 400;
+	for(i=0;i<num_samples;i++)
+	{
+		avg_offset += theta_abs_rad();
+		HAL_Delay(1);
+	}
+	align_offset = avg_offset/(float)num_samples;
+
 	TIMER_UPDATE_DUTY(0,0,0);
 	HAL_Delay(100);
 }
