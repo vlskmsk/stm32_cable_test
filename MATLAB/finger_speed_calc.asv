@@ -1,0 +1,11 @@
+%% finger speed calculation
+
+%constants
+vishan_ratio = 21.3;
+worm_ratio = 20;
+finger_angle_degrees = 75;
+
+%calc
+motor_speed_Hz = 50000/60;
+bone_Hz = motor_speed_Hz/vishan_ratio/worm_ratio;
+time_to_

@@ -33,13 +33,13 @@ void get_current_cal_offsets();
 void conv_raw_current(float * i_a, float * i_b, float * i_c);
 void convert_phase_voltage(float * va, float * vb, float * vc);
 
-void clarke_transform(float i_a, float i_b, float i_c, float * i_alpha, float * i_beta);
-void park_transform(float i_alpha, float i_beta, float theta, float * i_q, float * i_d);
-
 void controller_PI(float i_q_ref, float i_q, float Kp, float Ki, float * x, float * u);
 
-void inverse_park_transform(float i_q, float i_d, float theta, float * i_alpha, float * i_beta);
+void clarke_transform(float i_a, float i_b, float i_c, float * i_alpha, float * i_beta);
 void inverse_clarke_transform(float i_alpha, float i_beta, float * i_a, float * i_b, float * i_c);
+void park_transform(float i_alpha, float i_beta, float sin_theta, float cos_theta, float * i_q, float * i_d);
+void inverse_park_transform(float i_q, float i_d, float sin_theta, float cos_theta, float * i_alpha, float * i_beta);
+
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC);
 
 void init_observer();

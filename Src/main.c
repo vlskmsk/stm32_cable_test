@@ -13,6 +13,7 @@
 #define BACKWARD_OPEN 4
 #define BACKWARD_CLOSED 5
 
+
 char msg_buf[32];
 void print_string(char * c)
 {
@@ -59,21 +60,23 @@ int main(void)
 	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_ADC_Init();
-//	MX_SPI1_Init();
+	//	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
 	//  MX_I2C1_Init();
 
-	//	HAL_TIM_Base_Start(&htim14);
-	//	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
+	HAL_TIM_Base_Start(&htim14);
+	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
+
+
 
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
 	TIM1->CCR4 = 650;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
-	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data,2);	//think need to change DMA settings to word from byte or half word
+//	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data,2);	//think need to change DMA settings to word from byte or half word
 
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 
@@ -98,53 +101,81 @@ int main(void)
 
 	TIMER_UPDATE_DUTY(0,0,0);
 
-	obtain_encoder_offset();
-	float tstart = time_seconds();
+	float x1 = 0;
+	float x2 = 0;
+	float Va_m, Vb_m, Vc_m;
+	float theta_observer;
+	float i_a,i_b,i_c;
+	float i_alpha,i_beta;
 
+	obtain_encoder_offset();
+//	conv_raw_current(&i_a,&i_b, &i_c);
+//	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
+//	convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
+//	clarke_transform(Va_m,Vb_m,Vc_m,&Va_m, &Vb_m);
+//	theta_observer = observer_update(Va_m, Vb_m, i_a, i_b, &x1, &x2);
+	TIMER_UPDATE_DUTY(0,0,0);
+	HAL_Delay(100);
 
 	float x_iq_PI = 0;	//torque pi state
 	float x_id_PI = 0;	//flux pi state
 	float uq = 0;
 	float ud = 0;
-	float x1 = 0;
-	float x2 = 0;
+
+
+	float theta_ref = 0;
+
+	float iq_ref = 10;
+	float id_ref = 0;
 
 //	while(1)
 //	{
-//		print_int32(theta_rel_deg()*7.0);
-//		HAL_Delay(1);
+//		uq = .1;
+//		ud = -0.00;
+//		uint32_t tA,tB,tC;
+//		inverse_park_transform(uq, ud, time_seconds()*2, &i_alpha, &i_beta);	//maybe call theta rel again?
+//		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+//		TIMER_UPDATE_DUTY(tA,tB,tC);
+//
+////		print_int16(dma_adc_raw[ADC_SIN_CHAN]);
+////		print_int16(dma_adc_raw[ADC_COS_CHAN]);
+//		theta_observer = theta_rel_deg();							//work with only steven motor
+//		print_int32(theta_observer);
 //	}
 
 	while(1)
 	{
-		float i_a,i_b,i_c;
 		conv_raw_current(&i_a,&i_b, &i_c);
-//		float Va_m, Vb_m, Vc_m;
-//		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
-//		float theta_observer = observer _update(Va_m, Vb_m, i_a, i_b, &x1, &x2);
-
-		float i_alpha,i_beta;
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
-//		float theta_m = theta_rel_rad()*11.0;		//test this! MS motor has 22 pole pairs, which means multiply by 11
-		float theta_m = theta_rel_rad();							//work with only steven motor
+//		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
+//		clarke_transform(Va_m,Vb_m,Vc_m,&Va_m, &Vb_m);
+//		theta_observer = observer_update(Va_m, Vb_m, i_alpha, i_beta, &x1, &x2);
 
+		//		float theta_m = theta_rel_rad()*11.0;		//test this! MS motor has 22 pole pairs, which means multiply by 11
+//		print_int32(theta_observer*1000);
+		theta_observer = theta_rel_rad();							//work with only steven motor
+//		print_int32(theta_observer*1000);
+		float sin_theta,cos_theta;
+		sin_theta = sin(theta_observer);
+		cos_theta = cos(theta_observer);
 		float i_q, i_d;
-		park_transform(i_alpha, i_beta, theta_m, &i_q, &i_d);
+		park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
 
-		controller_PI(5.5, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(-12.0, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
 
-//		uq=0.03;					//this also works with no manual spin
-//		ud= 0.0;					//low current, and feedback, but technically not foc
 
+		controller_PI(iq_ref, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(id_ref, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
+
+//		uq = .1;
+//		ud = 0;
 		uint32_t tA,tB,tC;
-		inverse_park_transform(uq, ud, theta_m, &i_alpha, &i_beta);	//maybe call theta rel again?
+		inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
+//		arm_inv_park_f32(  ud,uq,  &i_alpha,&i_beta, sin(theta_observer),cos(theta_observer));
+//		arm_cos_f32(theta_observer);
+
 		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
-
-//		int32_t v1 = (int32_t)(i_q*10000.0);
-//		print_int32(v1);
 
 		if(HAL_GetTick()>=led_ts)
 		{

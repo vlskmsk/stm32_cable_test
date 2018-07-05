@@ -10,6 +10,8 @@
 #include <math.h>
 #include "delay_uS.h"
 #include "mag-encoder.h"
+
+//#include <core_cm0.h>
 float mL = 0;
 float mR = 0;
 float V_psi = 0;
@@ -22,8 +24,8 @@ float R;
 #define SQRT_3 			1.7320508075688772935274463415f
 
 
-const float adc_conv_A = 0.005754743303571*1.574414186193794;
-const float adc_conv_B = 0.005754743303571*1.126926563916591;
+const float adc_conv_A = 0.005754743303571;
+const float adc_conv_B = 0.005754743303571;
 const float adc_conv_C = 0.005754743303571;
 
 int gl_sector=1;	//for SVM
@@ -157,12 +159,10 @@ void clarke_transform(float i_a, float i_b, float i_c, float * i_alpha, float * 
 	(*i_alpha) = i_a;
 	*i_beta = ONE_BY_SQRT_3*i_a + TWO_BY_SQRT_3*i_b;
 }
-void park_transform(float i_alpha, float i_beta, float theta, float * i_q, float * i_d)
+void park_transform(float i_alpha, float i_beta, float sin_theta, float cos_theta, float * i_q, float * i_d)
 {
-	float c,s;
-	c = cos(theta);		s = sin(theta);
-	*i_d = i_alpha*c+i_beta*s;
-	*i_q = -i_alpha*s+i_beta*c;
+	*i_d = i_alpha*cos_theta+i_beta*sin_theta;
+	*i_q = -i_alpha*sin_theta+i_beta*cos_theta;
 }
 
 void inverse_clarke_transform(float i_alpha, float i_beta, float * i_a, float * i_b, float * i_c)
@@ -172,18 +172,16 @@ void inverse_clarke_transform(float i_alpha, float i_beta, float * i_a, float * 
 	*i_c = -.5*i_alpha - SQRT_3_BY_2*i_beta;
 }
 
-void inverse_park_transform(float i_q, float i_d, float theta, float * i_alpha, float * i_beta)
+void inverse_park_transform(float i_q, float i_d, float sin_theta, float cos_theta, float * i_alpha, float * i_beta)
 {
-	float c,s;
-	c = cos(theta);		s = sin(theta);
-	*i_alpha = i_d*c - i_q*s;
-	*i_beta = i_d*s + i_q*c;
+	*i_alpha = i_d*cos_theta - i_q*sin_theta;
+	*i_beta = i_d*sin_theta + i_q*cos_theta;
 }
 
 void obtain_encoder_offset()
 {
 	float i_alpha,i_beta;
-	inverse_park_transform(0, 0.2, 0, &i_alpha, &i_beta);	//maybe call theta rel again?
+	inverse_park_transform(0, 0.2, 0, 1, &i_alpha, &i_beta);	//maybe call theta rel again?
 	uint32_t tA,tB,tC;
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 	TIMER_UPDATE_DUTY(tA,tB,tC);
@@ -196,9 +194,6 @@ void obtain_encoder_offset()
 		HAL_Delay(1);
 	}
 	align_offset = avg_offset/(float)num_samples;
-
-	TIMER_UPDATE_DUTY(0,0,0);
-	HAL_Delay(100);
 }
 
 void get_current_cal_offsets()
@@ -240,9 +235,9 @@ void convert_phase_voltage(float * va, float * vb, float * vc)
 	int16_t t1 = TIM1->CCR1;
 	int16_t t2 = TIM1->CCR2;
 	int16_t t3 = TIM1->CCR3;
-	*va = (float)t1/1000.0;	//period
-	*vb = (float)t2/1000.0;	//period
-	*vc = (float)t3/1000.0;	//period
+	*va = (float)t1*0.0079;	//period
+	*vb = (float)t2*0.0079;	//period
+	*vc = (float)t3*0.0079;	//period
 }
 
 /*
@@ -331,8 +326,8 @@ void init_observer()
 	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
 	//	est_R();
 	R = .86;			//R (single coil)
-	L = 0.000001462;	//L (single coil)
-	V_psi = .0012655;
+	L = 0.00001462;	//L (single coil)
+	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
 }
 
 /*
@@ -343,8 +338,8 @@ float gl_t = 0;
 float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
 {
 	gl_t_prev = gl_t;
-	gl_t = (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT))*seconds_per_tick;
-	float dt = gl_t-gl_t_prev;	//TODO: estimate dt
+	gl_t = time_seconds();
+	float dt = gl_t-gl_t_prev;
 
 	float y1,y2;
 	y1 = -R*i_a+v_a;
@@ -356,13 +351,13 @@ float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, fl
 	float n1,n2;
 	n1 = *x1-L_i_a;
 	n2 = *x2-L_i_b;
+
 	float e = V_psi*V_psi - (n1*n1+n2*n2);
 	float xdot1,xdot2;
 	xdot1 = y1 + gamma*.5 + n1*e;
 	xdot2 = y2 + gamma*.5 + n2*e;
 	*x1 += xdot1*dt;
 	*x2 += xdot2*dt;
-
 	/*
 	 * TODO: try putting the observer in a loop, as in vesc.
 	 */

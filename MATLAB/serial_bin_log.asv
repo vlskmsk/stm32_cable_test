@@ -110,14 +110,14 @@ fopen(s);
 %                 'Position',[20,20,100,50]);
 
 numReadVals = 2;
-log = zeros(5000,numReadVals);
+log = zeros(15000,numReadVals);
 time = zeros(length(log),1);
 log_idx = 1;
 
 % while(ishandle(H))
 tic;
 while(1)
-    serLog = fread(s,numReadVals,'int32');
+    serLog = fread(s,numReadVals,'int16');
 %     disp(serLog);
     log(log_idx,:) = serLog;
     time(log_idx)= toc;
@@ -133,8 +133,7 @@ fclose(s);
 delete(s);
 clear s;
 
-
-valScale = 1/1000;
+valScale = 1;
 hold off
 plot(time,log(:,1)*valScale);
 hold on
@@ -224,19 +223,7 @@ hold off
 
 %%
 
-sin_sig = log(:,1);
-cos_sig = log(:,2);
 
 
-plot(sin_sig);
-hold on
-plot(cos_sig);
-hold off
 
-sin_mid = (max(sin_sig)+min(sin_sig))/2;
-cos_mid = (max(cos_sig)+min(cos_sig))/2;
-sin_amp = max(sin_sig)-min(sin_sig);
-cos_amp = max(cos_sig)-min(cos_sig);
-
-cos_correct = 1/cos_amp;
-sin_correct = 1/sin_amp;
+plot(time,log(:

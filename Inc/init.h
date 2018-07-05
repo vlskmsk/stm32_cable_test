@@ -10,6 +10,9 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
 
+//#define ARM_MATH_CM0
+//#include <arm_math.h>
+
 #define COMM_PWM_PERIOD 1000
 
 #define STAT_PORT GPIOC
