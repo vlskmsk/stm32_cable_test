@@ -47,3 +47,31 @@ for i = 1:length(theta_list)
     end
     
 end
+
+
+%% full no trig alternative
+
+e = 0.01;
+theta_encoder = pi/3;
+theta_offset = pi/4;
+
+control_s = sin(theta_encoder+theta_offset);
+control_c = cos(theta_encoder+theta_offset);
+
+test_s = (sin(theta_encoder) + .01)*cos(theta_offset) + sin(theta_offset)*(cos(theta_encoder)-.01);
+test_c = (cos(theta_encoder) + .011)*cos(theta_offset) - (sin(theta_encoder)+.001)*sin(theta_offset);
+
+err_s = control_s - test_s;
+err_c = control_c - test_c;
+
+msg_buf = sprintf('err sin = %f, err_cos = %f\n', err_s, err_c);
+disp(msg_buf);
+
+
+
+
+
+
+
+
+
