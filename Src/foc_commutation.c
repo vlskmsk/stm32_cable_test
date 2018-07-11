@@ -235,9 +235,9 @@ void convert_phase_voltage(float * va, float * vb, float * vc)
 	int16_t t1 = TIM1->CCR1;
 	int16_t t2 = TIM1->CCR2;
 	int16_t t3 = TIM1->CCR3;
-	*va = (float)t1*0.0079;	//period
-	*vb = (float)t2*0.0079;	//period
-	*vc = (float)t3*0.0079;	//period
+	*va = (float)t1*0.0081;	//period
+	*vb = (float)t2*0.0081;	//period
+	*vc = (float)t3*0.0081;	//period
 }
 
 /*
@@ -325,8 +325,9 @@ void init_observer()
 	//Inductance (measured from scope) of a SINGLE COIL to CT = 1.462
 	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
 	//	est_R();
-	R = .86;			//R (single coil)
-	L = 0.00001462;	//L (single coil)
+//	R = .86;			//R (single coil)
+	R = 1.29;
+	L = .00002193;	//L (single coil)
 	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
 }
 
@@ -335,34 +336,47 @@ void init_observer()
  */
 float gl_t_prev = 0;
 float gl_t = 0;
+#define FOC_NUM_LOOPS 6
+const float inv_num_iter = 1/FOC_NUM_LOOPS;
+
 float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
 {
 	gl_t_prev = gl_t;
 	gl_t = time_seconds();
 	float dt = gl_t-gl_t_prev;
 
+	float ogain = 100*.5;	//gamma
+	float L_i_a = L*i_a;
+	float L_i_b = L*i_b;
+
+	float psi_sq = V_psi*V_psi;
+
 	float y1,y2;
 	y1 = -R*i_a+v_a;
 	y2 = -R*i_b+v_b;
 
-	float gamma = 1;	//find later
-	float L_i_a = L*i_a;
-	float L_i_b = L*i_b;
-	float n1,n2;
-	n1 = *x1-L_i_a;
-	n2 = *x2-L_i_b;
-
-	float e = V_psi*V_psi - (n1*n1+n2*n2);
-	float xdot1,xdot2;
-	xdot1 = y1 + gamma*.5 + n1*e;
-	xdot2 = y2 + gamma*.5 + n2*e;
-	*x1 += xdot1*dt;
-	*x2 += xdot2*dt;
 	/*
-	 * TODO: try putting the observer in a loop, as in vesc.
+	 * TODO: loop this calculation n times over measured dt for improved performance
 	 */
+	///////////////////////////////////////////////
+	float dt_step = dt*inv_num_iter;
+	int i;
+	for(i = 0; i < FOC_NUM_LOOPS; i++)
+	{
+		float n1,n2;
+		n1 = *x1-L_i_a;
+		n2 = *x2-L_i_b;
 
-	return atan2((*x2-L_i_b),(*x1-L_i_a));
+		float e = psi_sq - (n1*n1+n2*n2);
+		float xdot1,xdot2;
+		xdot1 = y1 + ogain*n1*e;
+		xdot2 = y2 + ogain*n2*e;
+		*x1 += xdot1*dt_step;
+		*x2 += xdot2*dt_step;
+	}
+	///////////////////////////////////////////////
+
+	return atan2_approx((*x2-L_i_b),(*x1-L_i_a));	//TODO: use fast atan2
 
 }
 

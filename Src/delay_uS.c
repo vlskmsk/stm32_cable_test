@@ -8,16 +8,18 @@
 #include "delay_uS.h"
 #include "comm.h"
 
-const float seconds_per_tick = 8.0/48000000.0;
-const float milliseconds_per_tick = 8.0/48000.0;
-const float microseconds_per_tick = 8.0/48.0;
+const long int ms_inc = (PSC_GEN_TIMER+1)*10;
+
+const float seconds_per_tick = (PSC_GEN_TIMER+1)/48000000.0;
+const float milliseconds_per_tick = (PSC_GEN_TIMER+1)/48000.0;
+const float microseconds_per_tick = (PSC_GEN_TIMER+1)/48.0;
 
 unsigned long int TIM14_ms_count = 0;
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == TIM14)
 	{
-		TIM14_ms_count+= 8;	//see init.c
+		TIM14_ms_count+= ms_inc;	//see init.c
 	}
 }
 float time_seconds()

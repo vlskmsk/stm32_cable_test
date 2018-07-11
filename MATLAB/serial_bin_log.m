@@ -129,10 +129,11 @@ while(1)
 %     pause(0.01);
 end
 
+
+
 fclose(s);
 delete(s);
 clear s;
-
 
 valScale = 1/1000;
 hold off
@@ -141,6 +142,11 @@ hold on
 for i = 2:size(log,2);
     plot(time,log(:,i)*valScale);
 end
+v1 = log(:,1)*valScale;
+v2 = log(:,2)*valScale;
+err = v1-v2;
+
+plot(time,err);
 hold off
 
 %%

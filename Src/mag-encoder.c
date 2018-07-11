@@ -20,8 +20,8 @@ float align_offset = 0;				//offset angle IN RADIANS
 
 float theta_abs_rad()
 {
-	int16_t sinVal = dma_adc_raw[ADC_SIN_CHAN]-sin_mid;
-	int16_t cosVal = dma_adc_raw[ADC_COS_CHAN]-cos_mid;
+	int16_t sinVal = (dma_adc_raw[ADC_SIN_CHAN]-sin_mid);
+	int16_t cosVal = (dma_adc_raw[ADC_COS_CHAN]-cos_mid);
 
 	return atan2((float)sinVal*sin_correct,(float)cosVal*cos_correct);
 }
@@ -59,40 +59,10 @@ float atan2_approx(float sinVal, float cosVal)
 
 float theta_rel_rad()
 {
-	int16_t sinVal = dma_adc_raw[ADC_SIN_CHAN]-sin_mid;
-	int16_t cosVal = dma_adc_raw[ADC_COS_CHAN]-cos_mid;
+	int16_t sinVal = (dma_adc_raw[ADC_SIN_CHAN]-sin_mid);
+	int16_t cosVal = (dma_adc_raw[ADC_COS_CHAN]-cos_mid);
 //	return atan2((float)sinVal*sin_correct,(float)cosVal*cos_correct) - align_offset;
 	return atan2_approx((float)sinVal*sin_correct,(float)cosVal*cos_correct) - align_offset;
-
-	//	int16_t sinVal = dma_adc_raw[ADC_SIN_CHAN]-sin_mid;
-	//	int16_t cosVal = dma_adc_raw[ADC_COS_CHAN]-cos_mid;
-	//	int16_t min,max,abs_s,abs_c;
-	//	abs_s = sinVal;
-	//	if(abs_s < 0)
-	//		abs_s = -abs_s;
-	//	abs_c = cosVal;
-	//	if(abs_c < 0)
-	//		abs_c = -abs_c;
-	//	if(abs_s < abs_c)
-	//	{
-	//		min = abs_s;
-	//		max = abs_c;
-	//	}
-	//	else
-	//	{
-	//		min = abs_c;
-	//		max = abs_s;
-	//	}
-	//	float  a = (float)min/(float)max;
-	//	float sv = a*a;
-	//	float r = ((-0.0464964749 * sv + 0.15931422)*sv- 0.327622764) * sv * a + a;
-	//	if(abs_s > abs_c)
-	//		r = 1.57079637 -r;
-	//	if(cosVal < 0)
-	//		r = 3.14159274 - r;
-	//	if(sinVal < 0)
-	//		r = -r;
-	//	return r - align_offset;
 }
 
 const float rad_to_deg = 180.0/M_PI;

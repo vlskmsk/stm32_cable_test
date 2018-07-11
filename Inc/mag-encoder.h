@@ -18,5 +18,6 @@ float theta_abs_rad();
 float theta_rel_rad();
 float theta_abs_deg();
 float theta_rel_deg();
+float atan2_approx(float sinVal, float cosVal);
 
 #endif /* MAG_ENCODER_H_ */
