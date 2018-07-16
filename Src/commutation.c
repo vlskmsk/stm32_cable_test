@@ -55,6 +55,24 @@ void start_pwm()
  */
 void loadPWMCommStep(commStep c, int duty)
 {
+	uint32_t tA,tB,tC;
+	tA = 500; tB = 500; tC = 500;
+	if(c.phaseH == INHA)
+		tA += duty;
+	else if (c.phaseH == INHB)
+		tB += duty;
+	else if (c.phaseH == INHC)
+		tC += duty;
+
+	if(c.phaseL == INLA)
+		tA -= duty;
+	else if (c.phaseL == INLB)
+		tB -= duty;
+	else if (c.phaseL == INLC)
+		tC -= duty;
+
+	TIMER_UPDATE_DUTY(tA,tB,tC);
+
 //	stop_pwm();
 //
 //	__HAL_TIM_SET_COMPARE(&htim1,CCpwmHandle[c.phaseH],duty);
@@ -167,7 +185,8 @@ void openLoop(const commStep * commTable, int duty, int phase_delay_uS)
 	for(stepIdx = 0; stepIdx < 6; stepIdx++)
 	{
 		loadPWMCommStep(commTable[stepIdx],duty);
-		delay_T14_us(phase_delay_uS);
+		float t = time_microseconds();
+		while(time_microseconds()-t < phase_delay_uS);
 
 		estSpeedPos(commTable, phase_delay_uS);
 	}
@@ -284,11 +303,11 @@ void closedLoop(const commStep * commTable, const int * bemfTable,  const int * 
 //				break;
 			zero_cross_event = ((edgePolarity[stepIdx] == RISING && dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point) || (edgePolarity[stepIdx] == FALLING && dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point));
 
-			if(uS_count>=9000)	//if attemped for over 9000uS, accelerate and start over (failed closed loop commutation)
+			if(uS_count>=30000)	//if attemped for over 9000uS, accelerate and start over (failed closed loop commutation)
 			{
 				zero_cross_event = 1;
 				uS_count = 2;
-				openLoopAccel(commTable, bemfTable, edgePolarity);
+//				openLoopAccel(commTable, bemfTable, edgePolarity);
 				return;
 			}
 		}

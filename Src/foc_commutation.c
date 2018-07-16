@@ -18,11 +18,6 @@ float V_psi = 0;
 float L;
 float R;
 
-#define ONE_BY_SQRT_3 	0.57735026919
-#define TWO_BY_SQRT_3 	1.15470053838
-#define SQRT_3_BY_2 	0.866025404
-#define SQRT_3 			1.7320508075688772935274463415f
-
 
 const float adc_conv_A = 0.005754743303571;
 const float adc_conv_B = 0.005754743303571;
@@ -325,10 +320,10 @@ void init_observer()
 	//Inductance (measured from scope) of a SINGLE COIL to CT = 1.462
 	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
 	//	est_R();
-//	R = .86;			//R (single coil)
-	R = 1.29;
+	R = .86;
 	L = .00002193;	//L (single coil)
-	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
+//	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
+	V_psi = 0.00088212623;
 }
 
 /*
@@ -336,7 +331,7 @@ void init_observer()
  */
 float gl_t_prev = 0;
 float gl_t = 0;
-#define FOC_NUM_LOOPS 6
+#define FOC_NUM_LOOPS 4
 const float inv_num_iter = 1/FOC_NUM_LOOPS;
 
 float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
@@ -345,7 +340,7 @@ float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, fl
 	gl_t = time_seconds();
 	float dt = gl_t-gl_t_prev;
 
-	float ogain = 100*.5;	//gamma
+	float ogain = 100000000*.5;	//gamma
 	float L_i_a = L*i_a;
 	float L_i_b = L*i_b;
 
@@ -376,7 +371,7 @@ float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, fl
 	}
 	///////////////////////////////////////////////
 
-	return atan2_approx((*x2-L_i_b),(*x1-L_i_a));	//TODO: use fast atan2
+	return atan2_approx( (*x2-L_i_b), (*x1-L_i_a));	//TODO: use fast atan2
 
 }
 

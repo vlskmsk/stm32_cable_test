@@ -8,7 +8,7 @@
 #include "delay_uS.h"
 #include "comm.h"
 
-const long int ms_inc = (PSC_GEN_TIMER+1)*10;
+const long int ms_inc = (PSC_GEN_TIMER+1);
 
 const float seconds_per_tick = (PSC_GEN_TIMER+1)/48000000.0;
 const float milliseconds_per_tick = (PSC_GEN_TIMER+1)/48000.0;

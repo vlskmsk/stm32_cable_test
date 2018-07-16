@@ -12,7 +12,7 @@
 
 //#define ARM_MATH_CM0
 //#include <arm_math.h>
-#define PSC_GEN_TIMER 0
+#define PSC_GEN_TIMER 7
 
 #define COMM_PWM_PERIOD 1000
 
