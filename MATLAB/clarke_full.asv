@@ -1,0 +1,5 @@
+function [i_alpha, i_beta] = clarke_full(i_a, i_b, i_c)
+	ib_m_ic = (i_b-i_c);
+	i_alpha) = TWO_BY_THREE*i_a - ONE_BY_THREE(ib_m_ic);
+	i_beta = TWO_BY_SQRT_3*ib_m_ic;
+end

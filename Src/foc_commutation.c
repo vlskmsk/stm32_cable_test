@@ -149,6 +149,22 @@ void controller_PI(float i_q_ref, float i_q, float Kp, float Ki, float * x, floa
 	*x = *x + Ki*err;
 }
 
+///*
+// *Should have theoretically improved performance because currents are non-ideal and do not always sum to zero
+// *(i.e. use all 3 instead of only 2 shunts...)
+// */
+//#define TWO_BY_THREE 0.666666667
+//#define ONE_BY_THREE 0.333333333
+//void clarke_transform_full(float i_a, i_b, i_c, float * i_alpha, float * i_beta)
+//{
+//	float ib_m_ic = (i_b-i_c);
+//	(*i_alpha) = TWO_BY_THREE*i_a - ONE_BY_THREE*ib_m_ic;
+//	(*i_beta) = TWO_BY_SQRT_3*ib_m_ic;
+//}
+
+/*
+ *
+ */
 void clarke_transform(float i_a, float i_b, float i_c, float * i_alpha, float * i_beta)
 {
 	(*i_alpha) = i_a;
@@ -179,7 +195,9 @@ void obtain_encoder_offset()
 	inverse_park_transform(0, 0.2, 0, 1, &i_alpha, &i_beta);	//maybe call theta rel again?
 	uint32_t tA,tB,tC;
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-	TIMER_UPDATE_DUTY(tA,tB,tC);
+	TIMER_UPDATE_DUTY(tA,tB,tC);		//TODO: since this produces (.2, -.1, -.1) -> (600, 450, 450), test (600, 400+50*sin(t), 400+50*sin(t)) and see if there
+										// is any preturbation in the angle
+	HAL_Delay(100);					//TODO: test if the angle is different depending on this value
 	float avg_offset = 0;
 	int i;
 	int num_samples = 400;
@@ -321,7 +339,7 @@ void init_observer()
 	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
 	//	est_R();
 	R = .86;
-	L = .00002193;	//L (single coil)
+	L = .0000405;
 //	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
 	V_psi = 0.00088212623;
 }

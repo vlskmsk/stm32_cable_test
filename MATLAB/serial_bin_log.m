@@ -109,7 +109,7 @@ fopen(s);
 % H = uicontrol('Style','text','String', 'close figure to exit',...
 %                 'Position',[20,20,100,50]);
 
-numReadVals = 2;
+numReadVals = 3;
 log = zeros(3000,numReadVals);
 time = zeros(length(log),1);
 log_idx = 1;
@@ -133,7 +133,7 @@ fclose(s);
 delete(s);
 clear s;
 
-
+%%
 figure(1)
 valScale = 1/1000;
 hold off
@@ -142,12 +142,12 @@ hold on
 for i = 2:size(log,2);
     plot(time,log(:,i)*valScale);
 end
-% figure(2)
-v1 = log(:,1)*valScale;
-v2 = log(:,2)*valScale;
-err = v1-v2;
-plot(time,err);
 hold off
+if(size(log,2) == 3)
+    i_a = log(:,1);
+    i_b = log(:,2);
+    i_c = log(:,3);
+end
 
 %%
 i_q = log(:,1)*valScale;

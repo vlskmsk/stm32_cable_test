@@ -14,7 +14,6 @@
 #define BACKWARD_CLOSED 5
 
 
-
 char msg_buf[32];
 void print_string(char * c)
 {
@@ -74,7 +73,7 @@ int main(void)
 
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
-	TIM1->CCR4 = 575;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
+	TIM1->CCR4 = 750;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
 	//	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data,2);	//think need to change DMA settings to word from byte or half word
@@ -120,81 +119,45 @@ int main(void)
 	float ud = 0;
 
 	float tstart = time_seconds();
-	float iq_ref = 14;
+	float iq_ref = 10.0;
 	float id_ref = 0;
-
-	//	while(1)
-	//	{
-	////		openLoop(forwardCommutationTable, 100, 2000);
-	//		theta = time_seconds()*521.50438;
-	//		float sin_theta,cos_theta;
-	//		sin_theta = sin(theta);
-	//		cos_theta = cos(theta);
-	//		inverse_park_transform(.2, 0, sin_theta, cos_theta, &i_alpha, &i_beta);
-	//		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-	//		TIMER_UPDATE_DUTY(tA,tB,tC);
-	//	}
-
-	//	uint32_t start_time = HAL_GetTick();
-	uint32_t num_consecutive = 0;
-	uint8_t used_encoder_prev = 0;
-	uint8_t use_observer = 0;
-	float offset = 0;
 	while(1)
 	{
 		conv_raw_current(&i_a,&i_b, &i_c);
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
-
+		/*
+		 * TODO:
+		 * 1. test compensation for adc misalignment
+		 * 2. test observer with improved shunts
+		 * 3. see if raw observer error is characterizable/constant, try to locate source
+		 *
+		 * 4. add saliency to simulink motor model, see if signal injection can be implemented in simulink (!!! DO THIS FIRST !!!)
+		 * 5. implement and test BPF by filtering isolated signal (3 superimposed sin, like 200hz 250hz 300hz) and printing to matlab
+		 * 6. verify BPF sampling requirements!
+		 * 7. test with the bang-bang or PI, heterodyning and integrator and see if theta can be extracted!
+		 */
 		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
 		clarke_transform(Va_m,Vb_m,Vc_m, &Va_m,  &Vb_m);
 		float theta_o = observer_update(Va_m, Vb_m, i_alpha, i_beta, &x1, &x2)-M_PI;
+
 		float theta_enc = theta_rel_rad();							//work with only steven motor
-//		float theta_enc = TWO_PI*30*time_seconds();
 		theta = theta_enc;
-
-		if(num_consecutive == 500)
-			use_observer = 1;
-		if(use_observer)
-		{
-			if(theta_enc > -6 && theta_enc < 0.0)
-			{
-				theta = theta_o;
-			}
-			else
-				theta = theta_enc;
-		}
+//		theta = -time_seconds()*TWO_PI;
+		float err = theta_enc - theta_o;
+		if(err < .3 && err > -.3)
+			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 		else
-		{
-			float err = theta_enc-theta_o;
-			if( err < .3 && err > -.3)
-			{
-				if(used_encoder_prev == 1)
-					num_consecutive++;
-				//			else
-					//				num_consecutive = 0;
-				used_encoder_prev = 1;
-
-				theta = theta_o;
-				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
-			}
-			else
-			{
-				used_encoder_prev = 0;
-				theta = theta_enc;
-				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-			}
-		}
-
+			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
 		float sin_theta,cos_theta;
 		sin_theta = sin(theta);
 		cos_theta = cos(theta);
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
-
-		controller_PI(iq_ref, i_q, 0.01, 0.0000000001, &x_iq_PI, &uq);		//this sort of works
+//
+		controller_PI(iq_ref, i_q, 0.01, 0.00000001, &x_iq_PI, &uq);		//this sort of works
 		controller_PI(id_ref, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
-
+//
 		uint32_t tA,tB,tC;
 		inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
 		//		arm_inv_park_f32(  ud,uq,  &i_alpha,&i_beta, sin(theta_observer),cos(theta_observer));
@@ -203,10 +166,13 @@ int main(void)
 		//		inverse_clarke_transform(i_alpha,i_beta,&Va_m,&Vb_m,&Vc_m);
 		//		tA = (uint32_t)(Va_m*1000+500);	tB = (uint32_t)(Vb_m*1000+500);	tC = (uint32_t)(Vc_m*1000+500);
 
+//		print_int16(i_q*1000.0);//suspect too low value shunt...
 
+		print_int16(i_a*1000);
+		print_int16(i_b*1000);
+		print_int16(i_c*1000);
 //		i_alpha += .05*cos(time_seconds()*1570.79633);
 //		i_beta  += .05*sin(time_seconds()*1570.79633);
-
 		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
