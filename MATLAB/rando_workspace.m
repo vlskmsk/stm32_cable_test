@@ -1,3 +1,13 @@
+%% fast sin taylor series approx
+
+theta = 0:.01:pi/2;
+theta = theta*-1;
+actual = sin(theta);
+for i = 1:length(theta)
+    test(i) = sin_fast(theta(i));
+end
+
+
 %%
 a = .5;
 theta = 3*30*pi/180;

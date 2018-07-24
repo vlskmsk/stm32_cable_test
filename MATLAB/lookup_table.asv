@@ -1,0 +1,27 @@
+%%
+
+figure(1)
+hold off
+plot(time,log(:,1));
+hold on
+for i = 2:size(log,2);
+    plot(time,log(:,i));
+end
+hold off
+
+tc = log(:,1);
+ts = log(:,2);
+ec = log(:,3);
+es = log(:,4);
+
+%%
+cos_lookup = zeros(4096,1);
+sin_lookup = zeros(4096,1);
+tc_index = log
+
+for i = 1:length(time)
+    cos_lookup(tc(i)) = ec(i);
+    sin_lookup(ts(i)) = es(i);
+end
+
+

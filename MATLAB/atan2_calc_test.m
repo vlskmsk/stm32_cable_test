@@ -67,11 +67,10 @@ err_c = control_c - test_c;
 msg_buf = sprintf('err sin = %f, err_cos = %f\n', err_s, err_c);
 disp(msg_buf);
 
+%%
 
+test_angle = 10*pi/4;
+test_angle = atan2(sin(test_angle),cos(test_angle)); %% negate quadrants III and IV
 
-
-
-
-
-
-
+th = atan2_fast(sin(test_angle),cos(test_angle))
+res = atan2_fast(sin_fast(test_angle) , sin_fast(test_angle+pi/2))

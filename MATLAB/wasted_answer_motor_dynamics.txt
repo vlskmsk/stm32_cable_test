@@ -1,0 +1,31 @@
+A better way to model a BLDC motor is to split the electrical dynamics into 3 phases, like so:
+
+$$V_0 - K_v\dot{\theta}\sin(\theta) =  Ri_0 + L\frac{di_0}{dt} $$
+
+$$V_1 - K_v\dot{\theta}\sin(\theta+\frac{2\pi}{3}) =  Ri_1 + L\frac{di_1}{dt} $$
+
+$$V_2 - K_v\dot{\theta}\sin(\theta+\frac{4\pi}{3}) =  Ri_2 + L\frac{di_2}{dt} $$
+
+Your final torque equation is:
+
+$$ \tau_m = K_ti_0\sin(\theta) + K_ti_1\sin(\theta+\frac{2\pi}{3}) + K_t i_2 \sin(\theta+\frac{4\pi}{3})$$
+
+where your motor dynamics are defined as you stated above, 
+
+$$ J\ddot{\theta} + b\dot{\theta} = \tau_m$$
+
+
+To solve, first compute the 3 currents with the \$ \frac{i_n}{V_n} \$ transfer functions, find \$\tau_m\$, then find \$ \theta\$ and \$ \dot{\theta} \$ with the mechanical transfer functions.  I typically solve these equations in simulink using integrator blocks, but if you want to compute transfer functions it'll be something like this.
+
+Mechanical transfer functions:
+
+$$ \frac{\theta}{\tau_m} = \frac{1}{(J s^2 + b s)}$$
+$$ \frac{\dot{\theta}}{\tau_m} = \frac{1}{(J s + b )}$$
+
+Electrical transfer function:
+
+$$ \frac{i_n}{V_{Tn}} = \frac{1}{(R + L s)} $$
+
+Where \$ V_{Tn} = V_n + K_v \dot{\theta}\sin(\theta + n\frac{2\pi}{3}) \$ for \$ n = \{0...2\} \$ . You'll need to feed back your speed and position calculations to run the simulation.
+
+This will be a pretty accurate model of a BLDC motor with sinusoidal backemf. To model torque control, you'll need to simulate FOC or Field Oriented Control on top of that. Note that a constant current source will not give you a very accurate representation of how a real torque control system behaves, you'll have non-ideal behaviour like slow dynamic response, etc. 

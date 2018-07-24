@@ -6,13 +6,13 @@
 #include "comm.h"
 #include "foc_commutation.h"
 #include "mag-encoder.h"
+
 #define BRAKE 0
 #define STOP 1
 #define FORWARD_OPEN 2
 #define FORWARD_CLOSED 3
 #define BACKWARD_OPEN 4
 #define BACKWARD_CLOSED 5
-
 
 char msg_buf[32];
 void print_string(char * c)
@@ -51,6 +51,9 @@ float gl_angle = 89;
 
 typedef enum {ADVANCE_TO_ZERO = 0, REST_AT_ZERO = 1, ADVANCE_TO_ANGLE = 2, REST_AT_ANGLE = 3} bang_test_state;
 
+volatile uint32_t t_l = 0;
+
+
 int main(void)
 {
 	HAL_Init();
@@ -68,7 +71,6 @@ int main(void)
 
 	HAL_TIM_Base_Start(&htim14);
 	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
-
 
 
 	start_pwm();
@@ -92,11 +94,6 @@ int main(void)
 
 	init_observer();
 
-	int led_ts = HAL_GetTick()+100;
-	int led_state = 1;
-
-	float t = 0;
-
 	gl_angle = 0;
 
 	TIMER_UPDATE_DUTY(0,0,0);
@@ -118,72 +115,62 @@ int main(void)
 	float uq = 0;
 	float ud = 0;
 
-	float tstart = time_seconds();
-	float iq_ref = 10.0;
+	float iq_ref = 20;
 	float id_ref = 0;
+	uint32_t led_ts = 0;
+
+	uint32_t t_p = ((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT));
 	while(1)
 	{
+
+		uint32_t tc = ((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT));
+		t_l = tc - t_p;
+		t_p = tc;
+
 		conv_raw_current(&i_a,&i_b, &i_c);
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
+
 		/*
 		 * TODO:
 		 * 1. test compensation for adc misalignment
 		 * 2. test observer with improved shunts
 		 * 3. see if raw observer error is characterizable/constant, try to locate source
-		 *
-		 * 4. add saliency to simulink motor model, see if signal injection can be implemented in simulink (!!! DO THIS FIRST !!!)
-		 * 5. implement and test BPF by filtering isolated signal (3 superimposed sin, like 200hz 250hz 300hz) and printing to matlab
-		 * 6. verify BPF sampling requirements!
-		 * 7. test with the bang-bang or PI, heterodyning and integrator and see if theta can be extracted!
 		 */
-		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
-		clarke_transform(Va_m,Vb_m,Vc_m, &Va_m,  &Vb_m);
-		float theta_o = observer_update(Va_m, Vb_m, i_alpha, i_beta, &x1, &x2)-M_PI;
+//		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
+//		clarke_transform(Va_m,Vb_m,Vc_m, &Va_m,  &Vb_m);
+//		float theta_o = observer_update(Va_m, Vb_m, i_alpha, i_beta, &x1, &x2)-M_PI;
+
 
 		float theta_enc = theta_rel_rad();							//work with only steven motor
 		theta = theta_enc;
 //		theta = -time_seconds()*TWO_PI;
-		float err = theta_enc - theta_o;
-		if(err < .3 && err > -.3)
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
-		else
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
 		float sin_theta,cos_theta;
-		sin_theta = sin(theta);
-		cos_theta = cos(theta);
+//		sin_theta = sin(theta);
+//		cos_theta = cos(theta);
+		sin_theta = sin_fast(theta);
+		cos_theta = cos_fast(theta);
+
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
 //
 		controller_PI(iq_ref, i_q, 0.01, 0.00000001, &x_iq_PI, &uq);		//this sort of works
 		controller_PI(id_ref, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
 //
-		uint32_t tA,tB,tC;
 		inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
 		//		arm_inv_park_f32(  ud,uq,  &i_alpha,&i_beta, sin(theta_observer),cos(theta_observer));
 		//		arm_cos_f32(theta_observer);
 
 		//		inverse_clarke_transform(i_alpha,i_beta,&Va_m,&Vb_m,&Vc_m);
 		//		tA = (uint32_t)(Va_m*1000+500);	tB = (uint32_t)(Vb_m*1000+500);	tC = (uint32_t)(Vc_m*1000+500);
-
-//		print_int16(i_q*1000.0);//suspect too low value shunt...
-
-		print_int16(i_a*1000);
-		print_int16(i_b*1000);
-		print_int16(i_c*1000);
-//		i_alpha += .05*cos(time_seconds()*1570.79633);
-//		i_beta  += .05*sin(time_seconds()*1570.79633);
 		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 
-		//		if(HAL_GetTick()>=led_ts)
-		//		{
-		//			//			dir = !dir&1;
-		//			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
-		//			led_state = !led_state & 1;
-		//			led_ts = HAL_GetTick() + 200;
-		//		}
-
+		if(HAL_GetTick()>=led_ts)
+		{
+			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
+			led_state = !led_state & 1;
+			led_ts = HAL_GetTick() + 200;
+		}
 	}
-
 }

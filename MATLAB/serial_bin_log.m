@@ -9,19 +9,27 @@ fopen(s);
 figure;
 H = uicontrol();
 
-numReadVals = 1;
+numReadVals = 4;
 bufSize = 500;
 buf1 = nan(1,bufSize);
-% buf2 = nan(1,bufSize);
+buf2 = nan(1,bufSize);
+buf3 = nan(1,bufSize);
+buf4 = nan(1,bufSize);
+
 
 fwrite(s,'P');
 tic;
+
 min_v = [4096,4096];
 max_v = [0,0];
 eq_v = zeros(200,1);     %this might not trigger properly. adding some tolerance might be necessary
 eq_v_idx = 1;
+
 while(ishandle(H))
-    serLog = fread(s,numReadVals,'int32');    
+    
+    serLog = fread(s,numReadVals,'int16');    
+    
+    
 %     for i = 1:2
 %         if(serLog(i) < min_v(i))
 %             min_v(i) = serLog(i);
@@ -43,15 +51,20 @@ while(ishandle(H))
 %         end
 %     end
 %   
-    
+
+
+
 %     buf1 = [buf1(2:end), serLog(1)];
 %     buf2 = [buf2(2:end), serLog(2)];
+%     buf3 = [buf3(2:end), serLog(3)];
+%     buf4 = [buf4(2:end), serLog(4)];    
 %     hold off
 %     plot(buf1(1,:));
 %     hold on
 %     plot(buf2(1,:));
+%     plot(buf3(1,:));
+%     plot(buf4(1,:));
 %     hold off
-
 
     disp(serLog);
 %     str = sprintf('%f,%f, dif: %f\n', mod(serLog(1),360),serLog(2),  mod(serLog(1),360)-serLog(2));
@@ -109,8 +122,8 @@ fopen(s);
 % H = uicontrol('Style','text','String', 'close figure to exit',...
 %                 'Position',[20,20,100,50]);
 
-numReadVals = 3;
-log = zeros(3000,numReadVals);
+numReadVals = 4;
+log = zeros(20000,numReadVals);
 time = zeros(length(log),1);
 log_idx = 1;
 
@@ -125,17 +138,16 @@ while(1)
     if(log_idx > length(log))
 %         log_idx = 1;            %wrap around when overflow
         break;  %quit when buffer is full
-    end
+    end  
 %     pause(0.01);
 end
 
 fclose(s);
 delete(s);
 clear s;
-
 %%
 figure(1)
-valScale = 1/1000;
+valScale = 1;
 hold off
 plot(time,log(:,1)*valScale);
 hold on

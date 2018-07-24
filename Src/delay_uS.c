@@ -8,6 +8,7 @@
 #include "delay_uS.h"
 #include "comm.h"
 
+
 const long int ms_inc = (PSC_GEN_TIMER+1);
 
 const float seconds_per_tick = (PSC_GEN_TIMER+1)/48000000.0;
@@ -22,6 +23,7 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 		TIM14_ms_count+= ms_inc;	//see init.c
 	}
 }
+
 float time_seconds()
 {
 	return (float)((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT))*seconds_per_tick;

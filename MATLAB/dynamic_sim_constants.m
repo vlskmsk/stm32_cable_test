@@ -1,5 +1,5 @@
 %% motor constants
-
+wc = 1000;
 %controller constants
 % Kp_q = .010;
 % Kp_d = .010;

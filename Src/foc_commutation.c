@@ -248,9 +248,9 @@ void convert_phase_voltage(float * va, float * vb, float * vc)
 	int16_t t1 = TIM1->CCR1;
 	int16_t t2 = TIM1->CCR2;
 	int16_t t3 = TIM1->CCR3;
-	*va = (float)t1*0.0081;	//period
-	*vb = (float)t2*0.0081;	//period
-	*vc = (float)t3*0.0081;	//period
+	*va = (float)t1*0.0160;	//period
+	*vb = (float)t2*0.0160;	//period
+	*vc = (float)t3*0.0160;	//period
 }
 
 /*
