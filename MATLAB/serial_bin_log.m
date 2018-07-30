@@ -123,7 +123,7 @@ fopen(s);
 %                 'Position',[20,20,100,50]);
 
 numReadVals = 4;
-log = zeros(20000,numReadVals);
+log = zeros(10000,numReadVals);
 time = zeros(length(log),1);
 log_idx = 1;
 
@@ -131,7 +131,7 @@ log_idx = 1;
 tic;
 while(1)
     serLog = fread(s,numReadVals,'int16');
-%     disp(serLog);
+%     disp(serLog);     
     log(log_idx,:) = serLog;
     time(log_idx)= toc;
     log_idx = log_idx + 1;
@@ -145,7 +145,7 @@ end
 fclose(s);
 delete(s);
 clear s;
-%%
+
 figure(1)
 valScale = 1;
 hold off
