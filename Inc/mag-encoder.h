@@ -25,6 +25,7 @@ float theta_abs_rad();
 float theta_rel_rad();
 float theta_abs_deg();
 float theta_rel_deg();
+float fmod_2pi(float in);
 
 /*
  * fast trig functions
