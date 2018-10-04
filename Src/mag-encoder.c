@@ -98,6 +98,24 @@ float atan2_approx(float sinVal, float cosVal)
 	return r;
 }
 
+/*
+	fast 2pi mod. needed for sin and cos FAST for angle limiting
+ */
+#define ONE_BY_TWO_PI 0.1591549
+float fmod_2pi(float in)
+{
+	uint8_t aneg = 0;
+	float in_eval = in;
+	if(in < 0)
+	{
+		aneg = 1;
+		in_eval = -in;
+	}
+	float fv = (float)((int)(in_eval*ONE_BY_TWO_PI));
+	if(aneg == 1)
+		fv = (-fv)-1;
+	return in-TWO_PI*fv;
+}
 
 float theta_rel_rad()
 {

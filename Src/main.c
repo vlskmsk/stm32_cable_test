@@ -146,10 +146,10 @@ int main(void)
 //		theta = -time_seconds()*TWO_PI;
 
 		float sin_theta,cos_theta;
-//		sin_theta = sin(theta);
-//		cos_theta = cos(theta);
-		sin_theta = sin_fast(theta);
-		cos_theta = cos_fast(theta);
+		float theta_elec = theta_rel_rad();		//test this! MS motor has 22 pole pairs, which means multiply by 11
+		theta_elec = fmod_2pi(theta_elec + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
+		sin_theta = sin_fast(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
+		cos_theta = cos_fast(theta_elec);				//and the cosine for park and inverse park domains
 
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
