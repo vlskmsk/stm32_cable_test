@@ -140,7 +140,6 @@ int main(void)
 //		clarke_transform(Va_m,Vb_m,Vc_m, &Va_m,  &Vb_m);
 //		float theta_o = observer_update(Va_m, Vb_m, i_alpha, i_beta, &x1, &x2)-M_PI;
 
-
 		float theta_enc = theta_rel_rad();							//work with only steven motor
 		theta = theta_enc;
 //		theta = -time_seconds()*TWO_PI;

@@ -80,7 +80,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t1 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t2 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
-		*tA = (pwm_half_period - t1 - t2) / 2;
+		*tA = (pwm_half_period - t1 - t2) * .5;
 		*tB = *tA + t1;
 		*tC = *tB + t2;
 		break;
@@ -89,7 +89,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t2 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t3 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
-		*tB = (pwm_half_period - t2 - t3) / 2;
+		*tB = (pwm_half_period - t2 - t3) * .5;
 		*tA = *tB + t3;
 		*tC = *tA + t2;
 		break;
@@ -98,7 +98,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t3 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t4 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
-		*tB = (pwm_half_period - t3 - t4) / 2;
+		*tB = (pwm_half_period - t3 - t4) * .5;
 		*tC = *tB + t3;
 		*tA = *tC + t4;
 		break;
@@ -107,7 +107,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t4 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t5 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
-		*tC = (pwm_half_period - t4 - t5) / 2;
+		*tC = (pwm_half_period - t4 - t5) * .5;
 		*tB = *tC + t5;
 		*tA = *tB + t4;
 
@@ -117,7 +117,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t5 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t6 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
-		*tC = (pwm_half_period - t5 - t6) / 2;
+		*tC = (pwm_half_period - t5 - t6) * .5;
 		*tA = *tC + t5;
 		*tB = *tA + t6;
 		break;
@@ -126,7 +126,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t6 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t1 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
-		*tA = (pwm_half_period - t6 - t1) / 2;
+		*tA = (pwm_half_period - t6 - t1) * .5;
 		*tC = *tA + t1;
 		*tB = *tC + t6;
 		break;
