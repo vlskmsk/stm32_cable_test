@@ -123,9 +123,9 @@ int main(void)
 	while(1)
 	{
 
-		uint32_t tc = ((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT));
-		t_l = tc - t_p;
-		t_p = tc;
+//		uint32_t tc = ((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT));
+//		t_l = tc - t_p;
+//		t_p = tc;
 
 		conv_raw_current(&i_a,&i_b, &i_c);
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
@@ -139,10 +139,6 @@ int main(void)
 //		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
 //		clarke_transform(Va_m,Vb_m,Vc_m, &Va_m,  &Vb_m);
 //		float theta_o = observer_update(Va_m, Vb_m, i_alpha, i_beta, &x1, &x2)-M_PI;
-
-		float theta_enc = theta_rel_rad();							//work with only steven motor
-		theta = theta_enc;
-//		theta = -time_seconds()*TWO_PI;
 
 		float sin_theta,cos_theta;
 		float theta_elec = theta_rel_rad();		//test this! MS motor has 22 pole pairs, which means multiply by 11

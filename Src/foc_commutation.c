@@ -26,9 +26,6 @@ const float adc_conv_C = 0.005754743303571;
 int gl_sector=1;	//for SVM
 
 
-
-
-
 /*
  * procedure:
  * First divide (alpha,beta) vector into 4 quadrants.
