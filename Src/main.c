@@ -123,10 +123,6 @@ int main(void)
 	while(1)
 	{
 
-//		uint32_t tc = ((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT));
-//		t_l = tc - t_p;
-//		t_p = tc;
-
 		conv_raw_current(&i_a,&i_b, &i_c);
 		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
