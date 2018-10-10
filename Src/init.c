@@ -145,6 +145,14 @@ void MX_ADC_Init(void)
 
 	/**Configure for the selected ADC regular channel to be converted.
 	 */
+	sConfig.Channel = ADC_CHANNEL_5;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
 	sConfig.Channel = ADC_CHANNEL_6;
 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
 	{
@@ -273,7 +281,7 @@ void MX_TIM1_Init(void)
 	/*
 	 * you need to configure this channel for the CC4 trigger to function proper
 	 */
-//	sConfigOC.Pulse = 500;
+	//	sConfigOC.Pulse = 500;
 	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
 	if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
 	{
