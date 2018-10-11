@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project>
-<ProjectName>C:\Users\Ocanath\Google Drive\workspace\foc_f030_v4\\foc_f030_v4</ProjectName>
+<ProjectName>C:\Users\Ocanath\Google Drive\workspace\psyonic-bldc-driver\\psyonic-bldc-driver</ProjectName>
 <ProjectNature>C</ProjectNature> 
 <CMSIS>..\Drivers\CMSIS</CMSIS>
 <HAL_Driver>C:\Users\Ocanath\STM32Cube\Repository\STM32Cube_FW_F0_V1.9.0\Drivers\CMSIS</HAL_Driver>
@@ -22,7 +22,7 @@
 
 <configs>
   <config>
-    <name>foc_f030_v4</name>				
+    <name>psyonic-bldc-driver</name>				
     <device>STM32F030C6Tx</device>		 
     <heapSize>0x200</heapSize>
     <stackSize>0x400</stackSize>
@@ -32,7 +32,7 @@
     <usedDebug>true</usedDebug>
     	<debugprobe>swd</debugprobe>
     <optimization>2</optimization>
-    <icfloc>0</icfloc>
+    <icfloc>1</icfloc>
     <Adefines>
         <define></define>
     </Adefines>   
