@@ -10,6 +10,14 @@
 #include "init.h"
 #include "mag-encoder.h"
 
+#define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
+		TIM1->CR1 |= TIM_CR1_UDIS; \
+		TIM1->CCR1 = duty1; \
+		TIM1->CCR2 = duty2; \
+		TIM1->CCR3 = duty3; \
+		TIM1->CR1 &= ~TIM_CR1_UDIS;
+
+
 #define CONST_E 0.367879441171442321595523770161460867445811131031767834507
 
 #define ONE_BY_SQRT_3 	0.57735026919
@@ -33,6 +41,8 @@ typedef struct vect2
 	float v1;
 	float v2;
 }vect2;
+
+float foc(float iq_ref,float id_ref);
 
 void get_current_cal_offsets();
 void conv_raw_current(float * i_a, float * i_b, float * i_c);

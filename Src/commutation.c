@@ -8,6 +8,7 @@
 #include "delay_uS.h"
 #include "adc.h"
 
+//#define USE_COMPLEMENTARY_PWM
 
 int16_t gl_rotorPos = 0;	//rotor position in degrees
 int16_t gl_rotorInterval = 0;	//rotor TIME between 30 degrees of commutation (master converts to speed)
@@ -17,78 +18,83 @@ int high_phase = 0;
 int low_phase = 0;
 
 //correct for r2/r3
-const commStep forwardCommutationTable[6] = {{INHA,INLB},{INHA,INLC},{INHB,INLC},{INHB,INLA},{INHC,INLA},{INHC,INLB}};
+//TIM_HandleTypeDef * pwmHandle[6] = {&htim1, &htim3, &htim1, &htim3, &htim1, &htim3};
+//uint32_t pwmChannel[6] = {TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_2,TIM_CHANNEL_3,TIM_CHANNEL_3,TIM_CHANNEL_4};	//actual, correct mapping
+//const comm_step fw[6] = {{INHA,INLB},{INHA,INLC},{INHB,INLC},{INHB,INLA},{INHC,INLA},{INHC,INLB}};
+
+#ifdef USE_COMPLEMENTARY_PWM
+//								high			low			neutral
+const comm_step fw[6] = { 	{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3},
+							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2},
+							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1},
+							{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3},
+							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2},
+							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1} };
+
+//								high			low			neutral
+const comm_step bw[6] = { 	{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3},
+							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1},
+							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2},
+							{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3},
+							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1},
+							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2} };
+
+#endif
+
+#ifndef USE_COMPLEMENTARY_PWM
+const comm_step fw[6] = { 	{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3_S1},
+							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2_S1},
+							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1_S2},
+							{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
+							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2_S3},
+							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1_S3} };
+
+const comm_step bw[6] = { 	{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
+							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1_S2},
+							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2_S1},
+							{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3_S1},
+							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1_S3},
+							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2_S3} };
+#endif
+
 const int forwardADCBemfTable[6] = {ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A};
 const int forwardEdgePolarity[6] = {FALLING, RISING, FALLING, RISING, FALLING, RISING};
 
-const commStep backwardCommutationTable[6] = {{INHC,INLB},{INHC,INLA},{INHB,INLA},{INHB,INLC},{INHA,INLC},{INHA,INLB}};
-const int backwardADCBemfTable[6] = {ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_C};
+const int backwardADCBemfTable[6] = {ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_B};
 const int backwardEdgePolarity[6] = {FALLING, RISING, FALLING, RISING, FALLING, RISING};	//this might be wrong
-
-
-const int CCpwmHandle[6] = {TIM_CHANNEL_1,TIM_CHANNEL_1,TIM_CHANNEL_2,TIM_CHANNEL_2,TIM_CHANNEL_3,TIM_CHANNEL_3};
-
 
 int gl_zero_cross_point = 0;
 const int dead_time_uS = 50;
 
-void estSpeedPos(const commStep * commTable, int phase_delay_uS)
+void estSpeedPos(const comm_step * commTable, int phase_delay_uS)
 {
-	if(commTable == forwardCommutationTable)
+	if(commTable == fw)
 		gl_rotorPos++;
-	else if (commTable == backwardCommutationTable)
+	else
 		gl_rotorPos--;
 	gl_rotorInterval = phase_delay_uS/2;		//approximate
 }
-
-void start_pwm()
-{
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
-}
 /*
- * helper function for the commStep type, which loads all unreferenced pwms as 0 and all referenced pwms as duty
+ * helper function for the comm_step type, which loads all unreferenced pwms as 0 and all referenced pwms as duty
  */
-void loadPWMCommStep(commStep c, int duty)
+void load_pwm_step(comm_step c, int duty)
 {
-	uint32_t tA,tB,tC;
-	tA = 500; tB = 500; tC = 500;
-	if(c.phaseH == INHA)
-		tA += duty;
-	else if (c.phaseH == INHB)
-		tB += duty;
-	else if (c.phaseH == INHC)
-		tC += duty;
-
-	if(c.phaseL == INLA)
-		tA -= duty;
-	else if (c.phaseL == INLB)
-		tB -= duty;
-	else if (c.phaseL == INLC)
-		tC -= duty;
-
-	TIMER_UPDATE_DUTY(tA,tB,tC);
-
-//	stop_pwm();
-//
-//	__HAL_TIM_SET_COMPARE(&htim1,CCpwmHandle[c.phaseH],duty);
-//	__HAL_TIM_SET_COMPARE(&htim1,CCpwmHandle[c.phaseL],duty);
-//
-//	HAL_TIM_PWM_Start(&htim1, CCpwmHandle[c.phaseH]);
-//	HAL_TIMEx_PWMN_Start(&htim1, CCpwmHandle[c.phaseL]);
+	/*
+	 * TODO: figure out why zero crossing doesn't work when properly setting CCR4
+	 */
+	TIM1->CCER = (TIM1->CCER & DIS_ALL) | c.mask;
+	__HAL_TIM_SET_COMPARE(&htim1, c.H, duty);
+	__HAL_TIM_SET_COMPARE(&htim1, c.L, 0);
 }
+
 
 /*
  * align partiular to the global commutation table
  */
-void align(const commStep * commTable)
+void align(const comm_step * commTable)
 {
-	//	openLoop(forwardCommutationTable,1500,5000);
-	loadPWMCommStep(commTable[5],200);
+	//	openLoop(fw,1500,5000);
+	load_pwm_step(commTable[5],200);
 	HAL_Delay(1);
 }
 
@@ -97,17 +103,19 @@ void align(const commStep * commTable)
  */
 int initZeroCrossPoint(uint16_t * adc_data_vals)
 {
+	TIM1->CCER = (TIM1->CCER | ENABLE_ALL);
 	int i;
-	start_pwm();
-	TIMER_UPDATE_DUTY(1000,1000,1000);
-	delay_T14_us(10);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 1000);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 1000);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 1000);
+	HAL_Delay(1);
 	int avg_val[3] = {0};
 	for(i=0;i<100;i++)
 	{
 		avg_val[ADC_CHAN_BEMF_C-3]+=adc_data_vals[ADC_CHAN_BEMF_C];
 		avg_val[ADC_CHAN_BEMF_B-3]+=adc_data_vals[ADC_CHAN_BEMF_B];
 		avg_val[ADC_CHAN_BEMF_A-3]+=adc_data_vals[ADC_CHAN_BEMF_A];
-		delay_T14_us(10);
+		HAL_Delay(1);
 	}
 	for(i=0;i<3;i++)
 		avg_val[i]/=100;
@@ -115,41 +123,50 @@ int initZeroCrossPoint(uint16_t * adc_data_vals)
 	return total_average/2;
 }
 
-void stop_pwm()
+//TODO: make this not active brake
+void stop()
 {
-//	HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-//	HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_1);
-//	HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
-//	HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_2);
-//	HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
-//	HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_3);
+//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+	TIM1->CCER = (TIM1->CCER & DIS_ALL);
 }
 
 void brake()
 {
-	TIMER_UPDATE_DUTY(0,0,0);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
 }
 
 void hardBrake(int duty)
 {
+	if(duty > 500)
+		duty = 500;
+	else if(duty < 0)
+		duty = 0;
+
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, duty);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 1000);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 1000);
 }
 
-void openLoopLin(const commStep * commTable, int duty)
-{
-	int stepDelay = -17*duty+8000;
-	openLoop(commTable, duty, stepDelay);
-//	openLoopSinusoidal(commTable,duty,stepDelay);
+//void openLoopLin(const comm_step * commTable, int duty)
+//{
+//	int stepDelay = -17*duty+8000;
+//	openLoop(commTable, duty, stepDelay);
+//	//	openLoopSinusoidal(commTable,duty,stepDelay);
+//
+//}
 
-}
-
-void openLoopEst(const commStep * commTable, const int * bemfTable,  const int * edgePolarity, int duty, int phase_delay_uS)
+void openLoopEst(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity, int duty, int phase_delay_uS)
 {
 	if(phase_delay_uS < 15)
 		phase_delay_uS = 15;
 	int stepIdx;
 	for(stepIdx = 0; stepIdx < 6; stepIdx++)
 	{
-		loadPWMCommStep(commTable[stepIdx],duty);
+		load_pwm_step(commTable[stepIdx],duty);
 
 		TIM14->CNT = 0;
 		int timOver = 0;
@@ -174,67 +191,24 @@ void openLoopEst(const commStep * commTable, const int * bemfTable,  const int *
 
 
 /*
- * TODO: test, and add loadPWMCommStep function
+ * TODO: test, and add load_pwm_step function
  * open loop commutation table sequencing
  */
-void openLoop(const commStep * commTable, int duty, int phase_delay_uS)
+void openLoop(const comm_step * commTable, int duty, int phase_delay_uS)
 {
 	if(phase_delay_uS < 15)
 		phase_delay_uS = 15;
 	int stepIdx;
 	for(stepIdx = 0; stepIdx < 6; stepIdx++)
 	{
-		loadPWMCommStep(commTable[stepIdx],duty);
-		float t = time_microseconds();
-		while(time_microseconds()-t < phase_delay_uS);
+		load_pwm_step(commTable[stepIdx],duty);
+		delay_T14_us(phase_delay_uS);
 
 		estSpeedPos(commTable, phase_delay_uS);
 	}
 }
 
 
-/*
- * first shit-tastic crack at open loop sinusoidal control
- */
-float deg_60 = PI/3;
-void openLoopSinusoidal(const commStep * commTable, float speed, int phase_delay_uS)
-{
-	if(phase_delay_uS < 15)
-		phase_delay_uS = 15;
-	int stepIdx;
-	float Fs = ((float)phase_delay_uS/1000000.0)*3*2*PI;
-	float t = 0;
-	for(stepIdx = 0; stepIdx < 6; stepIdx++)
-	{
-		TIM14->CNT = 0;
-		while(TIM14->CNT < phase_delay_uS)
-		{
-			float drive = speed*sin(Fs*t+deg_60);
-			t+=.000001;
-			loadPWMCommStep(commTable[stepIdx],drive);
-		}
-	}
-}
-
-/*
- * first crack using sinusoidaloidal
- */
-void openLoopLinSinusoidal(const commStep * commTable, int duty)
-{
-	int stepDelay = -17*duty+8000;
-	openLoopSinusoidal(commTable, duty, stepDelay);
-}
-
-
-int estimate_zero_cross_thresh()
-{
-	int ret = (adc_filtered_buf[ADC_CHAN_BEMF_A].buf[1]+adc_filtered_buf[ADC_CHAN_BEMF_B].buf[1]+adc_filtered_buf[ADC_CHAN_BEMF_C].buf[1])/3;
-	int dev =gl_zero_cross_point - ret;
-	if(dev < 10 && dev > -10)
-		return ret;
-	else
-		return gl_zero_cross_point;
-}
 
 
 /*
@@ -242,40 +216,42 @@ int estimate_zero_cross_thresh()
  * INPUTS:
  *
  */
-void openLoopAccel(const commStep * commTable, const int * bemfTable,  const int * edgePolarity)
+void openLoopAccel(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity)
 {
 	int duty_max_thresh = 1000;
 	int phase_delay_uS;
-	int duty = 1000;
-	align(forwardCommutationTable);
+	int duty = 500;
+	align(fw);
 	int stepIdx = 0;
-	for(phase_delay_uS = 9600; phase_delay_uS >= 960; phase_delay_uS-=400)
+	for(phase_delay_uS = 12000; phase_delay_uS >= 2500; phase_delay_uS-=300)
 	{
-		float Fs = ((float)phase_delay_uS/1000000.0)*3*2*PI;
-		float t = 0;
-		TIM14->CNT = 0;
-		while(TIM14->CNT < phase_delay_uS)
-		{
-			float drive = (float)duty*sin(Fs*t+deg_60);
-			t+=.000001;
-			loadPWMCommStep(commTable[stepIdx],drive);
-		}
-
-//		loadPWMCommStep(commTable[stepIdx],duty);
-//		delay_T14_us(phase_delay_uS);
+		//		float Fs = ((float)phase_delay_uS/1000000.0)*3*2*PI;
+		//		float t = 0;
+		//		TIM14->CNT = 0;
+		//		while(TIM14->CNT < phase_delay_uS)
+		//		{
+		//			float drive = (float)duty*sin(Fs*t+deg_60);
+		//			t+=.000001;
+		//			load_pwm_step(commTable[stepIdx],drive);
+		//		}
+		load_pwm_step(commTable[stepIdx],duty);
+		delay_T14_us(phase_delay_uS);
 
 		stepIdx++;
 		if(stepIdx >= 6)
 			stepIdx = 0;
 		gl_comm_step = stepIdx;
 		//openLoopEst(commTable, bemfTable, edgePolarity, duty, phase_delay_uS);
-		duty+=30;
+		duty+=15;
 		if(duty>duty_max_thresh)
 			duty = duty_max_thresh;
 		estSpeedPos(commTable, phase_delay_uS);
 	}
+
 }
 
+uint32_t openloop_spinup_ts = 0;
+uint32_t openloop_spinup_window_count = 0;
 /*
  * Closed loop sensorless bldc motor control.
  * INPUTS:  commTable: table dictating INH and INL pairs in sequence for 1 full electrical commutation
@@ -283,40 +259,84 @@ void openLoopAccel(const commStep * commTable, const int * bemfTable,  const int
  * 			edgePolarity: table containing the polarity of the edge of the BEMF of the unfed phase (rising or falling edge)
  * 			duty: the PWM duty cycle determining torque/speed of the motor
  */
-void closedLoop(const commStep * commTable, const int * bemfTable,  const int * edgePolarity, int duty)
+void closedLoop(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity, int duty)
 {
 	int steps_taken = 0;
 	while(steps_taken < 6)
 	{
 		int stepIdx = gl_comm_step;
 		int zero_cross_event = 0;
-		loadPWMCommStep(commTable[stepIdx],duty);
+		load_pwm_step(commTable[stepIdx],duty);
+		//		load_comm_step(commTable[stepIdx], duty, edgePolarity[stepIdx]);
 		TIM14->CNT = 0;
 		int uS_count = 0;
 
 		while(zero_cross_event==0)
 		{
 			uS_count = TIM14->CNT;
-//			if(edgePolarity[stepIdx] == RISING && dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point)
-//				break;
-//			else if(edgePolarity[stepIdx] == FALLING && dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point)
-//				break;
-			zero_cross_event = ((edgePolarity[stepIdx] == RISING && dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point) || (edgePolarity[stepIdx] == FALLING && dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point));
+			//			if(edgePolarity[stepIdx] == RISING && dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point)
+			//				break;
+			//			else if(edgePolarity[stepIdx] == FALLING && dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point)
+			//				break;
+			//			zero_cross_event = ((edgePolarity[stepIdx] == RISING && dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point) || (edgePolarity[stepIdx] == FALLING && dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point));
 
-			if(uS_count>=30000)	//if attemped for over 9000uS, accelerate and start over (failed closed loop commutation)
+			if(edgePolarity[stepIdx] == RISING)
 			{
+				if(dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point)
+				{
+					zero_cross_event = 1;
+					HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+				}
+			}
+			else if (edgePolarity[stepIdx] == FALLING)
+			{
+				if(dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point)
+				{
+					zero_cross_event = 1;
+					HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+				}
+			}
+			if(uS_count>=15000)	//if attemped for over 9000uS, accelerate and start over (failed closed loop commutation)
+			{
+
+				if(HAL_GetTick()-openloop_spinup_ts < 100)
+				{
+					if(openloop_spinup_window_count > 15)
+					{
+						TIM1->CCER = (TIM1->CCER & 0xFAAA);
+						int fault_delay_inc;
+						for(fault_delay_inc=0; fault_delay_inc < 100; fault_delay_inc++)
+						{
+							HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
+							HAL_Delay(50);
+						}
+					}
+					else if (openloop_spinup_window_count > 4)
+					{
+						HAL_Delay(50);
+					}
+					openloop_spinup_window_count++;
+				}
+				else
+					openloop_spinup_window_count = 0;
+				openloop_spinup_ts = HAL_GetTick();
 				zero_cross_event = 1;
 				uS_count = 2;
-//				openLoopAccel(commTable, bemfTable, edgePolarity);
+				openLoopAccel(commTable, bemfTable, edgePolarity);
 				return;
 			}
 		}
+		/*
+		 *	keep switching but flip polarity
+		 */
 		delay_T14_us(uS_count/2);	//in theory, this should not be uS_count/2. however, this controller draws more current when the delay is that long.
 		estSpeedPos(commTable, uS_count);	//update speed and position
 
+		//		gl_zero_cross_point = gl_virtual_neutral/3;
 		gl_comm_step++;
 		if(gl_comm_step >= 6)
 			gl_comm_step = 0;
 		steps_taken++;
 	}
+
 }

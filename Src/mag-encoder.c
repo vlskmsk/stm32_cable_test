@@ -16,7 +16,6 @@ int16_t sin_mid = 1911;		//my encoder
 //const int16_t sin_mid = 1250;		//steven encoder
 //const int16_t cos_mid = 1243.5;
 
-float align_offset = 0;				//offset angle IN RADIANS
 
 //from 0 to pi/2
 float atan2_approx(float sinVal, float cosVal)

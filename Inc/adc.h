@@ -17,14 +17,14 @@ uint8_t shunt_state;
 uint16_t adc_V[3];
 uint16_t adc_I[3];
 
-#define NUM_ADC 7
+#define NUM_ADC 8
 
 #define RISING 1
 #define FALLING 0
 
-#define ADC_CHAN_BEMF_C 3
-#define ADC_CHAN_BEMF_B 4
-#define ADC_CHAN_BEMF_A 5
+#define ADC_CHAN_BEMF_C 5
+#define ADC_CHAN_BEMF_B 6
+#define ADC_CHAN_BEMF_A 7
 
 #define ADC_CHAN_CURRENT_A 0
 #define ADC_CHAN_CURRENT_B 1

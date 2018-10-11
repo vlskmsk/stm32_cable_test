@@ -28,28 +28,49 @@
 #define INHC 4
 #define INLC 5
 
+#define DIS_ALL 0xFAAA		//and mask
+#define MASK_1 0x0550		//or mask
+#define MASK_2 0x0505		//or mask
+#define MASK_3 0x0055		//or mask
+#define ENABLE_ALL 0x0555	//or mask
+
+#define MASK_1_S2 0x0510
+#define MASK_1_S3 0x0150
+
+#define MASK_2_S1 0x0501
+#define MASK_2_S3 0x0105
+
+#define MASK_3_S1 0x0051
+#define MASK_3_S2 0x0015
+
+
+//TIM_HandleTypeDef * pwmHandle[6];
+//uint32_t pwmChannel[6];
+
 circularBuffer adc_raw_buf[NUM_ADC];
 circularBuffer adc_filtered_buf[NUM_ADC];
 
 int16_t gl_rotorPos;	//rotor position in degrees
 int16_t gl_rotorInterval;	//rotor TIME between 30 degrees of commutation (master converts to speed)
 
+int gl_comm_step;	//rotor step index. used mainly for open->closed transitions
+
+
 int high_phase;
 int low_phase;
 
-typedef struct commStep
+//typedef struct comm_step
+//{
+//	int phaseH;
+//	int phaseL;
+//}comm_step;
+
+typedef struct comm_step
 {
-	int phaseH;
-	int phaseL;
-}commStep;
-
-#define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
-		TIM1->CR1 |= TIM_CR1_UDIS; \
-		TIM1->CCR1 = duty1; \
-		TIM1->CCR2 = duty2; \
-		TIM1->CCR3 = duty3; \
-		TIM1->CR1 &= ~TIM_CR1_UDIS;
-
+	uint32_t H;
+	uint32_t L;
+	uint16_t mask;
+}comm_step;
 
 /*
  * A->B
@@ -59,31 +80,27 @@ typedef struct commStep
  * C->A
  * C->B
  */
-const commStep forwardCommutationTable[6];
+const comm_step fw[6];
 const int forwardADCBemfTable[6];
 const int forwardEdgePolarity[6];
 
-const commStep backwardCommutationTable[6];
+const comm_step bw[6];
 const int backwardADCBemfTable[6];
 const int backwardEdgePolarity[6];
 
-void loadPWMCommStep(commStep c, int duty);
-void align(const commStep * commTable);
+void load_pwm_step(comm_step c, int duty);
+void align(const comm_step * commTable);
 
-void openLoopLin(const commStep * commTable, int duty);
-void openLoop(const commStep * commTable, int duty, int phase_delay_uS);
-void openLoopEst(const commStep * commTable, const int * bemfTable,  const int * edgePolarity, int duty, int phase_delay_uS);
-void openLoopPrint(const commStep * commTable, int duty, int phase_delay_uS);
-void openLoopAccel(const commStep * commTable, const int * bemfTable,  const int * edgePolarity);
-void closedLoop(const commStep * commTable, const int * bemfTable,  const int * edgePolarity, int duty);
-void start_pwm();
-void stop_pwm();
+void openLoopLin(const comm_step * commTable, int duty);
+void openLoop(const comm_step * commTable, int duty, int phase_delay_uS);
+void openLoopEst(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity, int duty, int phase_delay_uS);
+void openLoopPrint(const comm_step * commTable, int duty, int phase_delay_uS);
+void openLoopAccel(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity);
+void closedLoop(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity, int duty);
+void stop();
 void brake();
 void hardBrake(int duty);
 
-void openLoopLinSinusoidal(const commStep * commTable, int duty);
-void openLoopSinusoidal(const commStep * commTable, float speed, int phase_delay_uS);
-void closedLoopSinusoidal(const commStep * commTable, const int * bemfTable,  const int * edgePolarity, float speed);
 
 
 void openloop_6step(int duty, int phase_delay_uS);

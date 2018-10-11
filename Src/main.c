@@ -7,6 +7,10 @@
 #include "foc_commutation.h"
 #include "mag-encoder.h"
 
+typedef enum {FOC_MODE, SINUSOIDAL_MODE, TRAPEZOIDAL_MODE} control_type;
+
+//#define GET_ALIGN_OFFSET
+
 #define BRAKE 0
 #define STOP 1
 #define FORWARD_OPEN 2
@@ -53,9 +57,17 @@ typedef enum {ADVANCE_TO_ZERO = 0, REST_AT_ZERO = 1, ADVANCE_TO_ANGLE = 2, REST_
 
 volatile uint32_t t_l = 0;
 
-void open_loop_sinusoidal_test();
-
 float theta_enc = 0;
+
+void start_pwm()
+{
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+}
 
 int main(void)
 {
@@ -95,73 +107,29 @@ int main(void)
 	get_current_cal_offsets();
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
-	init_observer();
+	//	init_observer();
 
 	gl_angle = 0;
 
 	TIMER_UPDATE_DUTY(0,0,0);
 
-	float x1 = 0;
-	float x2 = 0;
-	float Va_m, Vb_m, Vc_m;
-	float theta;
-	float i_a,i_b,i_c;
-	float i_alpha,i_beta;
-	uint32_t tA,tB,tC;
-
-
+	//	obtain_encoder_midpoints();
+#ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
+#else
+	align_offset = 1.03717375;				//offset angle IN RADIANS
+#endif
+
 	TIMER_UPDATE_DUTY(500,500,500);
 	HAL_Delay(100);
 
-	float x_iq_PI = 0;	//torque pi state
-	float x_id_PI = 0;	//flux pi state
-	float uq = 0;
-	float ud = 0;
-
-	float iq_ref = 15;
-	float id_ref = 10;
 	uint32_t led_ts = 0;
-
-//	open_loop_sinusoidal_test();
 
 	while(1)
 	{
 
-		conv_raw_current(&i_a,&i_b, &i_c);
-		clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
-
-		/*
-		 * TODO:
-		 * 1. test compensation for adc misalignment
-		 * 2. test observer with improved shunts
-		 * 3. see if raw observer error is characterizable/constant, try to locate source
-		 */
-//		convert_phase_voltage(&Va_m,&Vb_m, &Vc_m);
-//		clarke_transform(Va_m,Vb_m,Vc_m, &Va_m,  &Vb_m);
-//		float theta_o = observer_update(Va_m, Vb_m, i_alpha, i_beta, &x1, &x2)-M_PI;
-
-		float sin_theta,cos_theta;
-		float theta_elec = theta_rel_rad();		//test this! MS motor has 22 pole pairs, which means multiply by 11
-		theta_elec = fmod_2pi(theta_elec + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
-		sin_theta = sin_fast(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
-		cos_theta = cos_fast(theta_elec);				//and the cosine for park and inverse park domains
-
-		float i_q, i_d;
-		park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
-//
-		controller_PI(iq_ref, i_q, 0.01, 0.000000001, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(id_ref, i_d, 0.01, 0.000000000, &x_id_PI, &ud);		//high current
-//
-
-		inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
-		//		arm_inv_park_f32(  ud,uq,  &i_alpha,&i_beta, sin(theta_observer),cos(theta_observer));
-		//		arm_cos_f32(theta_observer);
-
-		//		inverse_clarke_transform(i_alpha,i_beta,&Va_m,&Vb_m,&Vc_m);
-		//		tA = (uint32_t)(Va_m*1000+500);	tB = (uint32_t)(Vb_m*1000+500);	tC = (uint32_t)(Vc_m*1000+500);
-		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-		TIMER_UPDATE_DUTY(tB,tA,tC);
+		foc(15,15);
+//		closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,500);
 
 		if(HAL_GetTick()>=led_ts)
 		{
@@ -169,25 +137,5 @@ int main(void)
 			led_state = !led_state & 1;
 			led_ts = HAL_GetTick() + 200;
 		}
-	}
-}
-
-/*
- * Test of open loop sinusoidal on thumb flexor
- */
-void open_loop_sinusoidal_test()
-{
-	while(1)
-	{
-		float theta = 371*sin_fast( (fmod_2pi(.5*time_seconds() + PI) - PI) );
-//		float theta = time_seconds();
-		theta = fmod_2pi(theta + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
-		float sin_theta = sin_fast(theta);				//calculate the sin of the electrical (magnetic flux) angle
-		float cos_theta = cos_fast(theta);				//and the cosine for park and inverse park domains
-		float i_alpha,i_beta;
-		uint32_t tA,tB,tC;
-		inverse_park_transform(.15, 0, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
-		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-		TIMER_UPDATE_DUTY(tA,tB,tC);
 	}
 }

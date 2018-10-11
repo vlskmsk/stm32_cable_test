@@ -27,6 +27,43 @@ int gl_sector=1;	//for SVM
 
 
 /*
+ * takes in iq,id reference currents
+ * returns the current unwrapped motor position
+ */
+float i_a,i_b,i_c;
+float i_alpha,i_beta;
+float x_iq_PI = 0;	//torque pi state
+float x_id_PI = 0;	//flux pi state
+float uq = 0;
+float ud = 0;
+uint32_t tA,tB,tC;
+float prev_theta = 0;
+float foc(float iq_ref,float id_ref)
+{
+	conv_raw_current(&i_a,&i_b, &i_c);
+	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
+
+	float sin_theta,cos_theta;
+	float theta_elec = theta_rel_rad();		//test this! MS motor has 22 pole pairs, which means multiply by 11
+	theta_elec = fmod_2pi(theta_elec + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
+	sin_theta = sin_fast(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
+	cos_theta = cos_fast(theta_elec);				//and the cosine for park and inverse park domains
+
+	float i_q, i_d;
+	park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
+
+	controller_PI(iq_ref, i_q, 0.01, 0.000000001, &x_iq_PI, &uq);		//this sort of works
+	controller_PI(id_ref, i_d, 0.01, 0.000000000, &x_id_PI, &ud);		//high current
+
+	inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
+
+	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+	TIMER_UPDATE_DUTY(tB,tA,tC);
+
+	return unwrap(theta_abs_rad(), &prev_theta);
+}
+
+/*
  * procedure:
  * First divide (alpha,beta) vector into 4 quadrants.
  * Then, for each quadrant, check which sector. two possibilities for each.

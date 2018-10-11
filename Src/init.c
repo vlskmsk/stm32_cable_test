@@ -159,6 +159,14 @@ void MX_ADC_Init(void)
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_7;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
 }
 
 /* I2C1 init function */
