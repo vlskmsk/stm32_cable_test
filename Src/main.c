@@ -125,11 +125,24 @@ int main(void)
 
 	uint32_t led_ts = 0;
 
+	uint32_t start_time = HAL_GetTick();
 	while(1)
 	{
+		uint32_t time = HAL_GetTick()-start_time;
+		if(time < 2000)
+		{
+			foc(5,30);
+		}
+		else if (time >= 2000 && time < 4000)
+		{
+			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,500);
+		}
+		else if (time > 4000)
+		{
+			start_time = HAL_GetTick();
+			TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+		}
 
-		foc(15,15);
-//		closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,500);
 
 		if(HAL_GetTick()>=led_ts)
 		{
