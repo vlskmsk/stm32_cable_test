@@ -17,7 +17,7 @@ uint8_t shunt_state;
 uint16_t adc_V[3];
 uint16_t adc_I[3];
 
-#define NUM_ADC 6
+#define NUM_ADC 7
 
 #define RISING 1
 #define FALLING 0

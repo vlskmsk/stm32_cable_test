@@ -21,6 +21,8 @@
 const float rad_to_deg;
 
 float align_offset;				//offset angle IN RADIANS
+int16_t cos_mid;
+int16_t sin_mid;		//my encoder
 float theta_abs_rad();
 float theta_rel_rad();
 float theta_abs_deg();
@@ -33,5 +35,8 @@ float fmod_2pi(float in);
 float atan2_approx(float sinVal, float cosVal);
 float sin_fast(float theta);
 float cos_fast(float theta);
+
+void obtain_encoder_midpoints();
+float unwrap(float theta,float * prev_theta);
 
 #endif /* MAG_ENCODER_H_ */

@@ -53,6 +53,9 @@ typedef enum {ADVANCE_TO_ZERO = 0, REST_AT_ZERO = 1, ADVANCE_TO_ANGLE = 2, REST_
 
 volatile uint32_t t_l = 0;
 
+void open_loop_sinusoidal_test();
+
+float theta_enc = 0;
 
 int main(void)
 {
@@ -106,6 +109,7 @@ int main(void)
 	float i_alpha,i_beta;
 	uint32_t tA,tB,tC;
 
+
 	obtain_encoder_offset();
 	TIMER_UPDATE_DUTY(500,500,500);
 	HAL_Delay(100);
@@ -115,11 +119,12 @@ int main(void)
 	float uq = 0;
 	float ud = 0;
 
-	float iq_ref = 20;
-	float id_ref = 0;
+	float iq_ref = 15;
+	float id_ref = 10;
 	uint32_t led_ts = 0;
 
-	uint32_t t_p = ((TIM14_ms()*CONST_MS_TO_TICK+TIM14->CNT));
+//	open_loop_sinusoidal_test();
+
 	while(1)
 	{
 
@@ -145,9 +150,10 @@ int main(void)
 		float i_q, i_d;
 		park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
 //
-		controller_PI(iq_ref, i_q, 0.01, 0.00000001, &x_iq_PI, &uq);		//this sort of works
-		controller_PI(id_ref, i_d, 0.01, 0.0000000001, &x_id_PI, &ud);		//high current
+		controller_PI(iq_ref, i_q, 0.01, 0.000000001, &x_iq_PI, &uq);		//this sort of works
+		controller_PI(id_ref, i_d, 0.01, 0.000000000, &x_id_PI, &ud);		//high current
 //
+
 		inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
 		//		arm_inv_park_f32(  ud,uq,  &i_alpha,&i_beta, sin(theta_observer),cos(theta_observer));
 		//		arm_cos_f32(theta_observer);
@@ -155,7 +161,7 @@ int main(void)
 		//		inverse_clarke_transform(i_alpha,i_beta,&Va_m,&Vb_m,&Vc_m);
 		//		tA = (uint32_t)(Va_m*1000+500);	tB = (uint32_t)(Vb_m*1000+500);	tC = (uint32_t)(Vc_m*1000+500);
 		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-		TIMER_UPDATE_DUTY(tA,tB,tC);
+		TIMER_UPDATE_DUTY(tB,tA,tC);
 
 		if(HAL_GetTick()>=led_ts)
 		{
@@ -163,5 +169,25 @@ int main(void)
 			led_state = !led_state & 1;
 			led_ts = HAL_GetTick() + 200;
 		}
+	}
+}
+
+/*
+ * Test of open loop sinusoidal on thumb flexor
+ */
+void open_loop_sinusoidal_test()
+{
+	while(1)
+	{
+		float theta = 371*sin_fast( (fmod_2pi(.5*time_seconds() + PI) - PI) );
+//		float theta = time_seconds();
+		theta = fmod_2pi(theta + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
+		float sin_theta = sin_fast(theta);				//calculate the sin of the electrical (magnetic flux) angle
+		float cos_theta = cos_fast(theta);				//and the cosine for park and inverse park domains
+		float i_alpha,i_beta;
+		uint32_t tA,tB,tC;
+		inverse_park_transform(.15, 0, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
+		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+		TIMER_UPDATE_DUTY(tA,tB,tC);
 	}
 }
