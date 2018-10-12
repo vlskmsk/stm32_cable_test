@@ -135,7 +135,8 @@ int main(void)
 		}
 		else if (time >= 2000 && time < 4000)
 		{
-			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,500);
+			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,200);
+//			openLoop(fw, 200, 13000);
 		}
 		else if (time > 4000)
 		{
