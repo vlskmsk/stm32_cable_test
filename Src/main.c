@@ -84,7 +84,7 @@ int main(void)
 	MX_TIM14_Init();
 	//  MX_I2C1_Init();
 
-	HAL_TIM_Base_Start(&htim14);
+//	HAL_TIM_Base_Start(&htim14);
 	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
 
 
@@ -97,11 +97,11 @@ int main(void)
 
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 
-	HAL_Delay(100);
+	HAL_Delay(1);
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 1);
-	HAL_Delay(100);
+	HAL_Delay(1);
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
-	HAL_Delay(100);
+	HAL_Delay(1);
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 	get_current_cal_offsets();
@@ -126,6 +126,26 @@ int main(void)
 	uint32_t led_ts = 0;
 
 	uint32_t start_time = HAL_GetTick();
+
+//	while(1)
+//	{
+//		float theta = time_seconds()*300;
+//		theta = fmod_2pi(theta + PI) - PI;
+//		float sin_theta = sin_fast(theta);				//calculate the sin of the electrical (magnetic flux) angle
+//		float cos_theta = cos_fast(theta);				//and the cosine for park and inverse park domains
+//		float i_alpha, i_beta;
+//		inverse_park_transform(.12, 0, sin_theta, cos_theta, &i_alpha, &i_beta);
+//		uint32_t tA,tB,tC;
+//
+//		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+//		TIMER_UPDATE_DUTY(tB,tA,tC);
+//	}
+
+	while(1)
+	{
+		foc(5,30);
+	}
+
 	while(1)
 	{
 		uint32_t time = HAL_GetTick()-start_time;
@@ -135,7 +155,8 @@ int main(void)
 		}
 		else if (time >= 2000 && time < 4000)
 		{
-			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,200);
+//			TIM1->CCR4 = 100;
+			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,400);
 //			openLoop(fw, 200, 13000);
 		}
 		else if (time > 4000)

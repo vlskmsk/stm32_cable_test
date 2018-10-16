@@ -7,8 +7,6 @@
 
 #include "adc.h"
 
-#define BUFFER_SIZE 10
-
 uint16_t dma_adc_raw[NUM_ADC] = {0};	//initialized, DMA access array
 int bemf_adc_map[3] = {ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A};
 

@@ -15,9 +15,8 @@ for i = 1:len
     [tA(i),tB(i),tC(i),sector(i)] = svm_sinusoidal(alpha,beta,1000);
 end
 
-tA = tA + 1000;
-tB = tB + 500;
-
+tA = tA + 500;
+tB = tB - 
 
 figure(1);
 plot(tA);

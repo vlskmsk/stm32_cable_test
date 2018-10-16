@@ -81,7 +81,7 @@ void MX_ADC_Init(void)
 	hadc.Init.Resolution = ADC_RESOLUTION_12B;
 	hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 	hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
-	hadc.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
 	hadc.Init.LowPowerAutoWait = DISABLE;
 	hadc.Init.LowPowerAutoPowerOff = DISABLE;
 	hadc.Init.ContinuousConvMode = DISABLE;				//for asynchronous, enable.						//pwm, disable
@@ -299,7 +299,7 @@ void MX_TIM1_Init(void)
 	sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_ENABLE;	//VESC, enabled
 	sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE;	//VESC, enabled
 	sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-	sBreakDeadTimeConfig.DeadTime = 1;							//VESC, nonzero
+	sBreakDeadTimeConfig.DeadTime = 0;							//VESC, nonzero
 	sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
 	sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
 	sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
@@ -321,7 +321,7 @@ void MX_TIM14_Init(void)
 	htim14.Instance = TIM14;
 	htim14.Init.Prescaler = PSC_GEN_TIMER;
 	htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim14.Init.Period = 48000;
+	htim14.Init.Period = 0xFFFFFF;
 	htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 	if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
