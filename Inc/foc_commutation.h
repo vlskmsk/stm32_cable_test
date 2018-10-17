@@ -55,6 +55,7 @@ void inverse_clarke_transform(float i_alpha, float i_beta, float * i_a, float * 
 void park_transform(float i_alpha, float i_beta, float sin_theta, float cos_theta, float * i_q, float * i_d);
 void inverse_park_transform(float i_q, float i_d, float sin_theta, float cos_theta, float * i_alpha, float * i_beta);
 
+int svm_sinusoidal(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC);
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC);
 
 void init_observer();

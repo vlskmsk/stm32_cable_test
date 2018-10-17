@@ -63,12 +63,6 @@ float foc(float iq_ref,float id_ref)
 	return unwrap(theta_abs_rad(), &prev_theta);
 }
 
-/*
- * procedure:
- * First divide (alpha,beta) vector into 4 quadrants.
- * Then, for each quadrant, check which sector. two possibilities for each.
- * once sectors are parsed, convert to times.
- */
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC)
 {
 	float pwm_half_period = (float)pwm_period_cnt;
@@ -117,6 +111,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 		*tA = (pwm_half_period - t1 - t2) * .5;
 		*tB = *tA + t1;
 		*tC = *tB + t2;
+
 		break;
 	}
 	case 2:
@@ -166,6 +161,145 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 		break;
 	}
 	}
+	gl_sector = sector;
+	return sector;
+}
+
+/*
+ * NOTE:  REQUIRES A->1, B->2, C->3 MAPPING!!!!!!!
+ *
+ * procedure:
+ * First divide (alpha,beta) vector into 4 quadrants.
+ * Then, for each quadrant, check which sector. two possibilities for each.
+ * once sectors are parsed, convert to times.
+ */
+int svm_sinusoidal(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC)
+{
+
+	float pwm_half_period = (float)pwm_period_cnt;
+	uint32_t sector;
+	if(beta >= 0.0f)	//quadrant 1 or two
+	{
+		if(alpha >= 0.0f)	//quadrant 1
+		{
+			if(beta <= alpha*SQRT_3)	//sector 1
+				sector = 1;
+			else							//sector 2
+				sector = 2;
+		}
+		else				//quadrant 2
+		{
+			if(beta <= alpha*-SQRT_3)	//sector 2
+				sector = 3;
+			else							//sector 3
+				sector = 2;
+		}
+	}
+	else			//quadrant 3 or 4
+	{
+		if(alpha >= 0.0f)	//quadrant 4
+		{
+			if(beta < -SQRT_3*alpha)
+				sector = 5;
+			else
+				sector = 6;
+		}
+		else				//quadrant 3
+		{
+			if(beta < alpha*SQRT_3)
+				sector = 5;
+			else
+				sector = 4;
+		}
+	}
+
+	uint16_t mask;
+	switch (sector)
+	{
+	case 1:
+	{
+		uint32_t t1 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t2 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
+		*tA = (pwm_half_period - t1 - t2) * .5;
+		*tB = *tA + t1;
+		*tC = *tB + t2;
+		//		TIM1->CCER = (TIM1->CCER & DIS_ALL) | MASK_2;
+		mask = MASK_2;
+		break;
+	}
+	case 2:
+	{
+		uint32_t t2 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t3 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		*tB = (pwm_half_period - t2 - t3) * .5;
+		*tA = *tB + t3;
+		*tC = *tA + t2;
+		//		TIM1->CCER = (TIM1->CCER & DIS_ALL) | MASK_1;
+		mask = MASK_1;
+		break;
+	}
+	case 3:
+	{
+		uint32_t t3 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t4 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		*tB = (pwm_half_period - t3 - t4) * .5;
+		*tC = *tB + t3;
+		*tA = *tC + t4;
+		//		TIM1->CCER = (TIM1->CCER & DIS_ALL) | MASK_3;
+		mask = MASK_3;
+		break;
+	}
+	case 4:
+	{
+		uint32_t t4 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t5 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
+		*tC = (pwm_half_period - t4 - t5) * .5;
+		*tB = *tC + t5;
+		*tA = *tB + t4;
+		//		TIM1->CCER = (TIM1->CCER & DIS_ALL) | MASK_2;
+		mask = MASK_2;
+		break;
+	}
+	case 5:
+	{
+		uint32_t t5 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t6 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		*tC = (pwm_half_period - t5 - t6) * .5;
+		*tA = *tC + t5;
+		*tB = *tA + t6;
+		//		TIM1->CCER = (TIM1->CCER & DIS_ALL) | MASK_1;
+		mask = MASK_1;
+		break;
+	}
+	case 6:
+	{
+		uint32_t t6 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
+		uint32_t t1 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
+		*tA = (pwm_half_period - t6 - t1) * .5;
+		*tC = *tA + t1;
+		*tB = *tC + t6;
+		//		TIM1->CCER = (TIM1->CCER & DIS_ALL) | MASK_3;
+		mask = MASK_3;
+		break;
+	}
+	}
+	TIM1->CCER = (TIM1->CCER & DIS_ALL) | mask;
+	switch(mask)
+	{
+	case MASK_1:
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, *tB);
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, *tC);
+		break;
+	case MASK_2:
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, *tA);
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, *tC);
+		break;
+	case MASK_3:
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, *tA);
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, *tB);
+		break;
+	};
+
 	gl_sector = sector;
 	return sector;
 }
@@ -230,7 +364,7 @@ void obtain_encoder_offset()
 	uint32_t tA,tB,tC;
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 	TIMER_UPDATE_DUTY(tA,tB,tC);		//TODO: since this produces (.2, -.1, -.1) -> (600, 450, 450), test (600, 400+50*sin(t), 400+50*sin(t)) and see if there
-										// is any preturbation in the angle
+	// is any preturbation in the angle
 	HAL_Delay(100);					//TODO: test if the angle is different depending on this value
 	float avg_offset = 0;
 	int i;
@@ -374,7 +508,7 @@ void init_observer()
 	//	est_R();
 	R = .86;
 	L = .0000405;
-//	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
+	//	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
 	V_psi = 0.00088212623;
 }
 

@@ -127,24 +127,34 @@ int main(void)
 
 	uint32_t start_time = HAL_GetTick();
 
-//	while(1)
-//	{
-//		float theta = time_seconds()*300;
-//		theta = fmod_2pi(theta + PI) - PI;
-//		float sin_theta = sin_fast(theta);				//calculate the sin of the electrical (magnetic flux) angle
-//		float cos_theta = cos_fast(theta);				//and the cosine for park and inverse park domains
-//		float i_alpha, i_beta;
-//		inverse_park_transform(.12, 0, sin_theta, cos_theta, &i_alpha, &i_beta);
-//		uint32_t tA,tB,tC;
-//
-//		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-//		TIMER_UPDATE_DUTY(tB,tA,tC);
-//	}
 
+
+	/*
+	 * FOC only
+	 */
 	while(1)
 	{
 		foc(5,30);
 	}
+	/*
+	 * open loop ACUTAL sinusoidal
+	 */
+	while(1)
+	{
+		float theta = time_seconds()*300;
+		theta = fmod_2pi(theta + PI) - PI;
+		float sin_theta = sin_fast(theta);				//calculate the sin of the electrical (magnetic flux) angle
+		float cos_theta = cos_fast(theta);				//and the cosine for park and inverse park domains
+		float i_alpha, i_beta;
+		inverse_park_transform(.2, 0, sin_theta, cos_theta, &i_alpha, &i_beta);
+		uint32_t tA,tB,tC;
+
+//		svm_sinusoidal(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+
+		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+		TIMER_UPDATE_DUTY(tA,tB,tC);
+	}
+
 
 	while(1)
 	{
