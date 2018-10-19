@@ -128,9 +128,9 @@ int main(void)
 
 	uint32_t start_time = HAL_GetTick();
 
-
-	float th = -10*TWO_PI;
-	for (th = -10*TWO_PI; th < 10*TWO_PI; th+=.001)
+	float max_error = 0;
+	float th;
+	for (th = -10; th < 10; th+=.001)
 	{
 		float theta_elec =  fmod_2pi(th + PI) - PI;	//first constrain angle
 
@@ -140,7 +140,13 @@ int main(void)
 		/*
 		 * TODO: track maximum absolute value error, verify it is same as matlab
 		 */
+		float err = sin_theta - sin_theta_lookup;
+		if(err < 0)
+			err = -err;
+		if(err > max_error)
+			max_error = err;
 	}
+
 	/*
 	 * TODO: test new encoder with foc
 	 */

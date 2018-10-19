@@ -10,7 +10,7 @@
 #include "init.h"
 #include "adc.h"
 #include "circ.h"
-#include <math.h>
+//#include <math.h>
 
 #define PI 3.14159265359
 
