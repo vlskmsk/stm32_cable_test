@@ -18,7 +18,6 @@ end
 tA = tA + 1000;
 tB = tB + 500;
 
-
 figure(1);
 plot(tA);
 hold on

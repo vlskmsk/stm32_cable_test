@@ -6,6 +6,7 @@
 #include "comm.h"
 #include "foc_commutation.h"
 #include "mag-encoder.h"
+#include "sin_lookup.h"
 
 typedef enum {FOC_MODE, SINUSOIDAL_MODE, TRAPEZOIDAL_MODE} control_type;
 
@@ -127,6 +128,31 @@ int main(void)
 
 	uint32_t start_time = HAL_GetTick();
 
+
+	float th = -10*TWO_PI;
+	for (th = -10*TWO_PI; th < 10*TWO_PI; th+=.001)
+	{
+		float theta_elec =  fmod_2pi(th + PI) - PI;	//first constrain angle
+
+		float sin_theta = sin_fast(theta_elec);
+		float sin_theta_lookup = sin_lookup(theta_elec);	//test both methods
+
+		/*
+		 * TODO: track maximum absolute value error, verify it is same as matlab
+		 */
+	}
+	/*
+	 * TODO: test new encoder with foc
+	 */
+	/*
+	 * TODO: test lookup table with foc
+	 */
+	/*
+	 * TODO: verify that the lookup table is faster
+	 * 		2 methods:
+	 * 		put in closed loop and check current draw increase
+	 * 		use tim14 high resolution .16us timer for some number of consecuitve computations (i.e. time for 100 computations of a changing theta for both methods)
+	 */
 
 
 	/*
