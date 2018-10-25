@@ -9,7 +9,7 @@
 #define SIN_LOOKUP_H_
 #include "mag-encoder.h"
 
-#define LOOKUP_TABLE_SIZE 2048
+#define LOOKUP_TABLE_SIZE 256
 
 float sin_lookup_table[LOOKUP_TABLE_SIZE];
 float sin_lookup(float theta);

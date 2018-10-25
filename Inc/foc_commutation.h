@@ -10,6 +10,8 @@
 #include "init.h"
 #include "mag-encoder.h"
 
+float foc_theta_prev;	//
+
 #define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
 		TIM1->CCR1 = duty1; \
@@ -58,11 +60,12 @@ void inverse_park_transform(float i_q, float i_d, float sin_theta, float cos_the
 int svm_sinusoidal(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC);
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC);
 
-void init_observer();
-float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2);
+//void init_observer();
+//float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2);
+//void sector_check(float alpha, float beta, float * theta, uint32_t * sector);
+//float est_R();
 
-void sector_check(float alpha, float beta, float * theta, uint32_t * sector);
-float est_R();
 void obtain_encoder_offset();
+void obtain_encoder_midpoints();
 
 #endif /* FOC_COMMUTATION_H_ */

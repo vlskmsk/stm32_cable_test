@@ -44,26 +44,12 @@
 #define MASK_3_S2 0x0015
 
 
-//TIM_HandleTypeDef * pwmHandle[6];
-//uint32_t pwmChannel[6];
-
-circularBuffer adc_raw_buf[NUM_ADC];
-circularBuffer adc_filtered_buf[NUM_ADC];
 
 int16_t gl_rotorPos;	//rotor position in degrees
 int16_t gl_rotorInterval;	//rotor TIME between 30 degrees of commutation (master converts to speed)
 
 int gl_comm_step;	//rotor step index. used mainly for open->closed transitions
 
-
-int high_phase;
-int low_phase;
-
-//typedef struct comm_step
-//{
-//	int phaseH;
-//	int phaseL;
-//}comm_step;
 
 typedef struct comm_step
 {
@@ -100,8 +86,6 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 void stop();
 void brake();
 void hardBrake(int duty);
-
-
 
 void openloop_6step(int duty, int phase_delay_uS);
 int initZeroCrossPoint(uint16_t * adc_data_vals);

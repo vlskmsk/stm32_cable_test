@@ -178,12 +178,6 @@ void openLoopEst(const comm_step * commTable, const int * bemfTable,  const int 
 			uS = TIM14->CNT;
 			if(uS>phase_delay_uS)
 				timOver=1;
-
-			//			rollingAverage_2(&adc_filtered_buf[bemfTable[stepIdx]], dma_adc_raw[bemfTable[stepIdx]]);
-			for(i=0;i<3;i++)
-				updateCircBuf(&adc_filtered_buf[bemf_adc_map[i]],dma_adc_raw[bemf_adc_map[i]]);
-
-			//			int zero_cross_event = zeroCrossDetect(adc_filtered_buf[bemfTable[stepIdx]], zero_cross_thresh,edgePolarity[stepIdx]);
 		}
 	}
 

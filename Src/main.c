@@ -10,7 +10,7 @@
 
 typedef enum {FOC_MODE, SINUSOIDAL_MODE, TRAPEZOIDAL_MODE} control_type;
 
-//#define GET_ALIGN_OFFSET
+#define GET_ALIGN_OFFSET
 
 #define BRAKE 0
 #define STOP 1
@@ -19,29 +19,6 @@ typedef enum {FOC_MODE, SINUSOIDAL_MODE, TRAPEZOIDAL_MODE} control_type;
 #define BACKWARD_OPEN 4
 #define BACKWARD_CLOSED 5
 
-char msg_buf[32];
-void print_string(char * c)
-{
-	int i;
-	for(i=0; c[i] != 0; i++);
-	HAL_UART_Transmit(&huart1, (uint8_t*)c, i, 100);
-}
-void print_int16(int16_t val)
-{
-	msg_buf[0] = (val & 0x00FF);
-	msg_buf[1] = (val & 0xFF00)>>8;
-	HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 2, 100);
-}
-void print_int32(int32_t val)
-{
-	msg_buf[0] = (val & 0x00FF);
-	msg_buf[1] = (val & 0xFF00)>>8;
-	msg_buf[2] = (val & 0xFF0000)>>16;
-	msg_buf[3] = (val & 0xFF000000)>>24;
-	HAL_UART_Transmit(&huart1, (uint8_t*)msg_buf, 4, 100);
-}
-
-int led_state =0;
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
@@ -49,26 +26,12 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 	execute_master_cmd();
 }
 
-int idx = 0;
-volatile int total_delay = 0;
-
-float gl_angle = 89;
-
-typedef enum {ADVANCE_TO_ZERO = 0, REST_AT_ZERO = 1, ADVANCE_TO_ANGLE = 2, REST_AT_ANGLE = 3} bang_test_state;
-
-volatile uint32_t t_l = 0;
-
 float theta_enc = 0;
 
-void start_pwm()
-{
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
-}
+void align_offset_test();
+float check_encoder_region();
+
+void start_pwm();
 
 int main(void)
 {
@@ -110,8 +73,6 @@ int main(void)
 
 	//	init_observer();
 
-	gl_angle = 0;
-
 	TIMER_UPDATE_DUTY(0,0,0);
 
 	//	obtain_encoder_midpoints();
@@ -128,46 +89,64 @@ int main(void)
 
 	uint32_t start_time = HAL_GetTick();
 
-	float max_error = 0;
-	float th;
-	for (th = -10; th < 10; th+=.001)
-	{
-		float theta_elec =  fmod_2pi(th + PI) - PI;	//first constrain angle
-
-		float sin_theta = sin_fast(theta_elec);
-		float sin_theta_lookup = sin_lookup(theta_elec);	//test both methods
-
-		/*
-		 * TODO: track maximum absolute value error, verify it is same as matlab
-		 */
-		float err = sin_theta - sin_theta_lookup;
-		if(err < 0)
-			err = -err;
-		if(err > max_error)
-			max_error = err;
-	}
-
-	/*
-	 * TODO: test new encoder with foc
-	 */
-	/*
-	 * TODO: test lookup table with foc
-	 */
-	/*
-	 * TODO: verify that the lookup table is faster
-	 * 		2 methods:
-	 * 		put in closed loop and check current draw increase
-	 * 		use tim14 high resolution .16us timer for some number of consecuitve computations (i.e. time for 100 computations of a changing theta for both methods)
-	 */
+//	float max_error = 0;
+//	float th;
+//	for (th = -10; th < 10; th+=.001)
+//	{
+//		float theta_elec =  fmod_2pi(th + PI) - PI;	//first constrain angle
+//
+//		float sin_theta = sin_fast(theta_elec);
+//		float sin_theta_lookup = sin_lookup(theta_elec);	//test both methods
+////		float sin_theta_lookup = 0;
+//		/*
+//		 * TODO: track maximum absolute value error, verify it is same as matlab
+//		 */
+//		float err = sin_theta - sin_theta_lookup;
+//		if(err < 0)
+//			err = -err;
+//		if(err > max_error)
+//			max_error = err;
+//	}
+//
+//	 * TODO: test lookup table with foc
+//	 */
+//	/*
+//	 * TODO: verify that the lookup table is faster
+//	 * 		2 methods:
+//	 * 		put in closed loop and check current draw increase
+//	 * 		use tim14 high resolution .16us timer for some number of consecuitve computations (i.e. time for 100 computations of a changing theta for both methods)
+//	 */
 
 
-	/*
-	 * FOC only
-	 */
+//	align_offset_test();
+
+
+/*****************************************************************************************/
+	float toggle_state_ts = HAL_GetTick()+2000;
+	float comp_angle = check_encoder_region();
+	float theta_m_prev = comp_angle;
+	foc_theta_prev = comp_angle;
+	float theta_des = 63*TWO_PI;
 	while(1)
 	{
-		foc(5,30);
+
+		if(HAL_GetTick() > toggle_state_ts)
+		{
+			theta_des = -theta_des;
+			toggle_state_ts = HAL_GetTick()+2000;
+			HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
+		}
+
+		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);	//get the angle
+		float u = (theta_des - theta_m)*.1;						//control law
+		float id_u = u*2;
+		if(id_u > 30)
+			id_u = 30;
+		if(id_u < -30)
+			id_u = -30;
+		foc(u,id_u);												//update foc
 	}
+/*****************************************************************************************/
 	/*
 	 * open loop ACUTAL sinusoidal
 	 */
@@ -187,7 +166,7 @@ int main(void)
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 	}
 
-
+	uint8_t led_state;
 	while(1)
 	{
 		uint32_t time = HAL_GetTick()-start_time;
@@ -216,3 +195,88 @@ int main(void)
 		}
 	}
 }
+
+
+void start_pwm()
+{
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+}
+
+
+/*
+ * check and correct the encoder region for KMZ60 encoder. Necessary because encoder returns
+ * twice the actual angle
+ */
+float check_encoder_region()
+ {
+	uint32_t ts = HAL_GetTick();
+	foc_theta_prev = theta_abs_rad();
+	float theta_enc_start = unwrap( theta_rel_rad(), &foc_theta_prev)*.5;	//on your marks...
+	while(HAL_GetTick() < ts + 10)
+	{
+		foc(12,0);
+	}
+	float theta_enc_end = unwrap( theta_rel_rad(), &foc_theta_prev)*.5;
+	if(theta_enc_end - theta_enc_start < 0)
+		return -TWO_PI;
+	else
+		return 0;
+}
+
+
+float ao_pos = 0;
+float ao_neg = 0;
+void align_offset_test()
+{
+	float lower_limit = -PI/elec_conv_ratio;
+	float upper_limit = -lower_limit;
+	uint32_t period = 0;
+	float theta_m_prev = 0;
+	float theta_unwrapped_prev = 0;
+	float theta_m;
+	int prev_rotation_num = 0;
+	uint32_t rotation_start_ts = HAL_GetTick();
+	uint32_t min_pos_period = 0xFFFFFFFF;
+	uint32_t min_neg_period = 0xFFFFFFFF;
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+	for(align_offset = lower_limit; align_offset < upper_limit; align_offset+=.00005)
+	{
+		theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5;
+		float d_theta = theta_m - theta_unwrapped_prev;
+		float wrapped_theta = theta_m * ONE_BY_TWO_PI;//= fmod_2pi(theta_m);
+		int rotation_num = (int)wrapped_theta;
+		if(rotation_num != prev_rotation_num)
+		{
+			period = HAL_GetTick()-rotation_start_ts;
+			if(period < min_pos_period && d_theta > 0)
+			{
+				min_pos_period = period;
+				ao_pos = align_offset;
+			}
+			if(period < min_neg_period && d_theta < 0)
+			{
+				min_neg_period = period;
+				ao_neg = align_offset;
+			}
+		}
+//		if(d_theta > 0.003)
+//			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+//		else if(d_theta < -.003)
+
+
+		foc(10,0);
+		prev_rotation_num = rotation_num;
+		theta_unwrapped_prev = theta_m;
+	}
+//	align_offset = ao_pos;
+	align_offset = (ao_pos - ao_neg)*.5;
+	TIMER_UPDATE_DUTY(0,0,0);
+}
+
+
+

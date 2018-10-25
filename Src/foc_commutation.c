@@ -38,16 +38,17 @@ float uq = 0;
 float ud = 0;
 uint32_t tA,tB,tC;
 float prev_theta = 0;
+float theta_enc_prev=0;
 float foc(float iq_ref,float id_ref)
 {
 	conv_raw_current(&i_a,&i_b, &i_c);
 	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
-	float sin_theta,cos_theta;
-	float theta_elec = theta_rel_rad();		//test this! MS motor has 22 pole pairs, which means multiply by 11
+	float theta_enc = unwrap( theta_rel_rad(), &foc_theta_prev);
+	float theta_elec = theta_enc*elec_conv_ratio;
 	theta_elec = fmod_2pi(theta_elec + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
-	sin_theta = sin_fast(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
-	cos_theta = cos_fast(theta_elec);				//and the cosine for park and inverse park domains
+	float sin_theta = sin_fast(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
+	float cos_theta = cos_fast(theta_elec);				//and the cosine for park and inverse park domains
 
 	float i_q, i_d;
 	park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
@@ -377,6 +378,41 @@ void obtain_encoder_offset()
 	align_offset = avg_offset/(float)num_samples;
 }
 
+void obtain_encoder_midpoints()
+{
+	float t_start = time_seconds();
+	uint16_t s_max = 0;
+	uint16_t s_min = 0xFFFF;
+	uint16_t c_max = 0;
+	uint16_t c_min = 0xFFFF;
+	while(time_seconds() - t_start < 15)
+	{
+		if(dma_adc_raw[ADC_SIN_CHAN] > s_max)
+			s_max = dma_adc_raw[ADC_SIN_CHAN];
+		if(dma_adc_raw[ADC_SIN_CHAN] < s_min)
+			s_min = dma_adc_raw[ADC_SIN_CHAN];
+
+		if(dma_adc_raw[ADC_COS_CHAN] > c_max)
+			c_max = dma_adc_raw[ADC_COS_CHAN];
+		if(dma_adc_raw[ADC_COS_CHAN] < c_min)
+			c_min = dma_adc_raw[ADC_COS_CHAN];
+
+
+		float theta = 371*sin_fast( (fmod_2pi(.5*time_seconds() + PI) - PI) );
+		theta = fmod_2pi(theta + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
+		float sin_theta = sin_fast(theta);				//calculate the sin of the electrical (magnetic flux) angle
+		float cos_theta = cos_fast(theta);				//and the cosine for park and inverse park domains
+		float i_alpha,i_beta;
+		uint32_t tA,tB,tC;
+		inverse_park_transform(.15, 0, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
+		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+		TIMER_UPDATE_DUTY(tA,tB,tC);
+	}
+	TIMER_UPDATE_DUTY(0,0,0);
+	cos_mid = (s_max + s_min)/2;
+	sin_mid = (c_max + c_min)/2;
+}
+
 void get_current_cal_offsets()
 {
 	TIMER_UPDATE_DUTY(0,0,0);
@@ -420,144 +456,144 @@ void convert_phase_voltage(float * va, float * vb, float * vc)
 	*vb = (float)t2*0.0160;	//period
 	*vc = (float)t3*0.0160;	//period
 }
+//
+///*
+// * Seems to work...?
+// * TODO: fix+test this
+// */
+//float est_R()
+//{
+//	TIMER_UPDATE_DUTY(0,0,0);
+//	TIMER_UPDATE_DUTY(1000,1000,0);
+//	HAL_Delay(10);
+//	mR = 0;
+//	int i;
+//	for(i=0;i<10;i++)
+//	{
+//		float Va = (float)dma_adc_raw[ADC_CHAN_BEMF_A] * 0.000805664062 * 3.24725565716;
+//		float Vb = (float)dma_adc_raw[ADC_CHAN_BEMF_B] * 0.000805664062 * 3.24725565716;
+//		float i_a,i_b,i_c;
+//		conv_raw_current(&i_a,&i_b, &i_c);
+//		mR += (((Va+Vb)*.5)/i_c)/1.5;
+//	}
+//	mR = mR/(float)i;
+//	TIMER_UPDATE_DUTY(0,0,0);
+//	R = mR;
+//	return R;
+//}
+//
+//
+///*
+// * TODO: FIX THIS!!! general bones of getting L from time constant, but it does not work for the vishan. Tested with the
+// * hobby, and didn't work either. should try shunt+ scope and measure the T that way.
+// */
+//float gl_I;
+//float gl_T;
+//float gl_V = 7.4;
+//
+//float est_L()
+//{
+//	float coil_r = R;
+//
+//	TIMER_UPDATE_DUTY(0,0,0);
+//	HAL_Delay(100);
+//	TIMER_UPDATE_DUTY(1000,1000,1000);
+//	HAL_Delay(1);
+//	float Va_m = (float)dma_adc_raw[ADC_CHAN_BEMF_A] * 0.000805664062 * 3.24725565716;
+//	float Vb_m = (float)dma_adc_raw[ADC_CHAN_BEMF_B] * 0.000805664062 * 3.24725565716;
+//	float Vc_m = (float)dma_adc_raw[ADC_CHAN_BEMF_C] * 0.000805664062 * 3.24725565716;
+//	gl_V = (Va_m+Vb_m+Vc_m)/3.0;
+//	float thresh = (gl_V/(2*coil_r))*.37;
+//
+//	while(1)
+//	{
+//		TIMER_UPDATE_DUTY(1000,1000,0);
+//		uint32_t t_init = TIM14_ms()*1000+TIM14->CNT;
+//		TIM14->CNT = 0;
+//		while(1)	//might be the case that uS is not enough reso. for this kind of test
+//		{
+//			float i_a,i_b,i_c;
+//			conv_raw_current(&i_a,&i_b, &i_c);
+//			if(i_c > thresh)
+//			{
+//				gl_I = i_c;
+//				gl_T = (float)((TIM14_ms()*1000+TIM14->CNT)-t_init);
+//				break;
+//			}
+//			if(TIM14->CNT > 600)
+//				break;
+//		}
+//		TIMER_UPDATE_DUTY(0,0,0);
+//		printf("T found");
+//		while(1);
+//		//		float max_cur = coil_r
+//	}
+//	return 0;
+//}
 
-/*
- * Seems to work...?
- * TODO: fix+test this
- */
-float est_R()
-{
-	TIMER_UPDATE_DUTY(0,0,0);
-	TIMER_UPDATE_DUTY(1000,1000,0);
-	HAL_Delay(10);
-	mR = 0;
-	int i;
-	for(i=0;i<10;i++)
-	{
-		float Va = (float)dma_adc_raw[ADC_CHAN_BEMF_A] * 0.000805664062 * 3.24725565716;
-		float Vb = (float)dma_adc_raw[ADC_CHAN_BEMF_B] * 0.000805664062 * 3.24725565716;
-		float i_a,i_b,i_c;
-		conv_raw_current(&i_a,&i_b, &i_c);
-		mR += (((Va+Vb)*.5)/i_c)/1.5;
-	}
-	mR = mR/(float)i;
-	TIMER_UPDATE_DUTY(0,0,0);
-	R = mR;
-	return R;
-}
 
-
-/*
- * TODO: FIX THIS!!! general bones of getting L from time constant, but it does not work for the vishan. Tested with the
- * hobby, and didn't work either. should try shunt+ scope and measure the T that way.
- */
-float gl_I;
-float gl_T;
-float gl_V = 7.4;
-
-float est_L()
-{
-	float coil_r = R;
-
-	TIMER_UPDATE_DUTY(0,0,0);
-	HAL_Delay(100);
-	TIMER_UPDATE_DUTY(1000,1000,1000);
-	HAL_Delay(1);
-	float Va_m = (float)dma_adc_raw[ADC_CHAN_BEMF_A] * 0.000805664062 * 3.24725565716;
-	float Vb_m = (float)dma_adc_raw[ADC_CHAN_BEMF_B] * 0.000805664062 * 3.24725565716;
-	float Vc_m = (float)dma_adc_raw[ADC_CHAN_BEMF_C] * 0.000805664062 * 3.24725565716;
-	gl_V = (Va_m+Vb_m+Vc_m)/3.0;
-	float thresh = (gl_V/(2*coil_r))*.37;
-
-	while(1)
-	{
-		TIMER_UPDATE_DUTY(1000,1000,0);
-		uint32_t t_init = TIM14_ms()*1000+TIM14->CNT;
-		TIM14->CNT = 0;
-		while(1)	//might be the case that uS is not enough reso. for this kind of test
-		{
-			float i_a,i_b,i_c;
-			conv_raw_current(&i_a,&i_b, &i_c);
-			if(i_c > thresh)
-			{
-				gl_I = i_c;
-				gl_T = (float)((TIM14_ms()*1000+TIM14->CNT)-t_init);
-				break;
-			}
-			if(TIM14->CNT > 600)
-				break;
-		}
-		TIMER_UPDATE_DUTY(0,0,0);
-		printf("T found");
-		while(1);
-		//		float max_cur = coil_r
-	}
-	return 0;
-}
-
-
-/*
- * TODO: write this properly. init l,r,vphz
- */
-void init_observer()
-{
-	//for vishan:
-	//Resistance of a single coil to CT = 0.86
-	//Inductance (measured from scope) of a SINGLE COIL to CT = 1.462
-	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
-	//	est_R();
-	R = .86;
-	L = .0000405;
-	//	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
-	V_psi = 0.00088212623;
-}
-
-/*
- * based on http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5200471
- */
-float gl_t_prev = 0;
-float gl_t = 0;
-#define FOC_NUM_LOOPS 4
-const float inv_num_iter = 1/FOC_NUM_LOOPS;
-
-float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
-{
-	gl_t_prev = gl_t;
-	gl_t = time_seconds();
-	float dt = gl_t-gl_t_prev;
-
-	float ogain = 100000000*.5;	//gamma
-	float L_i_a = L*i_a;
-	float L_i_b = L*i_b;
-
-	float psi_sq = V_psi*V_psi;
-
-	float y1,y2;
-	y1 = -R*i_a+v_a;
-	y2 = -R*i_b+v_b;
-
-	/*
-	 * TODO: loop this calculation n times over measured dt for improved performance
-	 */
-	///////////////////////////////////////////////
-	float dt_step = dt*inv_num_iter;
-	int i;
-	for(i = 0; i < FOC_NUM_LOOPS; i++)
-	{
-		float n1,n2;
-		n1 = *x1-L_i_a;
-		n2 = *x2-L_i_b;
-
-		float e = psi_sq - (n1*n1+n2*n2);
-		float xdot1,xdot2;
-		xdot1 = y1 + ogain*n1*e;
-		xdot2 = y2 + ogain*n2*e;
-		*x1 += xdot1*dt_step;
-		*x2 += xdot2*dt_step;
-	}
-	///////////////////////////////////////////////
-
-	return atan2_approx( (*x2-L_i_b), (*x1-L_i_a));	//TODO: use fast atan2
-
-}
+///*
+// * TODO: write this properly. init l,r,vphz
+// */
+//void init_observer()
+//{
+//	//for vishan:
+//	//Resistance of a single coil to CT = 0.86
+//	//Inductance (measured from scope) of a SINGLE COIL to CT = 1.462
+//	//VpHz = .01502703????????? (unknown) (was not able to measure via vesc)
+//	//	est_R();
+//	R = .86;
+//	L = .0000405;
+//	//	V_psi = 0.00152788745;	//in V/(rad/s), from vishan datasheet. close to vesc measurement...
+//	V_psi = 0.00088212623;
+//}
+//
+///*
+// * based on http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5200471
+// */
+//float gl_t_prev = 0;
+//float gl_t = 0;
+//#define FOC_NUM_LOOPS 4
+//const float inv_num_iter = 1/FOC_NUM_LOOPS;
+//
+//float observer_update(float v_a, float v_b, float i_a, float i_b, float * x1, float * x2)
+//{
+//	gl_t_prev = gl_t;
+//	gl_t = time_seconds();
+//	float dt = gl_t-gl_t_prev;
+//
+//	float ogain = 100000000*.5;	//gamma
+//	float L_i_a = L*i_a;
+//	float L_i_b = L*i_b;
+//
+//	float psi_sq = V_psi*V_psi;
+//
+//	float y1,y2;
+//	y1 = -R*i_a+v_a;
+//	y2 = -R*i_b+v_b;
+//
+//	/*
+//	 * TODO: loop this calculation n times over measured dt for improved performance
+//	 */
+//	///////////////////////////////////////////////
+//	float dt_step = dt*inv_num_iter;
+//	int i;
+//	for(i = 0; i < FOC_NUM_LOOPS; i++)
+//	{
+//		float n1,n2;
+//		n1 = *x1-L_i_a;
+//		n2 = *x2-L_i_b;
+//
+//		float e = psi_sq - (n1*n1+n2*n2);
+//		float xdot1,xdot2;
+//		xdot1 = y1 + ogain*n1*e;
+//		xdot2 = y2 + ogain*n2*e;
+//		*x1 += xdot1*dt_step;
+//		*x2 += xdot2*dt_step;
+//	}
+//	///////////////////////////////////////////////
+//
+//	return atan2_approx( (*x2-L_i_b), (*x1-L_i_a));	//TODO: use fast atan2
+//
+//}
 
