@@ -10,7 +10,7 @@
 
 typedef enum {FOC_MODE, SINUSOIDAL_MODE, TRAPEZOIDAL_MODE} control_type;
 
-//#define GET_ALIGN_OFFSET
+#define GET_ALIGN_OFFSET
 
 #define BRAKE 0
 #define STOP 1
@@ -78,6 +78,7 @@ int main(void)
 	//	obtain_encoder_midpoints();
 #ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
+	align_offset = 1.03705454;				//offset angle IN RADIANS
 #else
 	align_offset = 1.03705454;				//offset angle IN RADIANS
 #endif
@@ -104,12 +105,15 @@ int main(void)
 
 /*****************************************************************************************/
 	float toggle_state_ts = HAL_GetTick()+2000;
-	float comp_angle = check_encoder_region();
-	float theta_m_prev = comp_angle;
-	foc_theta_prev = comp_angle;
+//	float comp_angle = check_encoder_region();
+	float theta_m_prev = -TWO_PI;
+	foc_theta_prev = -TWO_PI;
 	float theta_des = 1.5;
 	while(1)
 	{
+
+		theta_des = 60*TWO_PI*sin_fast(fmod_2pi(time_seconds()));
+
 		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);	//get the angle
 		float u = (theta_des - theta_m)*.5;						//control law
 		float id_u = u*2;
