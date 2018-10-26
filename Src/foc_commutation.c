@@ -10,6 +10,7 @@
 #include <math.h>
 #include "delay_uS.h"
 #include "mag-encoder.h"
+#include "sin_lookup.h"
 
 //#include <core_cm0.h>
 float mL = 0;
@@ -47,8 +48,8 @@ float foc(float iq_ref,float id_ref)
 	float theta_enc = unwrap( theta_rel_rad(), &foc_theta_prev);
 	float theta_elec = theta_enc*elec_conv_ratio;
 	theta_elec = fmod_2pi(theta_elec + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
-	float sin_theta = sin_fast(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
-	float cos_theta = cos_fast(theta_elec);				//and the cosine for park and inverse park domains
+	float sin_theta = sin_lookup(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
+	float cos_theta = cos_lookup(theta_elec);				//and the cosine for park and inverse park domains
 
 	float i_q, i_d;
 	park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);

@@ -10,7 +10,7 @@
 
 typedef enum {FOC_MODE, SINUSOIDAL_MODE, TRAPEZOIDAL_MODE} control_type;
 
-#define GET_ALIGN_OFFSET
+//#define GET_ALIGN_OFFSET
 
 #define BRAKE 0
 #define STOP 1
@@ -42,7 +42,7 @@ int main(void)
 	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_ADC_Init();
-	//	MX_SPI1_Init();
+	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
@@ -79,7 +79,7 @@ int main(void)
 #ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
 #else
-	align_offset = 1.03717375;				//offset angle IN RADIANS
+	align_offset = 1.03705454;				//offset angle IN RADIANS
 #endif
 
 	TIMER_UPDATE_DUTY(500,500,500);
@@ -89,25 +89,6 @@ int main(void)
 
 	uint32_t start_time = HAL_GetTick();
 
-//	float max_error = 0;
-//	float th;
-//	for (th = -10; th < 10; th+=.001)
-//	{
-//		float theta_elec =  fmod_2pi(th + PI) - PI;	//first constrain angle
-//
-//		float sin_theta = sin_fast(theta_elec);
-//		float sin_theta_lookup = sin_lookup(theta_elec);	//test both methods
-////		float sin_theta_lookup = 0;
-//		/*
-//		 * TODO: track maximum absolute value error, verify it is same as matlab
-//		 */
-//		float err = sin_theta - sin_theta_lookup;
-//		if(err < 0)
-//			err = -err;
-//		if(err > max_error)
-//			max_error = err;
-//	}
-//
 //	 * TODO: test lookup table with foc
 //	 */
 //	/*
@@ -126,24 +107,22 @@ int main(void)
 	float comp_angle = check_encoder_region();
 	float theta_m_prev = comp_angle;
 	foc_theta_prev = comp_angle;
-	float theta_des = 63*TWO_PI;
+	float theta_des = 1.5;
 	while(1)
 	{
-
-		if(HAL_GetTick() > toggle_state_ts)
-		{
-			theta_des = -theta_des;
-			toggle_state_ts = HAL_GetTick()+2000;
-			HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
-		}
-
 		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);	//get the angle
-		float u = (theta_des - theta_m)*.1;						//control law
+		float u = (theta_des - theta_m)*.5;						//control law
 		float id_u = u*2;
-		if(id_u > 30)
-			id_u = 30;
-		if(id_u < -30)
-			id_u = -30;
+
+		if(u > 30)
+			u = 30;
+		if(u < -30)
+			u = -30;
+		if(id_u > 70)
+			id_u = 70;
+		if(id_u < -70)
+			id_u = -70;
+
 		foc(u,id_u);												//update foc
 	}
 /*****************************************************************************************/
@@ -217,11 +196,12 @@ float check_encoder_region()
 	uint32_t ts = HAL_GetTick();
 	foc_theta_prev = theta_abs_rad();
 	float theta_enc_start = unwrap( theta_rel_rad(), &foc_theta_prev)*.5;	//on your marks...
-	while(HAL_GetTick() < ts + 10)
+	float theta_enc_end = 0;	//get set
+	while(HAL_GetTick() < ts + 50)
 	{
 		foc(12,0);
+		theta_enc_end = unwrap( theta_rel_rad(), &foc_theta_prev)*.5;
 	}
-	float theta_enc_end = unwrap( theta_rel_rad(), &foc_theta_prev)*.5;
 	if(theta_enc_end - theta_enc_start < 0)
 		return -TWO_PI;
 	else
@@ -244,7 +224,7 @@ void align_offset_test()
 	uint32_t min_pos_period = 0xFFFFFFFF;
 	uint32_t min_neg_period = 0xFFFFFFFF;
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-	for(align_offset = lower_limit; align_offset < upper_limit; align_offset+=.00005)
+	for(align_offset = lower_limit; align_offset < upper_limit; align_offset+=.0005)
 	{
 		theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5;
 		float d_theta = theta_m - theta_unwrapped_prev;
