@@ -8,7 +8,6 @@
 #include "mag-encoder.h"
 #include "sin_lookup.h"
 
-typedef enum {FOC_MODE, SINUSOIDAL_MODE, TRAPEZOIDAL_MODE} control_type;
 
 #define GET_ALIGN_OFFSET
 
@@ -19,12 +18,6 @@ typedef enum {FOC_MODE, SINUSOIDAL_MODE, TRAPEZOIDAL_MODE} control_type;
 #define BACKWARD_OPEN 4
 #define BACKWARD_CLOSED 5
 
-
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	parse_master_cmd();
-	execute_master_cmd();
-}
 
 float theta_enc = 0;
 
@@ -57,7 +50,7 @@ int main(void)
 	TIM1->CCR4 = 750;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
-	//	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data,2);	//think need to change DMA settings to word from byte or half word
+	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
 
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 
@@ -78,7 +71,6 @@ int main(void)
 	//	obtain_encoder_midpoints();
 #ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
-	align_offset = 1.03705454;				//offset angle IN RADIANS
 #else
 	align_offset = 1.03705454;				//offset angle IN RADIANS
 #endif
@@ -90,31 +82,91 @@ int main(void)
 
 	uint32_t start_time = HAL_GetTick();
 
-//	 * TODO: test lookup table with foc
-//	 */
-//	/*
-//	 * TODO: verify that the lookup table is faster
-//	 * 		2 methods:
-//	 * 		put in closed loop and check current draw increase
-//	 * 		use tim14 high resolution .16us timer for some number of consecuitve computations (i.e. time for 100 computations of a changing theta for both methods)
-//	 */
+	//	 * TODO: test lookup table with foc
+	//	 */
+	//	/*
+	//	 * TODO: verify that the lookup table is faster
+	//	 * 		2 methods:
+	//	 * 		put in closed loop and check current draw increase
+	//	 * 		use tim14 high resolution .16us timer for some number of consecuitve computations (i.e. time for 100 computations of a changing theta for both methods)
+	//	 */
 
+	//	align_offset_test();
+	/*****************************************************************************************/
+	//	float comp_angle = check_encoder_region();
 
-//	align_offset_test();
-
-
-/*****************************************************************************************/
-	float toggle_state_ts = HAL_GetTick()+2000;
-//	float comp_angle = check_encoder_region();
 	float theta_m_prev = -TWO_PI;
 	foc_theta_prev = -TWO_PI;
 	float theta_des = 1.5;
 	while(1)
 	{
+		uint8_t cmd_word = r_data[0];
+		switch (cmd_word)
+		{
+			case CMD_LED_OFF:
+				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+				break;
+			case CMD_LED_ON:
+				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+				break;
+			case CMD_SET_FOC_MODE:
+				control_mode = FOC_MODE;
+				break;
+			case CMD_SET_TRAP_MODE:
+				control_mode = TRAPEZOIDAL_MODE;
+				break;
+		};
 
-		theta_des = 60*TWO_PI*sin_fast(fmod_2pi(time_seconds()));
+		switch(control_mode)
+		{
+		case FOC_MODE:
+		{
+			/***********************************Parse torque*************************************/
+			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
+			float * tmp = (float *)(&r_word);
 
-		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);	//get the angle
+			/**********load iq torque component, set id torque component for high speed**********/
+			float iq_u = *tmp;
+			float id_u = iq_u * 6;
+
+			/***********************limit iq and id to avoid overheating*************************/
+			if(iq_u > 30)
+				iq_u = 30;
+			if(iq_u < -30)
+				iq_u = -30;
+			if(id_u > 75)
+				id_u = 75;
+			if(id_u < -75)
+				id_u = -75;
+
+			foc(iq_u,id_u);		//run foc!!!
+
+			/******************************parse motor angle*************************************/
+			float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);
+			uint32_t * t_ptr = (uint32_t * )(&theta_m);
+			uint32_t t_word = *t_ptr;
+			t_data[1] = (t_word & 0xFF000000)>>24;
+			t_data[2] = (t_word & 0x00FF0000)>>16;
+			t_data[3] = (t_word & 0x0000FF00)>>8;
+			t_data[4] = (t_word & 0x000000FF);
+
+			break;
+		}
+		case TRAPEZOIDAL_MODE:
+
+			break;
+		default:
+			break;
+		};
+
+	}
+
+	while(1)
+	{
+
+		theta_des = 31*TWO_PI*sin_fast(fmod_2pi(10*time_seconds()));
+
+		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5;	//get the angle
 		float u = (theta_des - theta_m)*.5;						//control law
 		float id_u = u*2;
 
@@ -129,7 +181,7 @@ int main(void)
 
 		foc(u,id_u);												//update foc
 	}
-/*****************************************************************************************/
+	/*****************************************************************************************/
 	/*
 	 * open loop ACUTAL sinusoidal
 	 */
@@ -143,7 +195,7 @@ int main(void)
 		inverse_park_transform(.2, 0, sin_theta, cos_theta, &i_alpha, &i_beta);
 		uint32_t tA,tB,tC;
 
-//		svm_sinusoidal(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+		//		svm_sinusoidal(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 
 		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 		TIMER_UPDATE_DUTY(tA,tB,tC);
@@ -159,9 +211,9 @@ int main(void)
 		}
 		else if (time >= 2000 && time < 4000)
 		{
-//			TIM1->CCR4 = 100;
+			//			TIM1->CCR4 = 100;
 			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,400);
-//			openLoop(fw, 200, 13000);
+			//			openLoop(fw, 200, 13000);
 		}
 		else if (time > 4000)
 		{
@@ -196,7 +248,7 @@ void start_pwm()
  * twice the actual angle
  */
 float check_encoder_region()
- {
+{
 	uint32_t ts = HAL_GetTick();
 	foc_theta_prev = theta_abs_rad();
 	float theta_enc_start = unwrap( theta_rel_rad(), &foc_theta_prev)*.5;	//on your marks...
@@ -248,16 +300,16 @@ void align_offset_test()
 				ao_neg = align_offset;
 			}
 		}
-//		if(d_theta > 0.003)
-//			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
-//		else if(d_theta < -.003)
+		//		if(d_theta > 0.003)
+		//			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+		//		else if(d_theta < -.003)
 
 
 		foc(10,0);
 		prev_rotation_num = rotation_num;
 		theta_unwrapped_prev = theta_m;
 	}
-//	align_offset = ao_pos;
+	//	align_offset = ao_pos;
 	align_offset = (ao_pos - ao_neg)*.5;
 	TIMER_UPDATE_DUTY(0,0,0);
 }

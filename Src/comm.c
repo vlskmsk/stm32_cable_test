@@ -6,40 +6,24 @@
  */
 #include "comm.h"
 
+control_type control_mode = FOC_MODE;
+
+
 uint16_t r_word = 0;
 uint16_t t_word = 0;
 
-uint8_t r_data[2] = {0};
-uint8_t t_data[2] = {0};
+uint8_t r_data[NUM_SPI_BYTES] = {0};
+uint8_t t_data[NUM_SPI_BYTES] = {0};
 uint8_t r_flag = 0;
 uint8_t t_flag = 0;
 int gl_prev_master_duty = 0;
 int gl_master_duty=0;
 
 
-/*
- * Command structure is determined by the highest 4 bits
- */
-
-#define CMD_LED_OFF 		0
-#define CMD_LED_ON 			1
-#define CMD_CHANGE_PWM 		2
-#define CMD_CURRENT_U 		3
-#define CMD_CURRENT_V 		4
-#define CMD_CURRENT_W 		5
-#define CMD_HARD_BRAKE		6
-#define CMD_DRIVER_ENABLE	7
-#define CMD_DRIVER_DISABLE	8
-#define CMD_ROTOR_POS		9
-#define CMD_ROTOR_SPEED		10
-#define CMD_RESET_T			11	//reset commutation interval estimation
-#define CMD_RESET_POS		12
-
 
 int mode = 0;
 #define MODE_SEND_ROTOR_POS  	2
 #define MODE_SEND_ROTOR_SPEED  	3
-
 
 
 void parse_master_cmd()
