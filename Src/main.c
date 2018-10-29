@@ -8,6 +8,7 @@
 #include "mag-encoder.h"
 #include "sin_lookup.h"
 
+#define TEST_MODE
 
 #define GET_ALIGN_OFFSET
 
@@ -39,15 +40,14 @@ int main(void)
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
-	//  MX_I2C1_Init();
 
 //	HAL_TIM_Base_Start(&htim14);
-	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
-
+//	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
 
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
-	TIM1->CCR4 = 750;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
+	TIM1->CCR4 = 100;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
 	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
@@ -60,9 +60,13 @@ int main(void)
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
 	HAL_Delay(1);
 
+	gl_zero_cross_point = initZeroCrossPoint(dma_adc_raw);
+
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 	get_current_cal_offsets();
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+
+
 
 	//	init_observer();
 
@@ -94,7 +98,7 @@ int main(void)
 	//	align_offset_test();
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
-
+#ifndef TEST_MODE
 	float theta_m_prev = -TWO_PI;
 	foc_theta_prev = -TWO_PI;
 	float theta_des = 1.5;
@@ -160,47 +164,9 @@ int main(void)
 		};
 
 	}
+#endif
 
-	while(1)
-	{
-
-		theta_des = 31*TWO_PI*sin_fast(fmod_2pi(10*time_seconds()));
-
-		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5;	//get the angle
-		float u = (theta_des - theta_m)*.5;						//control law
-		float id_u = u*2;
-
-		if(u > 30)
-			u = 30;
-		if(u < -30)
-			u = -30;
-		if(id_u > 70)
-			id_u = 70;
-		if(id_u < -70)
-			id_u = -70;
-
-		foc(u,id_u);												//update foc
-	}
 	/*****************************************************************************************/
-	/*
-	 * open loop ACUTAL sinusoidal
-	 */
-	while(1)
-	{
-		float theta = time_seconds()*300;
-		theta = fmod_2pi(theta + PI) - PI;
-		float sin_theta = sin_fast(theta);				//calculate the sin of the electrical (magnetic flux) angle
-		float cos_theta = cos_fast(theta);				//and the cosine for park and inverse park domains
-		float i_alpha, i_beta;
-		inverse_park_transform(.2, 0, sin_theta, cos_theta, &i_alpha, &i_beta);
-		uint32_t tA,tB,tC;
-
-		//		svm_sinusoidal(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-
-		svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-		TIMER_UPDATE_DUTY(tA,tB,tC);
-	}
-
 	uint8_t led_state;
 	while(1)
 	{
@@ -211,8 +177,8 @@ int main(void)
 		}
 		else if (time >= 2000 && time < 4000)
 		{
-			//			TIM1->CCR4 = 100;
-			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,400);
+//						TIM1->CCR4 = 100;
+			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
 			//			openLoop(fw, 200, 13000);
 		}
 		else if (time > 4000)
@@ -220,7 +186,6 @@ int main(void)
 			start_time = HAL_GetTick();
 			TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 		}
-
 
 		if(HAL_GetTick()>=led_ts)
 		{

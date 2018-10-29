@@ -87,7 +87,7 @@ void MX_ADC_Init(void)
 	hadc.Init.ContinuousConvMode = DISABLE;				//for asynchronous, enable.						//pwm, disable
 	hadc.Init.DiscontinuousConvMode = DISABLE;
 	hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;		//external trigger, CC4!!!
-	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_FALLING;	//for CC4 type trigger, FALLING for curent, RISING for voltage!!!
+	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;	//for CC4 type trigger, FALLING for curent, RISING for voltage!!!
 	hadc.Init.DMAContinuousRequests = ENABLE;
 	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
 	if (HAL_ADC_Init(&hadc) != HAL_OK)
@@ -169,39 +169,7 @@ void MX_ADC_Init(void)
 
 }
 
-/* I2C1 init function */
-void MX_I2C1_Init(void)
-{
 
-	hi2c1.Instance = I2C1;
-	hi2c1.Init.Timing = 0x00506682;
-	hi2c1.Init.OwnAddress1 = 0;
-	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-	hi2c1.Init.OwnAddress2 = 0;
-	hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-	hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-	hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-	if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-	/**Configure Analogue filter
-	 */
-	if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-	/**Configure Digital filter
-	 */
-	if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-}
 /* SPI1 init function */
 void MX_SPI1_Init(void)
 {
@@ -266,7 +234,7 @@ void MX_TIM1_Init(void)
 	}
 
 	sConfigOC.OCMode = TIM_OCMODE_PWM1;
-	sConfigOC.Pulse = TIM1->ARR/2;
+	sConfigOC.Pulse = 0;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -289,7 +257,7 @@ void MX_TIM1_Init(void)
 	/*
 	 * you need to configure this channel for the CC4 trigger to function proper
 	 */
-	//	sConfigOC.Pulse = 500;
+	sConfigOC.Pulse = 0;
 	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
 	if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
 	{
