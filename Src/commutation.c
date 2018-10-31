@@ -7,11 +7,11 @@
 #include "commutation.h"
 #include "delay_uS.h"
 #include "adc.h"
-
+#include "foc_commutation.h"
 //#define USE_COMPLEMENTARY_PWM
 
-int16_t gl_rotorPos = 0;	//rotor position in degrees
-int16_t gl_rotorInterval = 0;	//rotor TIME between 30 degrees of commutation (master converts to speed)
+int32_t gl_rotorPos = 0;	//rotor position in degrees
+int32_t gl_rotorInterval = 0;	//rotor TIME between 30 degrees of commutation (master converts to speed)
 int gl_comm_step;	//rotor step index. used mainly for open->closed transitions
 
 int high_phase = 0;
@@ -172,7 +172,6 @@ void openLoopEst(const comm_step * commTable, const int * bemfTable,  const int 
 		int timOver = 0;
 		int uS=0;
 		//		int zero_cross_thresh = 1000;
-		int i;
 		while(!timOver)
 		{
 			uS = TIM14->CNT;
@@ -319,11 +318,18 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 				openLoopAccel(commTable, bemfTable, edgePolarity);
 				return;
 			}
+//			unwrap( theta_rel_rad(), &foc_theta_prev);
 		}
 		/*
 		 *	keep switching but flip polarity
 		 */
-		delay_T14_us(uS_count/2);	//in theory, this should not be uS_count/2. however, this controller draws more current when the delay is that long.
+//		delay_T14_us(uS_count/2);	//in theory, this should not be uS_count/2. however, this controller draws more current when the delay is that long.
+		TIM14->CNT = 0;
+		while(TIM14->CNT <= uS_count>>1)
+		{
+//			unwrap( theta_rel_rad(), &foc_theta_prev);
+		}
+
 		estSpeedPos(commTable, uS_count);	//update speed and position
 
 		//		gl_zero_cross_point = gl_virtual_neutral/3;

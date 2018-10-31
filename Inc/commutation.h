@@ -45,8 +45,8 @@
 
 
 
-int16_t gl_rotorPos;	//rotor position in degrees
-int16_t gl_rotorInterval;	//rotor TIME between 30 degrees of commutation (master converts to speed)
+int32_t gl_rotorPos;	//rotor position in degrees
+int32_t gl_rotorInterval;	//rotor TIME between 30 degrees of commutation (master converts to speed)
 
 int gl_comm_step;	//rotor step index. used mainly for open->closed transitions
 

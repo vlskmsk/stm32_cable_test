@@ -8,7 +8,7 @@
 #include "mag-encoder.h"
 #include "sin_lookup.h"
 
-#define TEST_MODE
+//#define TEST_MODE
 
 #define GET_ALIGN_OFFSET
 
@@ -20,10 +20,12 @@
 #define BACKWARD_CLOSED 5
 
 
+
 float theta_enc = 0;
 
 void align_offset_test();
 float check_encoder_region();
+void sleep_reset();
 
 void start_pwm();
 
@@ -41,8 +43,8 @@ int main(void)
 	MX_TIM1_Init();
 	MX_TIM14_Init();
 
-//	HAL_TIM_Base_Start(&htim14);
-//	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
+	//	HAL_TIM_Base_Start(&htim14);
+	//	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
 
 	start_pwm();
@@ -82,9 +84,11 @@ int main(void)
 	TIMER_UPDATE_DUTY(500,500,500);
 	HAL_Delay(100);
 
-	uint32_t led_ts = 0;
 
-	uint32_t start_time = HAL_GetTick();
+
+	uint8_t state = BRAKE;
+	uint8_t prev_state = state;
+
 
 	//	 * TODO: test lookup table with foc
 	//	 */
@@ -101,25 +105,15 @@ int main(void)
 #ifndef TEST_MODE
 	float theta_m_prev = -TWO_PI;
 	foc_theta_prev = -TWO_PI;
-	float theta_des = 1.5;
 	while(1)
 	{
-		uint8_t cmd_word = r_data[0];
-		switch (cmd_word)
+
+		if(new_spi_packet == 1)
 		{
-			case CMD_LED_OFF:
-				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-				break;
-			case CMD_LED_ON:
-				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
-				break;
-			case CMD_SET_FOC_MODE:
-				control_mode = FOC_MODE;
-				break;
-			case CMD_SET_TRAP_MODE:
-				control_mode = TRAPEZOIDAL_MODE;
-				break;
-		};
+			parse_master_cmd();
+			t_data[0] = control_mode;
+			new_spi_packet = 0;
+		}
 
 		switch(control_mode)
 		{
@@ -157,15 +151,86 @@ int main(void)
 			break;
 		}
 		case TRAPEZOIDAL_MODE:
+		{
+			/*
+			 * format
+			 */
+			if(gl_master_duty < -1000)
+				gl_master_duty = -1000;
+			else if (gl_master_duty > 1000)
+				gl_master_duty = 1000;
+			int duty = gl_master_duty;
+			t_data[1] = (gl_rotorPos & 0xFF000000) >> 24;
+			t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
+			t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
+			t_data[4] = (gl_rotorPos & 0x000000FF);
 
+			if (duty > -MIN_BRAKE_DUTY && duty < MIN_BRAKE_DUTY)	//first, tighter condition
+			{
+				state = BRAKE;
+				brake();
+			}
+			else if(duty > -MIN_ACTIVE_DUTY && duty < MIN_ACTIVE_DUTY)
+			{
+				state = STOP;
+				stop();
+			}
+			else if (duty >= MIN_ACTIVE_DUTY)
+			{
+
+				if(duty < MIN_CLOSED_DUTY)
+				{
+					stop();
+					state = FORWARD_OPEN;
+				}
+				else
+				{
+					if(prev_state == BACKWARD_CLOSED || prev_state == BACKWARD_OPEN)
+						brake();
+
+					if(prev_state != FORWARD_CLOSED)
+						openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
+
+					closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,duty);
+					state = FORWARD_CLOSED;
+				}
+			}
+			else if (duty <= -MIN_ACTIVE_DUTY)
+			{
+
+				duty = -duty;
+				if(duty < MIN_CLOSED_DUTY)
+				{
+					stop();
+					state = BACKWARD_OPEN;
+				}
+				else
+				{
+					if(prev_state == FORWARD_CLOSED || prev_state == FORWARD_OPEN)
+						brake();
+
+					if(prev_state != BACKWARD_CLOSED)
+						openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
+
+					closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,duty);
+					state = BACKWARD_CLOSED;
+				}
+			}
+			prev_state = state;
+
+			if(sleep_flag)
+			{
+				sleep_reset();
+			}
 			break;
+		}
+
 		default:
 			break;
 		};
 
 	}
-#endif
-
+#else
 	/*****************************************************************************************/
 	uint8_t led_state;
 	while(1)
@@ -173,11 +238,11 @@ int main(void)
 		uint32_t time = HAL_GetTick()-start_time;
 		if(time < 2000)
 		{
-			foc(5,30);
+			foc(5,40);
 		}
 		else if (time >= 2000 && time < 4000)
 		{
-//						TIM1->CCR4 = 100;
+			//						TIM1->CCR4 = 100;
 			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
 			//			openLoop(fw, 200, 13000);
 		}
@@ -194,6 +259,8 @@ int main(void)
 			led_ts = HAL_GetTick() + 200;
 		}
 	}
+#endif
+
 }
 
 
@@ -280,4 +347,41 @@ void align_offset_test()
 }
 
 
+
+
+void sleep_reset()
+{
+	/*
+	 * Tear down, set up for stop
+	 */
+	TIM1->CCER = (TIM1->CCER & DIS_ALL);
+	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
+
+	HAL_GPIO_WritePin(STAT_PORT, STAT_PIN, 0);
+	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
+
+	HAL_TIM_Base_Stop(&htim14);
+	HAL_TIM_Base_Stop(&htim1);
+	HAL_ADC_Stop_DMA(&hadc);
+	HAL_SPI_DMAStop(&hspi1);
+
+
+	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
+	GPIO_InitTypeDef GPIO_InitStruct;
+	/*Configure GPIO pin : PA15 */
+	GPIO_InitStruct.Pin = GPIO_PIN_15;
+	GPIO_InitStruct.Mode = GPIO_MODE_EVT_FALLING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE);
+	NVIC_SystemReset();
+	/*Everything below this statement will not get executed.
+	 * Reason for the reset statement is because for some reason
+	 * exiting stop mode causes the cpu to run ridiculously slow.
+	 * THIS IS A HACK/WORKAROUND, what should replace it is
+	 * returning the system settings to normal and entering the og loop
+	 */
+	sleep_flag = 0;
+}
 
