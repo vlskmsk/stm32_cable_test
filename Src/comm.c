@@ -41,7 +41,7 @@ int mode = 0;
 void parse_master_cmd()
 {
 	uint8_t master_cmd = r_data[0];
-	int32_t master_data = r_data[1] << 24 | r_data[2] << 16 | (r_data[3] << 8) | r_data[4];
+	int32_t master_data = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
 
 	switch(master_cmd)
 	{

@@ -152,6 +152,7 @@ int main(void)
 		}
 		case TRAPEZOIDAL_MODE:
 		{
+
 			/*
 			 * format
 			 */
