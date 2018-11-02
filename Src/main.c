@@ -138,132 +138,131 @@ int main(void)
 
 		switch(control_mode)
 		{
-		case FOC_MODE:
-		{
-			/*
-			 * TODO: advanced transition logic forces transition to occur during only certain phases of closed loop
-			 * OR
-			 * tracks the number of mechanical rotations and RE-INITIALIZES the encoder!!!! (NOTE: this is the best mehtod, as it
-			 * is valid for n pole pairs for all valid n)
-			 */
-			if(prev_control_mode != FOC_MODE)
+			case FOC_MODE:
 			{
-				TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
-				foc_vishan_lock_pos();
-
-				theta_m_prev = -TWO_PI;
-				foc_theta_prev = -TWO_PI;
-			}
-			/***********************************Parse torque*************************************/
-			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
-			float * tmp = (float *)(&r_word);
-
-			/**********load iq torque component, set id torque component for high speed**********/
-			float iq_u = *tmp;
-			float id_u = iq_u * 6;
-
-			/***********************limit iq and id to avoid overheating*************************/
-			if(iq_u > 30)
-				iq_u = 30;
-			if(iq_u < -30)
-				iq_u = -30;
-			if(id_u > 75)
-				id_u = 75;
-			if(id_u < -75)
-				id_u = -75;
-
-			foc(iq_u,id_u);		//run foc!!!
-
-			/******************************parse motor angle*************************************/
-			float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);
-			uint32_t * t_ptr = (uint32_t * )(&theta_m);
-			uint32_t t_word = *t_ptr;
-			t_data[1] = (t_word & 0xFF000000)>>24;
-			t_data[2] = (t_word & 0x00FF0000)>>16;
-			t_data[3] = (t_word & 0x0000FF00)>>8;
-			t_data[4] = (t_word & 0x000000FF);
-
-			break;
-		}
-		case TRAPEZOIDAL_MODE:
-		{
-
-			/*
-			 * format
-			 */
-			if(gl_master_duty < -1000)
-				gl_master_duty = -1000;
-			else if (gl_master_duty > 1000)
-				gl_master_duty = 1000;
-			int duty = gl_master_duty;
-			t_data[1] = (gl_rotorPos & 0xFF000000) >> 24;
-			t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
-			t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
-			t_data[4] = (gl_rotorPos & 0x000000FF);
-
-			if (duty > -MIN_BRAKE_DUTY && duty < MIN_BRAKE_DUTY)	//first, tighter condition
-			{
-				state = BRAKE;
-				brake();
-			}
-			else if(duty > -MIN_ACTIVE_DUTY && duty < MIN_ACTIVE_DUTY)
-			{
-				state = STOP;
-				stop();
-			}
-			else if (duty >= MIN_ACTIVE_DUTY)
-			{
-
-				if(duty < MIN_CLOSED_DUTY)
+				/*
+				 * TODO: advanced transition logic forces transition to occur during only certain phases of closed loop
+				 * OR
+				 * tracks the number of mechanical rotations and RE-INITIALIZES the encoder!!!! (NOTE: this is the best mehtod, as it
+				 * is valid for n pole pairs for all valid n)
+				 */
+				if(prev_control_mode != FOC_MODE)
 				{
+					TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+					foc_vishan_lock_pos();
+
+					theta_m_prev = -TWO_PI;
+					foc_theta_prev = -TWO_PI;
+				}
+				/***********************************Parse torque*************************************/
+				uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
+				float * tmp = (float *)(&r_word);
+
+				/**********load iq torque component, set id torque component for high speed**********/
+				float iq_u = *tmp;
+				float id_u = iq_u * 6;
+
+				/***********************limit iq and id to avoid overheating*************************/
+				if(iq_u > 30)
+					iq_u = 30;
+				if(iq_u < -30)
+					iq_u = -30;
+				if(id_u > 75)
+					id_u = 75;
+				if(id_u < -75)
+					id_u = -75;
+
+				foc(iq_u,id_u);		//run foc!!!
+
+				/******************************parse motor angle*************************************/
+				float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);
+				uint32_t * t_ptr = (uint32_t * )(&theta_m);
+				uint32_t t_word = *t_ptr;
+				t_data[1] = (t_word & 0xFF000000)>>24;
+				t_data[2] = (t_word & 0x00FF0000)>>16;
+				t_data[3] = (t_word & 0x0000FF00)>>8;
+				t_data[4] = (t_word & 0x000000FF);
+
+				break;
+			}
+			case TRAPEZOIDAL_MODE:
+			{
+
+				/*
+				 * format
+				 */
+				if(gl_master_duty < -1000)
+					gl_master_duty = -1000;
+				else if (gl_master_duty > 1000)
+					gl_master_duty = 1000;
+				int duty = gl_master_duty;
+				t_data[1] = (gl_rotorPos & 0xFF000000) >> 24;
+				t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
+				t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
+				t_data[4] = (gl_rotorPos & 0x000000FF);
+
+				if (duty > -MIN_BRAKE_DUTY && duty < MIN_BRAKE_DUTY)	//first, tighter condition
+				{
+					state = BRAKE;
+					brake();
+				}
+				else if(duty > -MIN_ACTIVE_DUTY && duty < MIN_ACTIVE_DUTY)
+				{
+					state = STOP;
 					stop();
-					state = FORWARD_OPEN;
 				}
-				else
+				else if (duty >= MIN_ACTIVE_DUTY)
 				{
-					if(prev_state == BACKWARD_CLOSED || prev_state == BACKWARD_OPEN)
-						brake();
 
-					if(prev_state != FORWARD_CLOSED)
-						openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
+					if(duty < MIN_CLOSED_DUTY)
+					{
+						stop();
+						state = FORWARD_OPEN;
+					}
+					else
+					{
+						if(prev_state == BACKWARD_CLOSED || prev_state == BACKWARD_OPEN)
+							brake();
 
-					closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,duty);
-					state = FORWARD_CLOSED;
+						if(prev_state != FORWARD_CLOSED)
+							openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
+
+						closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,duty);
+						state = FORWARD_CLOSED;
+					}
 				}
-			}
-			else if (duty <= -MIN_ACTIVE_DUTY)
-			{
-
-				duty = -duty;
-				if(duty < MIN_CLOSED_DUTY)
+				else if (duty <= -MIN_ACTIVE_DUTY)
 				{
-					stop();
-					state = BACKWARD_OPEN;
+
+					duty = -duty;
+					if(duty < MIN_CLOSED_DUTY)
+					{
+						stop();
+						state = BACKWARD_OPEN;
+					}
+					else
+					{
+						if(prev_state == FORWARD_CLOSED || prev_state == FORWARD_OPEN)
+							brake();
+
+						if(prev_state != BACKWARD_CLOSED)
+							openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
+
+						closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,duty);
+						state = BACKWARD_CLOSED;
+					}
 				}
-				else
+				prev_state = state;
+
+				if(sleep_flag)
 				{
-					if(prev_state == FORWARD_CLOSED || prev_state == FORWARD_OPEN)
-						brake();
-
-					if(prev_state != BACKWARD_CLOSED)
-						openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
-
-					closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,duty);
-					state = BACKWARD_CLOSED;
+					sleep_reset();
 				}
+
+				break;
 			}
-			prev_state = state;
-
-			if(sleep_flag)
-			{
-				sleep_reset();
-			}
-
-			break;
-		}
-
-		default:
-			break;
+			default:
+				break;
 		};
 		prev_control_mode = control_mode;
 
