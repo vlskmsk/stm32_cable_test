@@ -9,8 +9,8 @@
 #include "sin_lookup.h"
 
 //#define TEST_MODE
-
-#define GET_ALIGN_OFFSET
+//#define GET_ALIGN_OFFSET
+//#define DOWSE_ALIGN_OFFSET
 
 #define BRAKE 0
 #define STOP 1
@@ -25,9 +25,27 @@ float theta_enc = 0;
 
 void align_offset_test();
 float check_encoder_region();
+void dowse_align_offset(float des_align_offset);
 void sleep_reset();
 
 void start_pwm();
+
+
+/*
+ * Quickly align the encoder in the correct position. Too fast for correct align offset calculation, but fast enough to spin in the right direction
+ * NOTE: some other method is necessary for closed->foc. Current plan is to track closed state/step, and force transition to occur if the step is in the valid half
+ *
+ * NOTE: given n pole pairs, this strategy is only valid for n=1. n>1 has n mechanical angles for 1 locked electrical angle, therefore the region is not guaranteed.
+ */
+void foc_vishan_lock_pos()
+{
+	float i_beta,i_alpha;
+	uint32_t tA,tB,tC;
+	inverse_park_transform(0, 0.3, 0, 1, &i_alpha, &i_beta);	//maybe call theta rel again?
+	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+	TIMER_UPDATE_DUTY(tA,tB,tC);		//TODO: since this produces (.2, -.1, -.1) -> (600, 450, 450), test (600, 400+50*sin(t), 400+50*sin(t)) and see if there
+	HAL_Delay(10);
+}
 
 int main(void)
 {
@@ -42,6 +60,8 @@ int main(void)
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
+
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 
 	//	HAL_TIM_Base_Start(&htim14);
 	//	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
@@ -63,12 +83,7 @@ int main(void)
 	HAL_Delay(1);
 
 	gl_zero_cross_point = initZeroCrossPoint(dma_adc_raw);
-
-	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 	get_current_cal_offsets();
-	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-
-
 
 	//	init_observer();
 
@@ -77,18 +92,22 @@ int main(void)
 	//	obtain_encoder_midpoints();
 #ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
+#elif defined(DOWSE_ALIGN_OFFSET)
+	dowse_align_offset(HALF_PI);
 #else
-	align_offset = 1.03705454;				//offset angle IN RADIANS
+	//	align_offset = 2.51820064;				//offset angle IN RADIANS
+	align_offset = HALF_PI;
 #endif
+
 
 	TIMER_UPDATE_DUTY(500,500,500);
 	HAL_Delay(100);
 
 
-
 	uint8_t state = BRAKE;
 	uint8_t prev_state = state;
 
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
 	//	 * TODO: test lookup table with foc
 	//	 */
@@ -102,9 +121,11 @@ int main(void)
 	//	align_offset_test();
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
+	foc_vishan_lock_pos();
 #ifndef TEST_MODE
 	float theta_m_prev = -TWO_PI;
 	foc_theta_prev = -TWO_PI;
+	control_type prev_control_mode = control_mode;
 	while(1)
 	{
 
@@ -119,6 +140,20 @@ int main(void)
 		{
 		case FOC_MODE:
 		{
+			/*
+			 * TODO: advanced transition logic forces transition to occur during only certain phases of closed loop
+			 * OR
+			 * tracks the number of mechanical rotations and RE-INITIALIZES the encoder!!!! (NOTE: this is the best mehtod, as it
+			 * is valid for n pole pairs for all valid n)
+			 */
+			if(prev_control_mode != FOC_MODE)
+			{
+				TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+				foc_vishan_lock_pos();
+
+				theta_m_prev = -TWO_PI;
+				foc_theta_prev = -TWO_PI;
+			}
 			/***********************************Parse torque*************************************/
 			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
 			float * tmp = (float *)(&r_word);
@@ -223,12 +258,14 @@ int main(void)
 			{
 				sleep_reset();
 			}
+
 			break;
 		}
 
 		default:
 			break;
 		};
+		prev_control_mode = control_mode;
 
 	}
 #else
@@ -386,3 +423,23 @@ void sleep_reset()
 	sleep_flag = 0;
 }
 
+/*
+ * Specialized function for VISHAN ONLY (only single pole pair motor with a variable align offset)
+ */
+void dowse_align_offset(float des_align_offset)
+{
+	float i_alpha,i_beta;
+	uint32_t tA,tB,tC;
+	inverse_park_transform(0, 0.3, 0, 1, &i_alpha, &i_beta);	//maybe call theta rel again?
+	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
+	TIMER_UPDATE_DUTY(tA,tB,tC);		//TODO: since this produces (.2, -.1, -.1) -> (600, 450, 450), test (600, 400+50*sin(t), 400+50*sin(t)) and see if there
+	while(1)
+	{
+		float theta_m = theta_abs_rad();
+		float tol = .05;
+		if(theta_m < des_align_offset+tol && theta_m > des_align_offset-tol)
+			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+		else
+			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+	}
+}

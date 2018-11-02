@@ -421,13 +421,14 @@ void get_current_cal_offsets()
 	gl_current_input_offset_B = 0;
 	gl_current_input_offset_C = 0;
 	int i;
-	const int numSamples = 1000;
+	const int numSamples = 500;
 	for(i=0;i<numSamples;i++)
 	{
 		gl_current_input_offset_A += dma_adc_raw[ADC_CHAN_CURRENT_A];
 		gl_current_input_offset_B += dma_adc_raw[ADC_CHAN_CURRENT_B];
 		gl_current_input_offset_C += dma_adc_raw[ADC_CHAN_CURRENT_C];
-		HAL_Delay(1);
+		delay_T14_us(10);
+//		HAL_Delay(1);
 	}
 	gl_current_input_offset_A /= numSamples;
 	gl_current_input_offset_B /= numSamples;

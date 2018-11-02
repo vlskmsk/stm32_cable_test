@@ -115,7 +115,7 @@ int initZeroCrossPoint(uint16_t * adc_data_vals)
 		avg_val[ADC_CHAN_BEMF_C-3]+=adc_data_vals[ADC_CHAN_BEMF_C];
 		avg_val[ADC_CHAN_BEMF_B-3]+=adc_data_vals[ADC_CHAN_BEMF_B];
 		avg_val[ADC_CHAN_BEMF_A-3]+=adc_data_vals[ADC_CHAN_BEMF_A];
-		HAL_Delay(1);
+		delay_T14_us(200);
 	}
 	for(i=0;i<3;i++)
 		avg_val[i]/=100;
