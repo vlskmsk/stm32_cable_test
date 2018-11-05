@@ -101,8 +101,6 @@ int main(void)
 
 
 	TIMER_UPDATE_DUTY(500,500,500);
-	HAL_Delay(100);
-
 
 	uint8_t state = BRAKE;
 	uint8_t prev_state = state;

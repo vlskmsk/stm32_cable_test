@@ -13,6 +13,9 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 	new_spi_packet = 1;
 }
 
+control_type control_mode = FOC_MODE;
+
+
 uint16_t r_word = 0;
 uint16_t t_word = 0;
 
