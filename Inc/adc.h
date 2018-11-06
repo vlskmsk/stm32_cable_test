@@ -9,6 +9,14 @@
 #define ADC_H_
 #include "init.h"
 
+typedef enum {FOC_MODE, TRAPEZOIDAL_MODE, HYBRID_MODE} control_type;
+
+#define ADEN 	0x00000001
+#define ADDIS 	0x00000002
+#define ADSTART	0x00000004
+#define ADSTP 	0x00000010
+#define ADCAL	0x80000000
+
 #define NUM_ADC_FOC  5
 #define NUM_ADC_TRAP 6
 
@@ -25,6 +33,8 @@
 
 uint16_t dma_adc_foc[NUM_ADC_FOC];
 uint16_t dma_adc_trap[NUM_ADC_TRAP];
+
+void adc_init(control_type mode);
 
 int gl_zero_cross_point;
 int rotor_pos;

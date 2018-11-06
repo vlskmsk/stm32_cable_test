@@ -17,11 +17,6 @@
 //#define GET_ALIGN_OFFSET
 //#define DOWSE_ALIGN_OFFSET
 
-#define TRAP_MODE_INIT
-#ifndef TRAP_MODE_INIT
-#define FOC_MODE_INIT
-#endif
-
 #define BRAKE 0
 #define STOP 1
 #define FORWARD_OPEN 2
@@ -54,6 +49,9 @@ void foc_vishan_lock_pos()
 	HAL_Delay(10);
 }
 
+
+volatile uint32_t time_exp;
+
 int main(void)
 {
 	HAL_Init();
@@ -62,24 +60,13 @@ int main(void)
 
 	MX_GPIO_Init();
 	MX_DMA_Init();
-#ifdef TRAP_MODE_INIT
 	MX_ADC_Init_TRAP();
-	control_mode = TRAPEZOIDAL_MODE;
-#endif
-#ifdef FOC_MODE_INIT
-	MX_ADC_Init_FOC();
-#endif
 	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
 
-#ifdef TRAP_MODE_INIT
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_trap, NUM_ADC_TRAP);
-#endif
-#ifdef FOC_MODE_INIT
-	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
-#endif
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 
@@ -104,10 +91,12 @@ int main(void)
 	/*
 	 * Only valid for adc initialized for trap mode
 	 */
+	adc_init(TRAPEZOIDAL_MODE);
 	gl_zero_cross_point = initZeroCrossPoint(dma_adc_trap);
 	/*
-	 *
+	 * TODO: configure for foc mode
 	 */
+	adc_init(FOC_MODE);
 	get_current_cal_offsets();
 
 	//	init_observer();
@@ -144,9 +133,10 @@ int main(void)
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
 	foc_vishan_lock_pos();
-#ifndef TEST_MODE
 	float theta_m_prev = -TWO_PI;
 	foc_theta_prev = -TWO_PI;
+
+#ifndef TEST_MODE
 	control_type prev_control_mode = control_mode;
 	while(1)
 	{
@@ -170,6 +160,7 @@ int main(void)
 			 */
 			if(prev_control_mode != FOC_MODE)
 			{
+				adc_init(FOC_MODE);
 				TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 				foc_vishan_lock_pos();
 
@@ -210,6 +201,10 @@ int main(void)
 		case TRAPEZOIDAL_MODE:
 		{
 
+			if(prev_control_mode != TRAPEZOIDAL_MODE)
+			{
+				adc_init(TRAPEZOIDAL_MODE);
+			}
 			/*
 			 * format
 			 */
@@ -291,33 +286,24 @@ int main(void)
 	}
 #else
 	/*****************************************************************************************/
-	uint8_t led_state;
-	while(1)
-	{
-		uint32_t time = HAL_GetTick()-start_time;
-		if(time < 2000)
+		uint32_t t_ts = HAL_GetTick();
+		while(1)
 		{
-			foc(5,40);
-		}
-		else if (time >= 2000 && time < 4000)
-		{
-			//						TIM1->CCR4 = 100;
-			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
-			//			openLoop(fw, 200, 13000);
-		}
-		else if (time > 4000)
-		{
-			start_time = HAL_GetTick();
+			adc_init(FOC_MODE);
 			TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
-		}
+			foc_vishan_lock_pos();
+			theta_m_prev = -TWO_PI;
+			foc_theta_prev = -TWO_PI;
 
-		if(HAL_GetTick()>=led_ts)
-		{
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
-			led_state = !led_state & 1;
-			led_ts = HAL_GetTick() + 200;
+			t_ts = HAL_GetTick()+1000;
+			while(HAL_GetTick() < t_ts)
+				foc(5,30);
+
+			adc_init(TRAPEZOIDAL_MODE);
+			t_ts = HAL_GetTick()+1000;
+			while(HAL_GetTick() < t_ts)
+				closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
 		}
-	}
 #endif
 
 }
