@@ -54,92 +54,6 @@ void foc_vishan_lock_pos()
 	HAL_Delay(10);
 }
 
-//void trap_channel_config()
-//{
-//	ADC_ChannelConfTypeDef sConfig;
-//
-//	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-//	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-//
-//	sConfig.Channel = ADC_CHANNEL_0;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_1;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_2;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_5;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_6;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_7;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//}
-//
-//void foc_channel_config()
-//{
-//	ADC_ChannelConfTypeDef sConfig;
-//
-//
-//	sConfig.Channel = ADC_CHANNEL_0;
-//	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-//
-//
-//	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_1;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_2;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_3;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_4;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//}
-
-
 int main(void)
 {
 	HAL_Init();
@@ -209,7 +123,6 @@ int main(void)
 	//	align_offset = 2.51820064;				//offset angle IN RADIANS
 	align_offset = HALF_PI;
 #endif
-
 
 	TIMER_UPDATE_DUTY(500,500,500);
 

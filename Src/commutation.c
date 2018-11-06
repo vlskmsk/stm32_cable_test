@@ -72,7 +72,7 @@ void estSpeedPos(const comm_step * commTable, int phase_delay_uS)
 		gl_rotorPos++;
 	else
 		gl_rotorPos--;
-	gl_rotorInterval = phase_delay_uS/2;		//approximate
+	gl_rotorInterval = phase_delay_uS>>1;		//approximate
 }
 /*
  * helper function for the comm_step type, which loads all unreferenced pwms as 0 and all referenced pwms as duty
