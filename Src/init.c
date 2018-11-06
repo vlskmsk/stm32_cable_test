@@ -318,7 +318,7 @@ void MX_USART1_UART_Init(void)
 {
 
 	huart1.Instance = USART1;
-	huart1.Init.BaudRate = 921600;
+	huart1.Init.BaudRate = 115200;
 	huart1.Init.WordLength = UART_WORDLENGTH_8B;
 	huart1.Init.StopBits = UART_STOPBITS_1;
 	huart1.Init.Parity = UART_PARITY_NONE;
@@ -349,6 +349,9 @@ void MX_DMA_Init(void)
 	/* DMA1_Channel2_3_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+	/* DMA1_Channel4_5_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(DMA1_Channel4_5_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Channel4_5_IRQn);
 
 }
 

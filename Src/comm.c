@@ -8,10 +8,8 @@
 
 
 uint8_t new_spi_packet = 0;
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	new_spi_packet = 1;
-}
+uint8_t transmit_counter = 0;
+uint8_t press_data_transmit_flag = 0;
 
 uint16_t r_word = 0;
 uint16_t t_word = 0;
@@ -20,6 +18,7 @@ uint8_t r_data[NUM_SPI_BYTES] = {0};
 uint8_t t_data[NUM_SPI_BYTES] = {0};
 uint8_t r_flag = 0;
 uint8_t t_flag = 0;
+
 
 int32_t gl_prev_master_duty = 0;
 int32_t gl_master_duty=0;
@@ -37,6 +36,35 @@ int mode = 0;
 #define MODE_SEND_ROTOR_POS  	2
 #define MODE_SEND_ROTOR_SPEED  	3
 
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	if(transmit_counter < 1)
+	{
+		new_spi_packet = 1;
+	}
+	else
+	{
+		transmit_counter = 0;
+	}
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+
+	asm("NOP");
+	for(int i = 0; i < 42; i++)
+	{
+		if (uart_read_buffer[i] == 's')
+		{
+			for(int j = 0; j < 21; j++)
+			{
+				pres_data[j] = uart_read_buffer[i+j];
+			}
+			break;
+		}
+	}
+
+}
 
 void parse_master_cmd()
 {
@@ -93,6 +121,24 @@ void parse_master_cmd()
 		break;
 	case CMD_DRIVER_DISABLE:
 		HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
+		break;
+	case CMD_EN_PRES:
+		asm("NOP");
+		HAL_UART_DMAResume(&huart1);
+		break;
+	case CMD_DIS_PRES:
+		asm("NOP");
+		HAL_UART_DMAPause(&huart1);
+		break;
+	case CMD_READ_PRES:
+		asm("NOP");
+		press_data_transmit_flag = 1;
+		for(int i = 5; i < 26; i++)
+		{
+			t_data[i] = pres_data[25-i];
+		}
+		transmit_counter++;
+		asm("NOP");
 		break;
 	case CMD_SLEEP:
 		sleep_flag = 1;

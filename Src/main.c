@@ -19,8 +19,6 @@
 #define BACKWARD_OPEN 4
 #define BACKWARD_CLOSED 5
 
-
-
 float theta_enc = 0;
 
 void align_offset_test();
@@ -72,7 +70,9 @@ int main(void)
 	TIM1->CCR4 = 100;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
-	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
+	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data, 26);	//think need to change DMA settings to word from byte or half word
+	HAL_UART_Receive_DMA(&huart1, uart_read_buffer, 42);
+	HAL_UART_DMAPause(&huart1);
 
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 

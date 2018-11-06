@@ -10,7 +10,7 @@
 #include "init.h"
 #include "commutation.h"
 
-#define NUM_SPI_BYTES 22
+#define NUM_SPI_BYTES 26
 
 uint8_t new_spi_packet;
 
@@ -34,13 +34,20 @@ typedef enum {FOC_MODE, TRAPEZOIDAL_MODE, HYBRID_MODE} control_type;
 #define CMD_SET_FOC_MODE	16
 #define CMD_SET_TRAP_MODE	17
 #define CMD_SET_SIN_MODE	18
-#define CMD_NO_ACTION		19
+
+#define CMD_EN_PRES			19
+#define CMD_DIS_PRES		20
+#define CMD_READ_PRES		21
+
+#define CMD_NO_ACTION		22
 
 
 uint16_t r_word;
 uint16_t t_word;
 uint8_t r_data[NUM_SPI_BYTES];
 uint8_t t_data[NUM_SPI_BYTES];
+uint8_t pres_data[NUM_SPI_BYTES];
+uint8_t uart_read_buffer[42];
 uint8_t r_flag;
 uint8_t t_flag;
 int32_t gl_master_duty;

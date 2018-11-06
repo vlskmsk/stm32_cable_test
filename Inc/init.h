@@ -39,7 +39,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim14;
 
 UART_HandleTypeDef huart1;
-
+DMA_HandleTypeDef hdma_usart1_rx;
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
