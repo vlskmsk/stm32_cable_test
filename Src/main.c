@@ -55,11 +55,16 @@ int main(void)
 
 	MX_GPIO_Init();
 	MX_DMA_Init();
-	MX_ADC_Init();
+//	MX_ADC_Init_FOC();
+	MX_ADC_Init_TRAP();
 	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
+
+//	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
+	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_trap, NUM_ADC_TRAP);
+
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 
@@ -71,7 +76,6 @@ int main(void)
 	TIMER_UPDATE_DUTY(0,0,0);
 	TIM1->CCR4 = 100;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
-	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_raw, NUM_ADC);
 	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
 
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
@@ -82,7 +86,7 @@ int main(void)
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
 	HAL_Delay(1);
 
-	gl_zero_cross_point = initZeroCrossPoint(dma_adc_raw);
+	gl_zero_cross_point = initZeroCrossPoint(dma_adc_trap);
 	get_current_cal_offsets();
 
 	//	init_observer();
@@ -124,6 +128,12 @@ int main(void)
 	float theta_m_prev = -TWO_PI;
 	foc_theta_prev = -TWO_PI;
 	control_type prev_control_mode = control_mode;
+	while(1)
+	{
+//		foc(5,30);
+		closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
+	}
+
 	while(1)
 	{
 

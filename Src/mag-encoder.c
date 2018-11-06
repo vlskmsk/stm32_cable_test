@@ -49,16 +49,16 @@ float atan2_approx(float sinVal, float cosVal)
 
 float theta_abs_rad()
 {
-	int16_t sinVal = dma_adc_raw[ADC_SIN_CHAN]-sin_mid;
-	int16_t cosVal = dma_adc_raw[ADC_COS_CHAN]-cos_mid;
+	int16_t sinVal = dma_adc_foc[ADC_SIN_CHAN]-sin_mid;
+	int16_t cosVal = dma_adc_foc[ADC_COS_CHAN]-cos_mid;
 //	return atan2((float)sinVal,(float)cosVal);
 	return atan2_approx((float)sinVal,(float)cosVal);
 }
 
 float theta_rel_rad()
 {
-	int16_t sinVal = (dma_adc_raw[ADC_SIN_CHAN]-sin_mid);
-	int16_t cosVal = (dma_adc_raw[ADC_COS_CHAN]-cos_mid);
+	int16_t sinVal = (dma_adc_foc[ADC_SIN_CHAN]-sin_mid);
+	int16_t cosVal = (dma_adc_foc[ADC_COS_CHAN]-cos_mid);
 	//	return atan2((float)sinVal*sin_correct,(float)cosVal*cos_correct) - align_offset;
 	return atan2_approx((float)sinVal,(float)cosVal) - align_offset;
 }

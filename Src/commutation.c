@@ -275,7 +275,7 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 
 			if(edgePolarity[stepIdx] == RISING)
 			{
-				if(dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point)
+				if(dma_adc_trap[bemfTable[stepIdx]] >= gl_zero_cross_point)
 				{
 					zero_cross_event = 1;
 					HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
@@ -283,7 +283,7 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 			}
 			else if (edgePolarity[stepIdx] == FALLING)
 			{
-				if(dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point)
+				if(dma_adc_trap[bemfTable[stepIdx]] <= gl_zero_cross_point)
 				{
 					zero_cross_event = 1;
 					HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);

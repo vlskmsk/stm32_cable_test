@@ -67,9 +67,8 @@ void SystemClock_Config(void)
 
 
 
-
 /* ADC init function */
-void MX_ADC_Init(void)
+void MX_ADC_Init_FOC(void)
 {
 
 	ADC_ChannelConfTypeDef sConfig;
@@ -142,6 +141,107 @@ void MX_ADC_Init(void)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
+
+//	/**Configure for the selected ADC regular channel to be converted.
+//	 */
+//	sConfig.Channel = ADC_CHANNEL_5;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	/**Configure for the selected ADC regular channel to be converted.
+//	 */
+//	sConfig.Channel = ADC_CHANNEL_6;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	/**Configure for the selected ADC regular channel to be converted.
+//	 */
+//	sConfig.Channel = ADC_CHANNEL_7;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+
+}
+
+/* ADC init function */
+void MX_ADC_Init_TRAP(void)
+{
+
+	ADC_ChannelConfTypeDef sConfig;
+
+	/**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+	 */
+	hadc.Instance = ADC1;
+	hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+	hadc.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
+	hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+	hadc.Init.LowPowerAutoWait = DISABLE;
+	hadc.Init.LowPowerAutoPowerOff = DISABLE;
+	hadc.Init.ContinuousConvMode = DISABLE;				//for asynchronous, enable.						//pwm, disable
+	hadc.Init.DiscontinuousConvMode = DISABLE;
+	hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;		//external trigger, CC4!!!
+	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;	//for CC4 type trigger, FALLING for curent, RISING for voltage!!!
+	hadc.Init.DMAContinuousRequests = ENABLE;
+	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+	if (HAL_ADC_Init(&hadc) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
+	/*
+	 * you want to keep at 1_cycles 5 to try and minimize any error. unsure what amp source is but
+	 * likely this is major cause. maybe scaling?
+	 * you want to set CC4 so the first 3 samples catch right at the middle. i tried 600, but it was
+	 * a blind guess. got me decent results, but needs some config.
+	 */
+	sConfig.Channel = ADC_CHANNEL_0;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_1;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
+	/**Configure for the selected ADC regular channel to be converted.
+	 */
+	sConfig.Channel = ADC_CHANNEL_2;
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
+//	/**Configure for the selected ADC regular channel to be converted.
+//	 */
+//	sConfig.Channel = ADC_CHANNEL_3;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	/**Configure for the selected ADC regular channel to be converted.
+//	 */
+//	sConfig.Channel = ADC_CHANNEL_4;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
 
 	/**Configure for the selected ADC regular channel to be converted.
 	 */
