@@ -8,8 +8,8 @@
 #ifndef ADC_H_
 #define ADC_H_
 #include "init.h"
-
-#define NUM_ADC 8
+#define NUM_ADC_FOC  5
+#define NUM_ADC_TRAP 8
 
 #define RISING 1
 #define FALLING 0
@@ -22,7 +22,8 @@
 #define ADC_CHAN_CURRENT_B 1
 #define ADC_CHAN_CURRENT_C 2
 
-uint16_t dma_adc_raw[NUM_ADC];
+uint16_t dma_adc_foc[NUM_ADC_FOC];
+uint16_t dma_adc_trap[NUM_ADC_TRAP];
 
 int gl_zero_cross_point;
 int rotor_pos;

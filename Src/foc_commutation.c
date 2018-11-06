@@ -388,15 +388,15 @@ void obtain_encoder_midpoints()
 	uint16_t c_min = 0xFFFF;
 	while(time_seconds() - t_start < 15)
 	{
-		if(dma_adc_raw[ADC_SIN_CHAN] > s_max)
-			s_max = dma_adc_raw[ADC_SIN_CHAN];
-		if(dma_adc_raw[ADC_SIN_CHAN] < s_min)
-			s_min = dma_adc_raw[ADC_SIN_CHAN];
+		if(dma_adc_foc[ADC_SIN_CHAN] > s_max)
+			s_max = dma_adc_foc[ADC_SIN_CHAN];
+		if(dma_adc_foc[ADC_SIN_CHAN] < s_min)
+			s_min = dma_adc_foc[ADC_SIN_CHAN];
 
-		if(dma_adc_raw[ADC_COS_CHAN] > c_max)
-			c_max = dma_adc_raw[ADC_COS_CHAN];
-		if(dma_adc_raw[ADC_COS_CHAN] < c_min)
-			c_min = dma_adc_raw[ADC_COS_CHAN];
+		if(dma_adc_foc[ADC_COS_CHAN] > c_max)
+			c_max = dma_adc_foc[ADC_COS_CHAN];
+		if(dma_adc_foc[ADC_COS_CHAN] < c_min)
+			c_min = dma_adc_foc[ADC_COS_CHAN];
 
 
 		float theta = 371*sin_fast( (fmod_2pi(.5*time_seconds() + PI) - PI) );
@@ -424,9 +424,9 @@ void get_current_cal_offsets()
 	const int numSamples = 500;
 	for(i=0;i<numSamples;i++)
 	{
-		gl_current_input_offset_A += dma_adc_raw[ADC_CHAN_CURRENT_A];
-		gl_current_input_offset_B += dma_adc_raw[ADC_CHAN_CURRENT_B];
-		gl_current_input_offset_C += dma_adc_raw[ADC_CHAN_CURRENT_C];
+		gl_current_input_offset_A += dma_adc_foc[ADC_CHAN_CURRENT_A];
+		gl_current_input_offset_B += dma_adc_foc[ADC_CHAN_CURRENT_B];
+		gl_current_input_offset_C += dma_adc_foc[ADC_CHAN_CURRENT_C];
 		delay_T14_us(10);
 //		HAL_Delay(1);
 	}
@@ -440,9 +440,9 @@ void get_current_cal_offsets()
  */
 void conv_raw_current(float * i_a, float * i_b, float * i_c)
 {
-	*i_a = (float)(gl_current_input_offset_A - dma_adc_raw[ADC_CHAN_CURRENT_A])*adc_conv_A;
-	*i_b = (float)(gl_current_input_offset_B - dma_adc_raw[ADC_CHAN_CURRENT_B])*adc_conv_B;
-	*i_c = (float)(gl_current_input_offset_C - dma_adc_raw[ADC_CHAN_CURRENT_C])*adc_conv_C;
+	*i_a = (float)(gl_current_input_offset_A - dma_adc_foc[ADC_CHAN_CURRENT_A])*adc_conv_A;
+	*i_b = (float)(gl_current_input_offset_B - dma_adc_foc[ADC_CHAN_CURRENT_B])*adc_conv_B;
+	*i_c = (float)(gl_current_input_offset_C - dma_adc_foc[ADC_CHAN_CURRENT_C])*adc_conv_C;
 }
 
 /*

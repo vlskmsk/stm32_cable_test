@@ -40,10 +40,12 @@ TIM_HandleTypeDef htim14;
 
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;
+
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
-void MX_ADC_Init(void);
+void MX_ADC_Init_FOC(void);
+void MX_ADC_Init_TRAP(void);
 void MX_SPI1_Init(void);
 void MX_USART1_UART_Init(void);
 void MX_TIM1_Init(void);

@@ -11,6 +11,9 @@ uint8_t new_spi_packet = 0;
 uint8_t transmit_counter = 0;
 uint8_t press_data_transmit_flag = 0;
 
+control_type control_mode = FOC_MODE;
+
+
 uint16_t r_word = 0;
 uint16_t t_word = 0;
 
@@ -18,7 +21,6 @@ uint8_t r_data[NUM_SPI_BYTES] = {0};
 uint8_t t_data[NUM_SPI_BYTES] = {0};
 uint8_t r_flag = 0;
 uint8_t t_flag = 0;
-
 
 int32_t gl_prev_master_duty = 0;
 int32_t gl_master_duty=0;
@@ -50,7 +52,6 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-
 	asm("NOP");
 	for(int i = 0; i < 42; i++)
 	{
@@ -63,8 +64,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			break;
 		}
 	}
-
 }
+
 
 void parse_master_cmd()
 {
