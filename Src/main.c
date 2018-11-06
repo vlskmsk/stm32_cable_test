@@ -8,9 +8,19 @@
 #include "mag-encoder.h"
 #include "sin_lookup.h"
 
+/*
+ * TODO: Figure out how to quickly change dma-adc configuration to swap between
+ * foc and trapezoidal motor
+ */
+
 //#define TEST_MODE
 //#define GET_ALIGN_OFFSET
 //#define DOWSE_ALIGN_OFFSET
+
+#define TRAP_MODE_INIT
+#ifndef TRAP_MODE_INIT
+#define FOC_MODE_INIT
+#endif
 
 #define BRAKE 0
 #define STOP 1
@@ -18,8 +28,6 @@
 #define FORWARD_CLOSED 3
 #define BACKWARD_OPEN 4
 #define BACKWARD_CLOSED 5
-
-
 
 float theta_enc = 0;
 
@@ -29,7 +37,6 @@ void dowse_align_offset(float des_align_offset);
 void sleep_reset();
 
 void start_pwm();
-
 
 /*
  * Quickly align the encoder in the correct position. Too fast for correct align offset calculation, but fast enough to spin in the right direction
@@ -47,6 +54,92 @@ void foc_vishan_lock_pos()
 	HAL_Delay(10);
 }
 
+//void trap_channel_config()
+//{
+//	ADC_ChannelConfTypeDef sConfig;
+//
+//	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+//	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
+//
+//	sConfig.Channel = ADC_CHANNEL_0;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_1;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_2;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_5;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_6;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_7;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//}
+//
+//void foc_channel_config()
+//{
+//	ADC_ChannelConfTypeDef sConfig;
+//
+//
+//	sConfig.Channel = ADC_CHANNEL_0;
+//	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
+//
+//
+//	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_1;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_2;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_3;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	sConfig.Channel = ADC_CHANNEL_4;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//}
+
+
 int main(void)
 {
 	HAL_Init();
@@ -55,16 +148,24 @@ int main(void)
 
 	MX_GPIO_Init();
 	MX_DMA_Init();
-//	MX_ADC_Init_FOC();
+#ifdef TRAP_MODE_INIT
 	MX_ADC_Init_TRAP();
+	control_mode = TRAPEZOIDAL_MODE;
+#endif
+#ifdef FOC_MODE_INIT
+	MX_ADC_Init_FOC();
+#endif
 	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
 
-//	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
+#ifdef TRAP_MODE_INIT
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_trap, NUM_ADC_TRAP);
-
+#endif
+#ifdef FOC_MODE_INIT
+	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
+#endif
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 
@@ -86,7 +187,13 @@ int main(void)
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
 	HAL_Delay(1);
 
+	/*
+	 * Only valid for adc initialized for trap mode
+	 */
 	gl_zero_cross_point = initZeroCrossPoint(dma_adc_trap);
+	/*
+	 *
+	 */
 	get_current_cal_offsets();
 
 	//	init_observer();
@@ -130,12 +237,6 @@ int main(void)
 	control_type prev_control_mode = control_mode;
 	while(1)
 	{
-//		foc(5,30);
-		closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
-	}
-
-	while(1)
-	{
 
 		if(new_spi_packet == 1)
 		{
@@ -146,131 +247,131 @@ int main(void)
 
 		switch(control_mode)
 		{
-			case FOC_MODE:
+		case FOC_MODE:
+		{
+			/*
+			 * TODO: advanced transition logic forces transition to occur during only certain phases of closed loop
+			 * OR
+			 * tracks the number of mechanical rotations and RE-INITIALIZES the encoder!!!! (NOTE: this is the best mehtod, as it
+			 * is valid for n pole pairs for all valid n)
+			 */
+			if(prev_control_mode != FOC_MODE)
 			{
-				/*
-				 * TODO: advanced transition logic forces transition to occur during only certain phases of closed loop
-				 * OR
-				 * tracks the number of mechanical rotations and RE-INITIALIZES the encoder!!!! (NOTE: this is the best mehtod, as it
-				 * is valid for n pole pairs for all valid n)
-				 */
-				if(prev_control_mode != FOC_MODE)
-				{
-					TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
-					foc_vishan_lock_pos();
+				TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+				foc_vishan_lock_pos();
 
-					theta_m_prev = -TWO_PI;
-					foc_theta_prev = -TWO_PI;
-				}
-				/***********************************Parse torque*************************************/
-				uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
-				float * tmp = (float *)(&r_word);
-
-				/**********load iq torque component, set id torque component for high speed**********/
-				float iq_u = *tmp;
-				float id_u = iq_u * 6;
-
-				/***********************limit iq and id to avoid overheating*************************/
-				if(iq_u > 30)
-					iq_u = 30;
-				if(iq_u < -30)
-					iq_u = -30;
-				if(id_u > 75)
-					id_u = 75;
-				if(id_u < -75)
-					id_u = -75;
-
-				foc(iq_u,id_u);		//run foc!!!
-
-				/******************************parse motor angle*************************************/
-				float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);
-				uint32_t * t_ptr = (uint32_t * )(&theta_m);
-				uint32_t t_word = *t_ptr;
-				t_data[1] = (t_word & 0xFF000000)>>24;
-				t_data[2] = (t_word & 0x00FF0000)>>16;
-				t_data[3] = (t_word & 0x0000FF00)>>8;
-				t_data[4] = (t_word & 0x000000FF);
-
-				break;
+				theta_m_prev = -TWO_PI;
+				foc_theta_prev = -TWO_PI;
 			}
-			case TRAPEZOIDAL_MODE:
+			/***********************************Parse torque*************************************/
+			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
+			float * tmp = (float *)(&r_word);
+
+			/**********load iq torque component, set id torque component for high speed**********/
+			float iq_u = *tmp;
+			float id_u = iq_u * 6;
+
+			/***********************limit iq and id to avoid overheating*************************/
+			if(iq_u > 30)
+				iq_u = 30;
+			if(iq_u < -30)
+				iq_u = -30;
+			if(id_u > 75)
+				id_u = 75;
+			if(id_u < -75)
+				id_u = -75;
+
+			foc(iq_u,id_u);		//run foc!!!
+
+			/******************************parse motor angle*************************************/
+			float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);
+			uint32_t * t_ptr = (uint32_t * )(&theta_m);
+			uint32_t t_word = *t_ptr;
+			t_data[1] = (t_word & 0xFF000000)>>24;
+			t_data[2] = (t_word & 0x00FF0000)>>16;
+			t_data[3] = (t_word & 0x0000FF00)>>8;
+			t_data[4] = (t_word & 0x000000FF);
+
+			break;
+		}
+		case TRAPEZOIDAL_MODE:
+		{
+
+			/*
+			 * format
+			 */
+			if(gl_master_duty < -1000)
+				gl_master_duty = -1000;
+			else if (gl_master_duty > 1000)
+				gl_master_duty = 1000;
+			int duty = gl_master_duty;
+			t_data[1] = (gl_rotorPos & 0xFF000000) >> 24;
+			t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
+			t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
+			t_data[4] = (gl_rotorPos & 0x000000FF);
+
+			if (duty > -MIN_BRAKE_DUTY && duty < MIN_BRAKE_DUTY)	//first, tighter condition
+			{
+				state = BRAKE;
+				brake();
+			}
+			else if(duty > -MIN_ACTIVE_DUTY && duty < MIN_ACTIVE_DUTY)
+			{
+				state = STOP;
+				stop();
+			}
+			else if (duty >= MIN_ACTIVE_DUTY)
 			{
 
-				/*
-				 * format
-				 */
-				if(gl_master_duty < -1000)
-					gl_master_duty = -1000;
-				else if (gl_master_duty > 1000)
-					gl_master_duty = 1000;
-				int duty = gl_master_duty;
-				t_data[1] = (gl_rotorPos & 0xFF000000) >> 24;
-				t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
-				t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
-				t_data[4] = (gl_rotorPos & 0x000000FF);
-
-				if (duty > -MIN_BRAKE_DUTY && duty < MIN_BRAKE_DUTY)	//first, tighter condition
+				if(duty < MIN_CLOSED_DUTY)
 				{
-					state = BRAKE;
-					brake();
-				}
-				else if(duty > -MIN_ACTIVE_DUTY && duty < MIN_ACTIVE_DUTY)
-				{
-					state = STOP;
 					stop();
+					state = FORWARD_OPEN;
 				}
-				else if (duty >= MIN_ACTIVE_DUTY)
+				else
 				{
+					if(prev_state == BACKWARD_CLOSED || prev_state == BACKWARD_OPEN)
+						brake();
 
-					if(duty < MIN_CLOSED_DUTY)
-					{
-						stop();
-						state = FORWARD_OPEN;
-					}
-					else
-					{
-						if(prev_state == BACKWARD_CLOSED || prev_state == BACKWARD_OPEN)
-							brake();
+					if(prev_state != FORWARD_CLOSED)
+						openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
 
-						if(prev_state != FORWARD_CLOSED)
-							openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
-
-						closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,duty);
-						state = FORWARD_CLOSED;
-					}
+					closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,duty);
+					state = FORWARD_CLOSED;
 				}
-				else if (duty <= -MIN_ACTIVE_DUTY)
-				{
-
-					duty = -duty;
-					if(duty < MIN_CLOSED_DUTY)
-					{
-						stop();
-						state = BACKWARD_OPEN;
-					}
-					else
-					{
-						if(prev_state == FORWARD_CLOSED || prev_state == FORWARD_OPEN)
-							brake();
-
-						if(prev_state != BACKWARD_CLOSED)
-							openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
-
-						closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,duty);
-						state = BACKWARD_CLOSED;
-					}
-				}
-				prev_state = state;
-
-				if(sleep_flag)
-				{
-					sleep_reset();
-				}
-
-				break;
 			}
-			default:
-				break;
+			else if (duty <= -MIN_ACTIVE_DUTY)
+			{
+
+				duty = -duty;
+				if(duty < MIN_CLOSED_DUTY)
+				{
+					stop();
+					state = BACKWARD_OPEN;
+				}
+				else
+				{
+					if(prev_state == FORWARD_CLOSED || prev_state == FORWARD_OPEN)
+						brake();
+
+					if(prev_state != BACKWARD_CLOSED)
+						openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
+
+					closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,duty);
+					state = BACKWARD_CLOSED;
+				}
+			}
+			prev_state = state;
+
+			if(sleep_flag)
+			{
+				sleep_reset();
+			}
+
+			break;
+		}
+		default:
+			break;
 		};
 		prev_control_mode = control_mode;
 
