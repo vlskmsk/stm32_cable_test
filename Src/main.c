@@ -150,7 +150,7 @@ int main(void)
 	MX_DMA_Init();
 #ifdef TRAP_MODE_INIT
 	MX_ADC_Init_TRAP();
-	//control_mode = TRAPEZOIDAL_MODE;
+	control_mode = TRAPEZOIDAL_MODE;
 #endif
 #ifdef FOC_MODE_INIT
 	MX_ADC_Init_FOC();
