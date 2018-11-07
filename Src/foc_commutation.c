@@ -40,11 +40,13 @@ float ud = 0;
 uint32_t tA,tB,tC;
 float prev_theta = 0;
 float theta_enc_prev=0;
-float foc(float iq_ref,float id_ref)
+void foc(float iq_ref,float id_ref)
 {
 	conv_raw_current(&i_a,&i_b, &i_c);
 	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
+	gl_rotorInterval = TIM14->CNT;
+	TIM14->CNT = 0;
 	float theta_enc = unwrap( theta_rel_rad(), &foc_theta_prev);
 	float theta_elec = theta_enc*elec_conv_ratio;
 	theta_elec = fmod_2pi(theta_elec + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
@@ -61,8 +63,6 @@ float foc(float iq_ref,float id_ref)
 
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 	TIMER_UPDATE_DUTY(tB,tA,tC);
-
-	return unwrap(theta_abs_rad(), &prev_theta);
 }
 
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC)

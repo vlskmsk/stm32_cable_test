@@ -46,7 +46,7 @@ void foc_vishan_lock_pos()
 	inverse_park_transform(0, 0.3, 0, 1, &i_alpha, &i_beta);	//maybe call theta rel again?
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 	TIMER_UPDATE_DUTY(tA,tB,tC);		//TODO: since this produces (.2, -.1, -.1) -> (600, 450, 450), test (600, 400+50*sin(t), 400+50*sin(t)) and see if there
-	HAL_Delay(10);
+	HAL_Delay(15);
 }
 
 
@@ -120,6 +120,18 @@ int main(void)
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
+
+	/*
+	 * gl_rotorInterval is the time between consecutive control updates.
+	 *
+	 * For FOC, this number is the time between consecutive angle updates; specifically, theta_enc - foc_theta_prev
+	 *
+	 * For trapezoidal, this number is the time between consecutive 60 degree angle updates
+	 *
+	 * The time itself is in 6th's of a microsecond.
+	 */
+//	while(1);
+
 	//	 * TODO: test lookup table with foc
 	//	 */
 	//	/*
@@ -132,15 +144,16 @@ int main(void)
 	//	align_offset_test();
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
+	adc_init(FOC_MODE);
+	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	foc_vishan_lock_pos();
-	float theta_m_prev = -TWO_PI;
+	mech_theta_prev = 0;
 	foc_theta_prev = -TWO_PI;
-
+	control_mode = FOC_MODE;
 #ifndef TEST_MODE
 	control_type prev_control_mode = control_mode;
 	while(1)
 	{
-
 		if(new_spi_packet == 1)
 		{
 			parse_master_cmd();
@@ -163,8 +176,6 @@ int main(void)
 				adc_init(FOC_MODE);
 				TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 				foc_vishan_lock_pos();
-
-				theta_m_prev = -TWO_PI;
 				foc_theta_prev = -TWO_PI;
 			}
 			/***********************************Parse torque*************************************/
@@ -188,13 +199,15 @@ int main(void)
 			foc(iq_u,id_u);		//run foc!!!
 
 			/******************************parse motor angle*************************************/
-			float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);
+			float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
 			uint32_t * t_ptr = (uint32_t * )(&theta_m);
 			uint32_t t_word = *t_ptr;
 			t_data[1] = (t_word & 0xFF000000)>>24;
 			t_data[2] = (t_word & 0x00FF0000)>>16;
 			t_data[3] = (t_word & 0x0000FF00)>>8;
 			t_data[4] = (t_word & 0x000000FF);
+
+			gl_rotorPos = (int32_t)theta_m*0.954929659;//3/pi
 
 			break;
 		}
@@ -292,7 +305,6 @@ int main(void)
 			adc_init(FOC_MODE);
 			TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 			foc_vishan_lock_pos();
-			theta_m_prev = -TWO_PI;
 			foc_theta_prev = -TWO_PI;
 
 			t_ts = HAL_GetTick()+1000;
