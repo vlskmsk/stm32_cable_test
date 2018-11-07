@@ -18,6 +18,7 @@
 #define THREE_BY_TWO_PI     	4.71238898038
 #define TWO_PI              	6.28318530718
 #define ONE_BY_TWO_PI 			0.1591549
+#define ONE_BY_THREE_PI			1.04719755
 
 const float elec_conv_ratio;
 

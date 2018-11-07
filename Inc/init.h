@@ -25,7 +25,6 @@
 #define ENABLE_PORT GPIOA
 #define ENABLE_PIN GPIO_PIN_11
 
-
 ADC_HandleTypeDef hadc;
 DMA_HandleTypeDef hdma_adc;
 

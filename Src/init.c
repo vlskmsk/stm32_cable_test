@@ -227,21 +227,21 @@ void MX_ADC_Init_TRAP(void)
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
-	/**Configure for the selected ADC regular channel to be converted.
-	 */
-	sConfig.Channel = ADC_CHANNEL_3;
-	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-	/**Configure for the selected ADC regular channel to be converted.
-	 */
-	sConfig.Channel = ADC_CHANNEL_4;
-	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
+//	/**Configure for the selected ADC regular channel to be converted.
+//	 */
+//	sConfig.Channel = ADC_CHANNEL_3;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	/**Configure for the selected ADC regular channel to be converted.
+//	 */
+//	sConfig.Channel = ADC_CHANNEL_4;
+//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+//	{
+//		_Error_Handler(__FILE__, __LINE__);
+//	}
 
 	/**Configure for the selected ADC regular channel to be converted.
 	 */

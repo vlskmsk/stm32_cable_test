@@ -10,11 +10,9 @@
 #include "init.h"
 #include "commutation.h"
 
-#define NUM_SPI_BYTES 26
+#define NUM_SPI_BYTES 22
 
 uint8_t new_spi_packet;
-
-typedef enum {FOC_MODE, TRAPEZOIDAL_MODE, HYBRID_MODE} control_type;
 
 #define CMD_LED_OFF 		0
 #define CMD_LED_ON 			1

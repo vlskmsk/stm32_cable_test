@@ -13,7 +13,6 @@ uint8_t press_data_transmit_flag = 0;
 
 control_type control_mode = FOC_MODE;
 
-
 uint16_t r_word = 0;
 uint16_t t_word = 0;
 
@@ -65,7 +64,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		}
 	}
 }
-
 
 void parse_master_cmd()
 {
@@ -122,24 +120,6 @@ void parse_master_cmd()
 		break;
 	case CMD_DRIVER_DISABLE:
 		HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
-		break;
-	case CMD_EN_PRES:
-		asm("NOP");
-		HAL_UART_DMAResume(&huart1);
-		break;
-	case CMD_DIS_PRES:
-		asm("NOP");
-		HAL_UART_DMAPause(&huart1);
-		break;
-	case CMD_READ_PRES:
-		asm("NOP");
-		press_data_transmit_flag = 1;
-		for(int i = 5; i < 26; i++)
-		{
-			t_data[i] = pres_data[25-i];
-		}
-		transmit_counter++;
-		asm("NOP");
 		break;
 	case CMD_SLEEP:
 		sleep_flag = 1;

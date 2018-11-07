@@ -42,14 +42,14 @@ const comm_step bw[6] = { 	{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3},
 #endif
 
 #ifndef USE_COMPLEMENTARY_PWM
-const comm_step fw[6] = { 	{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3_S1},
+const comm_step bw[6] = { 	{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3_S1},
 							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2_S1},
 							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1_S2},
 							{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
 							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2_S3},
 							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1_S3} };
 
-const comm_step bw[6] = { 	{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
+const comm_step fw[6] = { 	{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
 							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1_S2},
 							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2_S1},
 							{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3_S1},
@@ -57,11 +57,11 @@ const comm_step bw[6] = { 	{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
 							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2_S3} };
 #endif
 
-const int forwardADCBemfTable[6] = {ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A};
-const int forwardEdgePolarity[6] = {FALLING, RISING, FALLING, RISING, FALLING, RISING};
+const int backwardADCBemfTable[6] = {ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A};
+const int backwardEdgePolarity[6] = {FALLING, RISING, FALLING, RISING, FALLING, RISING};
 
-const int backwardADCBemfTable[6] = {ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_B};
-const int backwardEdgePolarity[6] = {FALLING, RISING, FALLING, RISING, FALLING, RISING};	//this might be wrong
+const int forwardADCBemfTable[6] = {ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_B};
+const int forwardEdgePolarity[6] = {FALLING, RISING, FALLING, RISING, FALLING, RISING};	//this might be wrong
 
 int gl_zero_cross_point = 0;
 const int dead_time_uS = 50;
@@ -72,7 +72,7 @@ void estSpeedPos(const comm_step * commTable, int phase_delay_uS)
 		gl_rotorPos++;
 	else
 		gl_rotorPos--;
-	gl_rotorInterval = phase_delay_uS/2;		//approximate
+	gl_rotorInterval = (phase_delay_uS>>1)+phase_delay_uS;		//approximate
 }
 /*
  * helper function for the comm_step type, which loads all unreferenced pwms as 0 and all referenced pwms as duty
@@ -267,11 +267,6 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 		while(zero_cross_event==0)
 		{
 			uS_count = TIM14->CNT;
-			//			if(edgePolarity[stepIdx] == RISING && dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point)
-			//				break;
-			//			else if(edgePolarity[stepIdx] == FALLING && dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point)
-			//				break;
-			//			zero_cross_event = ((edgePolarity[stepIdx] == RISING && dma_adc_raw[bemfTable[stepIdx]] >= gl_zero_cross_point) || (edgePolarity[stepIdx] == FALLING && dma_adc_raw[bemfTable[stepIdx]] <= gl_zero_cross_point));
 
 			if(edgePolarity[stepIdx] == RISING)
 			{
@@ -318,17 +313,18 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 				openLoopAccel(commTable, bemfTable, edgePolarity);
 				return;
 			}
-//			unwrap( theta_rel_rad(), &foc_theta_prev);
 		}
+
+		/* you're halfway through the step, and need to track rotation counts for FOC.*/
+//		unwrap( theta_rel_rad(), &foc_theta_prev);
+		mech_theta_prev = (float)gl_rotorPos*ONE_BY_THREE_PI;
+
 		/*
 		 *	keep switching but flip polarity
 		 */
 //		delay_T14_us(uS_count/2);	//in theory, this should not be uS_count/2. however, this controller draws more current when the delay is that long.
 		TIM14->CNT = 0;
-		while(TIM14->CNT <= uS_count>>1)
-		{
-//			unwrap( theta_rel_rad(), &foc_theta_prev);
-		}
+		while(TIM14->CNT <= uS_count>>1);
 
 		estSpeedPos(commTable, uS_count);	//update speed and position
 

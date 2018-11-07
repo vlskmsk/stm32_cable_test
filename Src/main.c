@@ -17,11 +17,6 @@
 //#define GET_ALIGN_OFFSET
 //#define DOWSE_ALIGN_OFFSET
 
-#define TRAP_MODE_INIT
-#ifndef TRAP_MODE_INIT
-#define FOC_MODE_INIT
-#endif
-
 #define BRAKE 0
 #define STOP 1
 #define FORWARD_OPEN 2
@@ -51,94 +46,11 @@ void foc_vishan_lock_pos()
 	inverse_park_transform(0, 0.3, 0, 1, &i_alpha, &i_beta);	//maybe call theta rel again?
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
 	TIMER_UPDATE_DUTY(tA,tB,tC);		//TODO: since this produces (.2, -.1, -.1) -> (600, 450, 450), test (600, 400+50*sin(t), 400+50*sin(t)) and see if there
-	HAL_Delay(10);
+	HAL_Delay(15);
 }
 
-//void trap_channel_config()
-//{
-//	ADC_ChannelConfTypeDef sConfig;
-//
-//	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-//	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-//
-//	sConfig.Channel = ADC_CHANNEL_0;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_1;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_2;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_5;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_6;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_7;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//}
-//
-//void foc_channel_config()
-//{
-//	ADC_ChannelConfTypeDef sConfig;
-//
-//
-//	sConfig.Channel = ADC_CHANNEL_0;
-//	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-//
-//
-//	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_1;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_2;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_3;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//
-//	sConfig.Channel = ADC_CHANNEL_4;
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		_Error_Handler(__FILE__, __LINE__);
-//	}
-//}
 
+volatile uint32_t time_exp;
 
 int main(void)
 {
@@ -148,24 +60,13 @@ int main(void)
 
 	MX_GPIO_Init();
 	MX_DMA_Init();
-#ifdef TRAP_MODE_INIT
 	MX_ADC_Init_TRAP();
-	control_mode = TRAPEZOIDAL_MODE;
-#endif
-#ifdef FOC_MODE_INIT
-	MX_ADC_Init_FOC();
-#endif
 	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM1_Init();
 	MX_TIM14_Init();
 
-#ifdef TRAP_MODE_INIT
 	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_trap, NUM_ADC_TRAP);
-#endif
-#ifdef FOC_MODE_INIT
-	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
-#endif
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 
@@ -180,7 +81,6 @@ int main(void)
 	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
 	HAL_UART_Receive_DMA(&huart1, uart_read_buffer, 42);
 	HAL_UART_DMAPause(&huart1);
-
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 
 	HAL_Delay(1);
@@ -192,10 +92,12 @@ int main(void)
 	/*
 	 * Only valid for adc initialized for trap mode
 	 */
+	adc_init(TRAPEZOIDAL_MODE);
 	gl_zero_cross_point = initZeroCrossPoint(dma_adc_trap);
 	/*
-	 *
+	 * TODO: configure for foc mode
 	 */
+	adc_init(FOC_MODE);
 	get_current_cal_offsets();
 
 	//	init_observer();
@@ -212,13 +114,24 @@ int main(void)
 	align_offset = HALF_PI;
 #endif
 
-
 	TIMER_UPDATE_DUTY(500,500,500);
 
 	uint8_t state = BRAKE;
 	uint8_t prev_state = state;
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+
+
+	/*
+	 * gl_rotorInterval is the time between consecutive control updates.
+	 *
+	 * For FOC, this number is the time between consecutive angle updates; specifically, theta_enc - foc_theta_prev
+	 *
+	 * For trapezoidal, this number is the time between consecutive 60 degree angle updates
+	 *
+	 * The time itself is in 6th's of a microsecond.
+	 */
+//	while(1);
 
 	//	 * TODO: test lookup table with foc
 	//	 */
@@ -232,14 +145,16 @@ int main(void)
 	//	align_offset_test();
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
+	adc_init(FOC_MODE);
+	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	foc_vishan_lock_pos();
-#ifndef TEST_MODE
-	float theta_m_prev = -TWO_PI;
+	mech_theta_prev = 0;
 	foc_theta_prev = -TWO_PI;
+	control_mode = FOC_MODE;
+#ifndef TEST_MODE
 	control_type prev_control_mode = control_mode;
 	while(1)
 	{
-
 		if(new_spi_packet == 1)
 		{
 			parse_master_cmd();
@@ -259,10 +174,9 @@ int main(void)
 			 */
 			if(prev_control_mode != FOC_MODE)
 			{
+				adc_init(FOC_MODE);
 				TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 				foc_vishan_lock_pos();
-
-				theta_m_prev = -TWO_PI;
 				foc_theta_prev = -TWO_PI;
 			}
 			/***********************************Parse torque*************************************/
@@ -286,7 +200,7 @@ int main(void)
 			foc(iq_u,id_u);		//run foc!!!
 
 			/******************************parse motor angle*************************************/
-			float theta_m = unwrap(theta_abs_rad(), &theta_m_prev);
+			float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
 			uint32_t * t_ptr = (uint32_t * )(&theta_m);
 			uint32_t t_word = *t_ptr;
 			t_data[1] = (t_word & 0xFF000000)>>24;
@@ -294,11 +208,17 @@ int main(void)
 			t_data[3] = (t_word & 0x0000FF00)>>8;
 			t_data[4] = (t_word & 0x000000FF);
 
+			gl_rotorPos = (int32_t)theta_m*0.954929659;//3/pi
+
 			break;
 		}
 		case TRAPEZOIDAL_MODE:
 		{
 
+			if(prev_control_mode != TRAPEZOIDAL_MODE)
+			{
+				adc_init(TRAPEZOIDAL_MODE);
+			}
 			/*
 			 * format
 			 */
@@ -380,33 +300,23 @@ int main(void)
 	}
 #else
 	/*****************************************************************************************/
-	uint8_t led_state;
-	while(1)
-	{
-		uint32_t time = HAL_GetTick()-start_time;
-		if(time < 2000)
+		uint32_t t_ts = HAL_GetTick();
+		while(1)
 		{
-			foc(5,40);
-		}
-		else if (time >= 2000 && time < 4000)
-		{
-			//						TIM1->CCR4 = 100;
-			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
-			//			openLoop(fw, 200, 13000);
-		}
-		else if (time > 4000)
-		{
-			start_time = HAL_GetTick();
+			adc_init(FOC_MODE);
 			TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
-		}
+			foc_vishan_lock_pos();
+			foc_theta_prev = -TWO_PI;
 
-		if(HAL_GetTick()>=led_ts)
-		{
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,led_state);
-			led_state = !led_state & 1;
-			led_ts = HAL_GetTick() + 200;
+			t_ts = HAL_GetTick()+1000;
+			while(HAL_GetTick() < t_ts)
+				foc(5,30);
+
+			adc_init(TRAPEZOIDAL_MODE);
+			t_ts = HAL_GetTick()+1000;
+			while(HAL_GetTick() < t_ts)
+				closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
 		}
-	}
 #endif
 
 }
