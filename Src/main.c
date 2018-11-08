@@ -97,6 +97,7 @@ int main(void)
 	 * TODO: configure for foc mode
 	 */
 	adc_init(FOC_MODE);
+	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	get_current_cal_offsets();
 
 	//	init_observer();
@@ -394,7 +395,7 @@ void align_offset_test()
 		//		else if(d_theta < -.003)
 
 
-		foc(10,0);
+		foc(5,20);
 		prev_rotation_num = rotation_num;
 		theta_unwrapped_prev = theta_m;
 	}
