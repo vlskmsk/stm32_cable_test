@@ -25,6 +25,7 @@
 #define BACKWARD_CLOSED 5
 
 float theta_enc = 0;
+extern uint8_t press_data_transmit_flag;
 
 void align_offset_test();
 float check_encoder_region();
@@ -207,7 +208,13 @@ int main(void)
 			t_data[2] = (t_word & 0x00FF0000)>>16;
 			t_data[3] = (t_word & 0x0000FF00)>>8;
 			t_data[4] = (t_word & 0x000000FF);
-
+			if(press_data_transmit_flag == 1)
+			{
+				for(int i = 5; i < 26; i++)
+				{
+					t_data[i] = pres_data[i-5];
+				}
+			}
 			gl_rotorPos = (int32_t)theta_m*0.954929659;//3/pi
 
 			break;
@@ -231,7 +238,13 @@ int main(void)
 			t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
 			t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
 			t_data[4] = (gl_rotorPos & 0x000000FF);
-
+			if(press_data_transmit_flag == 1)
+			{
+				for(int i = 5; i < 26; i++)
+				{
+					t_data[i] = pres_data[i-5];
+				}
+			}
 			if (duty > -MIN_BRAKE_DUTY && duty < MIN_BRAKE_DUTY)	//first, tighter condition
 			{
 				state = BRAKE;
