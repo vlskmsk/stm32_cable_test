@@ -10,7 +10,7 @@
 #include "init.h"
 #include "commutation.h"
 
-#define NUM_SPI_BYTES 22
+#define NUM_SPI_BYTES 26
 
 uint8_t new_spi_packet;
 
