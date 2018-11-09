@@ -317,7 +317,7 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 
 		/* you're halfway through the step, and need to track rotation counts for FOC.*/
 //		unwrap( theta_rel_rad(), &foc_theta_prev);
-		mech_theta_prev = (float)gl_rotorPos*ONE_BY_THREE_PI;
+//		mech_theta_prev = (float)gl_rotorPos*ONE_BY_THREE_PI;
 
 		/*
 		 *	keep switching but flip polarity
