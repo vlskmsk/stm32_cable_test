@@ -306,6 +306,13 @@ int main(void)
 			break;
 		}
 		default:
+			if(press_data_transmit_flag == 1)
+			{
+				for(int i = 5; i < 26; i++)
+				{
+					t_data[i] = pres_data[i-5];
+				}
+			}
 			break;
 		};
 		prev_control_mode = control_mode;
