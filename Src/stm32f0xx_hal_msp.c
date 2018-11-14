@@ -45,7 +45,7 @@ extern DMA_HandleTypeDef hdma_spi1_rx;
 
 extern DMA_HandleTypeDef hdma_spi1_tx;
 
-extern DMA_HandleTypeDef hdma_usart1_rx;
+extern DMA_HandleTypeDef hdma_usart1_rx;  //Bird
 
 extern void _Error_Handler(char *, int);
 /* USER CODE BEGIN 0 */
@@ -407,7 +407,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 
     /* USART1 DMA Init */
     /* USART1_RX Init */
-    hdma_usart1_rx.Instance = DMA1_Channel5;
+    hdma_usart1_rx.Instance = DMA1_Channel5;  //Bird
     hdma_usart1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
     hdma_usart1_rx.Init.PeriphInc = DMA_PINC_DISABLE;
     hdma_usart1_rx.Init.MemInc = DMA_MINC_ENABLE;

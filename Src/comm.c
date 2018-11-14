@@ -37,7 +37,7 @@ int mode = 0;
 #define MODE_SEND_ROTOR_POS  	2
 #define MODE_SEND_ROTOR_SPEED  	3
 
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 {
 	if(transmit_counter < 1)
 	{
@@ -49,7 +49,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 	}
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
 {
 	asm("NOP");
 	for(int i = 0; i < 42; i++)
@@ -121,17 +121,17 @@ void parse_master_cmd()
 	case CMD_DRIVER_DISABLE:
 		HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
 		break;
-	case CMD_EN_PRES:
+	case CMD_EN_PRES:  //Bird
 		asm("NOP");
 		HAL_UART_DMAResume(&huart1);
 		press_data_transmit_flag = 1;
 		break;
-	case CMD_DIS_PRES:
+	case CMD_DIS_PRES:  //Bird
 		asm("NOP");
 		HAL_UART_DMAPause(&huart1);
 		press_data_transmit_flag = 0;
 		break;
-	case CMD_SLEEP:
+	case CMD_SLEEP:  //Bird
 		sleep_flag = 1;
 		break;
 	default:

@@ -208,7 +208,7 @@ int main(void)
 			t_data[2] = (t_word & 0x00FF0000)>>16;
 			t_data[3] = (t_word & 0x0000FF00)>>8;
 			t_data[4] = (t_word & 0x000000FF);
-			if(press_data_transmit_flag == 1)
+			if(press_data_transmit_flag == 1)  //Bird
 			{
 				for(int i = 5; i < 26; i++)
 				{
@@ -238,7 +238,7 @@ int main(void)
 			t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
 			t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
 			t_data[4] = (gl_rotorPos & 0x000000FF);
-			if(press_data_transmit_flag == 1)
+			if(press_data_transmit_flag == 1)  //Bird
 			{
 				for(int i = 5; i < 26; i++)
 				{
@@ -306,7 +306,7 @@ int main(void)
 			break;
 		}
 		default:
-			if(press_data_transmit_flag == 1)
+			if(press_data_transmit_flag == 1)  //Bird
 			{
 				for(int i = 5; i < 26; i++)
 				{

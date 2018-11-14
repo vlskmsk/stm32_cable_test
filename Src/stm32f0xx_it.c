@@ -45,7 +45,7 @@ extern DMA_HandleTypeDef hdma_spi1_rx;
 extern DMA_HandleTypeDef hdma_spi1_tx;
 extern SPI_HandleTypeDef hspi1;
 extern TIM_HandleTypeDef htim14;
-extern DMA_HandleTypeDef hdma_usart1_rx;
+extern DMA_HandleTypeDef hdma_usart1_rx;  //Bird
 extern UART_HandleTypeDef huart1;
 
 /******************************************************************************/
@@ -163,7 +163,7 @@ void DMA1_Channel2_3_IRQHandler(void)
 /**
 * @brief This function handles DMA1 channel 4 and 5 interrupts.
 */
-void DMA1_Channel4_5_IRQHandler(void)
+void DMA1_Channel4_5_IRQHandler(void)  //Bird
 {
   /* USER CODE BEGIN DMA1_Channel4_5_IRQn 0 */
 
