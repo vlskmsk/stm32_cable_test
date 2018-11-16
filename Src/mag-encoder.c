@@ -19,8 +19,57 @@ int16_t sin_mid = 2054;		//my encoder
 //const int16_t cos_mid = 1243.5;
 
 
-//from 0 to pi/2
+/*
+ * fast, more inaccurate atan2 approximation
+ *
+ * RUNTIME: slightly slower than atan2_approx
+ *
+ * INPUT: sin and cosine of an angle
+ * OUTPUT: atan2, from -pi to pi. worst case error is  2.0326e-04 radians
+ *
+ */
 float atan2_approx(float sinVal, float cosVal)
+{
+	float abs_s = sinVal;
+	if(abs_s < 0)
+		abs_s = -abs_s;
+	float abs_c = cosVal;
+	if(abs_c < 0)
+		abs_c = -abs_c;
+
+	float min_v = abs_c;
+	float max_v = abs_s;
+	if(abs_s < abs_c)
+	{
+		min_v = abs_s;
+		max_v = abs_c;
+	}
+
+	float a = min_v/max_v;
+	float sv = a*a;
+	float r = ((-0.0464964749 * sv + 0.15931422)*sv- 0.327622764) * sv * a + a;
+
+	if(abs_s > abs_c)
+		r = 1.57079637 -r;
+	if(cosVal < 0)
+		r = 3.14159274 - r;
+	if(sinVal < 0)
+		r = -r;
+	return r;
+}
+
+
+
+/*
+ * faster, more inaccurate atan2 approximation
+ *
+ * RUNTIME: slightly faster than atan2_approx
+ *
+ * INPUT: sin and cosine of an angle
+ * OUTPUT: atan2, from -pi to pi. worst case error is .005 radians
+ *
+ */
+float atan2_approx_fast(float sinVal, float cosVal)
 {
 	float abs_s = sinVal;
 	if(abs_s < 0)
@@ -36,8 +85,9 @@ float atan2_approx(float sinVal, float cosVal)
 		max_v = abs_c;
 	}
 	float a = min_v/max_v;
-	float sv = a*a;
-	float r = ((-0.0464964749 * sv + 0.15931422)*sv- 0.327622764) * sv * a + a;
+
+    float r = (0.97239411 - 0.19194795 * a * a) * a;
+
 	if(abs_s > abs_c)
 		r = 1.57079637 -r;
 	if(cosVal < 0)

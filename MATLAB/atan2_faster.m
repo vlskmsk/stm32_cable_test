@@ -1,4 +1,4 @@
-function angle = atan2_fast(sinVal,cosVal)
+function angle = atan2_faster(sinVal,cosVal)
 	abs_s = sinVal;
     if(abs_s < 0)
 		abs_s = -abs_s;
@@ -15,9 +15,10 @@ function angle = atan2_fast(sinVal,cosVal)
 		max_v = abs_c;
     end
 	a = min_v/max_v;
-	sv = a*a;
-	r = ((-0.0464964749 * sv + 0.15931422)*sv- 0.327622764) * sv * a + a;
-        
+% 	sv = a*a;
+% 	r = ((-0.0464964749 * sv + 0.15931422)*sv- 0.327622764) * sv * a + a;
+    r = (0.97239411 - 0.19194795 * a * a) * a;
+    
     if(abs_s > abs_c)
 		r = 1.57079637 -r;
     end
