@@ -6,9 +6,8 @@
  */
 #include "comm.h"
 
-
+uint8_t new_uart_packet = 0;
 uint8_t new_spi_packet = 0;
-uint8_t transmit_counter = 0;
 uint8_t press_data_transmit_flag = 0;
 
 control_type control_mode = FOC_MODE;
@@ -39,30 +38,17 @@ int mode = 0;
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 {
-	if(transmit_counter < 1)
-	{
-		new_spi_packet = 1;
-	}
-	else
-	{
-		transmit_counter = 0;
-	}
+	new_spi_packet = 1;
 }
 
+/*
+ * TODO: use flag, take this out and do it in the main loop (to prioritize motor control).
+ * why is double-buffering necessary?
+ */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
 {
-	asm("NOP");
-	for(int i = 0; i < 42; i++)
-	{
-		if (uart_read_buffer[i] == 's')
-		{
-			for(int j = 0; j < 21; j++)
-			{
-				pres_data[j] = uart_read_buffer[i+j];
-			}
-			break;
-		}
-	}
+	new_uart_packet = 1;
+//	asm("NOP");																//why the NOP
 }
 
 void parse_master_cmd()
@@ -122,7 +108,7 @@ void parse_master_cmd()
 		HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
 		break;
 	case CMD_EN_PRES:  //Bird
-		asm("NOP");
+		asm("NOP");						//why?
 		HAL_UART_DMAResume(&huart1);
 		press_data_transmit_flag = 1;
 		break;

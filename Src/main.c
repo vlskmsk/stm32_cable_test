@@ -99,6 +99,7 @@ int main(void)
 	 * TODO: configure for foc mode
 	 */
 	adc_init(FOC_MODE);
+	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	get_current_cal_offsets();
 
 	//	init_observer();
@@ -132,7 +133,7 @@ int main(void)
 	 *
 	 * The time itself is in 6th's of a microsecond.
 	 */
-//	while(1);
+	//	while(1);
 
 	//	 * TODO: test lookup table with foc
 	//	 */
@@ -161,6 +162,42 @@ int main(void)
 			parse_master_cmd();
 			t_data[0] = control_mode;
 			new_spi_packet = 0;
+		}
+
+		/*
+		 * TODO: push the if statement below into a UART_PACKET flag, same as
+		 * spi handler above.
+		 */
+		if(new_uart_packet == 1)
+		{
+			/*
+			 * once we've recieved a flag that new uart data must be parsed, scan the double buffer for a complete data set
+			 */
+			for(int i = 0; i < 42; i++)
+			{
+				if (uart_read_buffer[i] == 's')
+				{
+					for(int j = 0; j < 21; j++)
+					{
+						pres_data[j] = uart_read_buffer[i+j];						//we can do outside of the handler
+					}
+					break;
+				}
+			}
+
+			/*
+			 * we've recieved a new round of data, so load it into the spi transmit buffer.
+			 * the motor control spi protocol will carry it over to the master
+			 */
+			if(press_data_transmit_flag == 1)  //Bird
+			{
+				for(int i = 5; i < 26; i++)
+				{
+					t_data[i] = pres_data[i-5];
+				}
+			}
+
+			new_uart_packet = 0;
 		}
 
 		switch(control_mode)
@@ -208,13 +245,7 @@ int main(void)
 			t_data[2] = (t_word & 0x00FF0000)>>16;
 			t_data[3] = (t_word & 0x0000FF00)>>8;
 			t_data[4] = (t_word & 0x000000FF);
-			if(press_data_transmit_flag == 1)  //Bird
-			{
-				for(int i = 5; i < 26; i++)
-				{
-					t_data[i] = pres_data[i-5];
-				}
-			}
+
 			gl_rotorPos = (int32_t)theta_m*0.954929659;//3/pi
 
 			break;
@@ -238,13 +269,7 @@ int main(void)
 			t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
 			t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
 			t_data[4] = (gl_rotorPos & 0x000000FF);
-			if(press_data_transmit_flag == 1)  //Bird
-			{
-				for(int i = 5; i < 26; i++)
-				{
-					t_data[i] = pres_data[i-5];
-				}
-			}
+
 			if (duty > -MIN_BRAKE_DUTY && duty < MIN_BRAKE_DUTY)	//first, tighter condition
 			{
 				state = BRAKE;
@@ -306,13 +331,6 @@ int main(void)
 			break;
 		}
 		default:
-			if(press_data_transmit_flag == 1)  //Bird
-			{
-				for(int i = 5; i < 26; i++)
-				{
-					t_data[i] = pres_data[i-5];
-				}
-			}
 			break;
 		};
 		prev_control_mode = control_mode;
@@ -320,23 +338,23 @@ int main(void)
 	}
 #else
 	/*****************************************************************************************/
-		uint32_t t_ts = HAL_GetTick();
-		while(1)
-		{
-			adc_init(FOC_MODE);
-			TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
-			foc_vishan_lock_pos();
-			foc_theta_prev = -TWO_PI;
+	uint32_t t_ts = HAL_GetTick();
+	while(1)
+	{
+		adc_init(FOC_MODE);
+		TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+		foc_vishan_lock_pos();
+		foc_theta_prev = -TWO_PI;
 
-			t_ts = HAL_GetTick()+1000;
-			while(HAL_GetTick() < t_ts)
-				foc(5,30);
+		t_ts = HAL_GetTick()+1000;
+		while(HAL_GetTick() < t_ts)
+			foc(5,30);
 
-			adc_init(TRAPEZOIDAL_MODE);
-			t_ts = HAL_GetTick()+1000;
-			while(HAL_GetTick() < t_ts)
-				closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
-		}
+		adc_init(TRAPEZOIDAL_MODE);
+		t_ts = HAL_GetTick()+1000;
+		while(HAL_GetTick() < t_ts)
+			closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,1000);
+	}
 #endif
 
 }

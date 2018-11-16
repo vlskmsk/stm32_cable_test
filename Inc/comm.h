@@ -12,6 +12,7 @@
 
 #define NUM_SPI_BYTES 26
 
+uint8_t new_uart_packet;
 uint8_t new_spi_packet;
 
 #define CMD_LED_OFF 		0
