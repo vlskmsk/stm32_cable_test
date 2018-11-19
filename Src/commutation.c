@@ -25,36 +25,36 @@ int low_phase = 0;
 #ifdef USE_COMPLEMENTARY_PWM
 //								high			low			neutral
 const comm_step fw[6] = { 	{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3},
-							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2},
-							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1},
-							{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3},
-							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2},
-							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1} };
+		{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2},
+		{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1},
+		{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3},
+		{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2},
+		{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1} };
 
 //								high			low			neutral
 const comm_step bw[6] = { 	{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3},
-							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1},
-							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2},
-							{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3},
-							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1},
-							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2} };
+		{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1},
+		{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2},
+		{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3},
+		{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1},
+		{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2} };
 
 #endif
 
 #ifndef USE_COMPLEMENTARY_PWM
 const comm_step bw[6] = { 	{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3_S1},
-							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2_S1},
-							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1_S2},
-							{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
-							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2_S3},
-							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1_S3} };
+		{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2_S1},
+		{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1_S2},
+		{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
+		{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2_S3},
+		{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1_S3} };
 
 const comm_step fw[6] = { 	{TIM_CHANNEL_2,TIM_CHANNEL_1, MASK_3_S2},
-							{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1_S2},
-							{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2_S1},
-							{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3_S1},
-							{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1_S3},
-							{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2_S3} };
+		{TIM_CHANNEL_2,TIM_CHANNEL_3, MASK_1_S2},
+		{TIM_CHANNEL_1,TIM_CHANNEL_3, MASK_2_S1},
+		{TIM_CHANNEL_1,TIM_CHANNEL_2, MASK_3_S1},
+		{TIM_CHANNEL_3,TIM_CHANNEL_2, MASK_1_S3},
+		{TIM_CHANNEL_3,TIM_CHANNEL_1, MASK_2_S3} };
 #endif
 
 const int backwardADCBemfTable[6] = {ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A,ADC_CHAN_BEMF_C,ADC_CHAN_BEMF_B,ADC_CHAN_BEMF_A};
@@ -126,9 +126,9 @@ int initZeroCrossPoint(uint16_t * adc_data_vals)
 //TODO: make this not active brake
 void stop()
 {
-//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+	//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+	//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+	//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
 	TIM1->CCER = (TIM1->CCER & DIS_ALL);
 }
 
@@ -245,6 +245,8 @@ void openLoopAccel(const comm_step * commTable, const int * bemfTable,  const in
 
 uint32_t openloop_spinup_ts = 0;
 uint32_t openloop_spinup_window_count = 0;
+uint32_t stall_ts = 0;		//marks the	time which stall detection ends. if the current time is greater than this time, allow commutation
+uint32_t stall_led_ts = 0;
 /*
  * Closed loop sensorless bldc motor control.
  * INPUTS:  commTable: table dictating INH and INL pairs in sequence for 1 full electrical commutation
@@ -255,85 +257,91 @@ uint32_t openloop_spinup_window_count = 0;
 void closedLoop(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity, int duty)
 {
 	int steps_taken = 0;
-	while(steps_taken < 6)
+	if(HAL_GetTick() > stall_ts)
 	{
-		int stepIdx = gl_comm_step;
-		int zero_cross_event = 0;
-		load_pwm_step(commTable[stepIdx],duty);
-		//		load_comm_step(commTable[stepIdx], duty, edgePolarity[stepIdx]);
-		TIM14->CNT = 0;
-		int uS_count = 0;
-
-		while(zero_cross_event==0)
+		while(steps_taken < 6)
 		{
-			uS_count = TIM14->CNT;
+			int stepIdx = gl_comm_step;
+			int zero_cross_event = 0;
+			load_pwm_step(commTable[stepIdx],duty);
+			//		load_comm_step(commTable[stepIdx], duty, edgePolarity[stepIdx]);
+			TIM14->CNT = 0;
+			int uS_count = 0;
 
-			if(edgePolarity[stepIdx] == RISING)
+			while(zero_cross_event==0)
 			{
-				if(dma_adc_trap[bemfTable[stepIdx]] >= gl_zero_cross_point)
-				{
-					zero_cross_event = 1;
-					HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-				}
-			}
-			else if (edgePolarity[stepIdx] == FALLING)
-			{
-				if(dma_adc_trap[bemfTable[stepIdx]] <= gl_zero_cross_point)
-				{
-					zero_cross_event = 1;
-					HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-				}
-			}
-			if(uS_count>=15000)	//if attemped for over 9000uS, accelerate and start over (failed closed loop commutation)
-			{
+				uS_count = TIM14->CNT;
 
-				if(HAL_GetTick()-openloop_spinup_ts < 100)
+				if(edgePolarity[stepIdx] == RISING)
 				{
-					if(openloop_spinup_window_count > 15)
+					if(dma_adc_trap[bemfTable[stepIdx]] >= gl_zero_cross_point)
 					{
-						TIM1->CCER = (TIM1->CCER & 0xFAAA);
-						//uncomment this and the 50ms delay below for stall-fault detection
-//						int fault_delay_inc;
-//						for(fault_delay_inc=0; fault_delay_inc < 100; fault_delay_inc++)
-//						{
-//							HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
-//							HAL_Delay(50);
-//						}
+						zero_cross_event = 1;
+						HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 					}
-					else if (openloop_spinup_window_count > 4)
-					{
-//						HAL_Delay(50);
-					}
-					openloop_spinup_window_count++;
 				}
-				else
-					openloop_spinup_window_count = 0;
-				openloop_spinup_ts = HAL_GetTick();
-				zero_cross_event = 1;
-				uS_count = 2;
-				openLoopAccel(commTable, bemfTable, edgePolarity);
-				return;
+				else if (edgePolarity[stepIdx] == FALLING)
+				{
+					if(dma_adc_trap[bemfTable[stepIdx]] <= gl_zero_cross_point)
+					{
+						zero_cross_event = 1;
+						HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+					}
+				}
+				if(uS_count>=15000)	//if attemped for over 9000uS, accelerate and start over (failed closed loop commutation)
+				{
+
+					if(HAL_GetTick()-openloop_spinup_ts < 100)		//only upcount if you're spinning up in the same 'window' determined by timeframe
+					{
+						if(openloop_spinup_window_count > 15)
+						{
+							TIM1->CCER = (TIM1->CCER & 0xFAAA);
+							stall_ts = HAL_GetTick()+1000;
+							return;	//if you've tried over 15 times, trigger stall detection for some time (1 second?)
+						}
+						if(openloop_spinup_window_count > 4)
+						{
+							stall_ts = HAL_GetTick()+4;
+							return;
+						}
+						openloop_spinup_window_count++;
+					}
+					openloop_spinup_ts = HAL_GetTick();
+					zero_cross_event = 1;
+					uS_count = 2;
+					openLoopAccel(commTable, bemfTable, edgePolarity);
+					return;
+				}
 			}
+
+			/* you're halfway through the step, and need to track rotation counts for FOC.*/
+			//		unwrap( theta_rel_rad(), &foc_theta_prev);
+			//		mech_theta_prev = (float)gl_rotorPos*ONE_BY_THREE_PI;
+
+			/*
+			 *	keep switching but flip polarity
+			 */
+			//		delay_T14_us(uS_count/2);	//in theory, this should not be uS_count/2. however, this controller draws more current when the delay is that long.
+			TIM14->CNT = 0;
+			while(TIM14->CNT <= uS_count>>1);
+
+			estSpeedPos(commTable, uS_count);	//update speed and position
+
+			//		gl_zero_cross_point = gl_virtual_neutral/3;
+			gl_comm_step++;
+			if(gl_comm_step >= 6)
+				gl_comm_step = 0;
+			steps_taken++;
 		}
-
-		/* you're halfway through the step, and need to track rotation counts for FOC.*/
-//		unwrap( theta_rel_rad(), &foc_theta_prev);
-//		mech_theta_prev = (float)gl_rotorPos*ONE_BY_THREE_PI;
-
-		/*
-		 *	keep switching but flip polarity
-		 */
-//		delay_T14_us(uS_count/2);	//in theory, this should not be uS_count/2. however, this controller draws more current when the delay is that long.
-		TIM14->CNT = 0;
-		while(TIM14->CNT <= uS_count>>1);
-
-		estSpeedPos(commTable, uS_count);	//update speed and position
-
-		//		gl_zero_cross_point = gl_virtual_neutral/3;
-		gl_comm_step++;
-		if(gl_comm_step >= 6)
-			gl_comm_step = 0;
-		steps_taken++;
+	}
+	else
+	{
+		TIM1->CCER = (TIM1->CCER & 0xFAAA);
+		if(HAL_GetTick() > stall_led_ts)
+		{
+			stall_led_ts = HAL_GetTick() + 50;
+			HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
+		}
 	}
 
 }
