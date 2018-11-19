@@ -292,16 +292,17 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 					if(openloop_spinup_window_count > 15)
 					{
 						TIM1->CCER = (TIM1->CCER & 0xFAAA);
-						int fault_delay_inc;
-						for(fault_delay_inc=0; fault_delay_inc < 100; fault_delay_inc++)
-						{
-							HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
-							HAL_Delay(50);
-						}
+						//uncomment this and the 50ms delay below for stall-fault detection
+//						int fault_delay_inc;
+//						for(fault_delay_inc=0; fault_delay_inc < 100; fault_delay_inc++)
+//						{
+//							HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
+//							HAL_Delay(50);
+//						}
 					}
 					else if (openloop_spinup_window_count > 4)
 					{
-						HAL_Delay(50);
+//						HAL_Delay(50);
 					}
 					openloop_spinup_window_count++;
 				}
