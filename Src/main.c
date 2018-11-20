@@ -505,11 +505,12 @@ void low_power_mode()
 	}
 	speedup_clock_48MHz();
 
-	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);	//disable the gate driver. this is likely already done by the master, but might as well assert it anyway
-	for(i=0;i<5;i++)
-		t_data[i] = i;				//set tx data to 0xFF to indicate low power mode has been entered
+	if(control_mode == TRAPEZOIDAL_MODE)
+		adc_init(TRAPEZOIDAL_MODE);
+	else if (control_mode == FOC_MODE)
+		adc_init(TRAPEZOIDAL_MODE);
 
-	adc_init(TRAPEZOIDAL_MODE);
+	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);	//disable the gate driver. this is likely already done by the master, but might as well assert it anyway
 }
 
 /*
