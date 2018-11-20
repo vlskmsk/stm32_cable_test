@@ -127,7 +127,14 @@ int main(void)
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
-//	low_power_mode();
+//	adc_init(TRAPEZOIDAL_MODE);
+//	slow_clock_8MHz();	//switch to HSI and turn off the PLL, thus dropping the current consumption to under 4.4ma
+//	parse_master_cmd();
+//	speedup_clock_48MHz();
+//	while(1)
+//	{
+//		closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,1000);
+//	}
 
 	/*
 	 * gl_rotorInterval is the time between consecutive control updates.
@@ -501,6 +508,8 @@ void low_power_mode()
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);	//disable the gate driver. this is likely already done by the master, but might as well assert it anyway
 	for(i=0;i<5;i++)
 		t_data[i] = i;				//set tx data to 0xFF to indicate low power mode has been entered
+
+	adc_init(TRAPEZOIDAL_MODE);
 }
 
 /*
