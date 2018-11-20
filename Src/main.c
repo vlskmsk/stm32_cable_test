@@ -169,6 +169,8 @@ int main(void)
 			new_spi_packet = 0;
 		}
 
+		if(sleep_flag)
+			low_power_mode();
 		/*
 		 * TODO: push the if statement below into a UART_PACKET flag, same as
 		 * spi handler above.
@@ -328,12 +330,6 @@ int main(void)
 			}
 			prev_state = state;
 
-			if(sleep_flag)
-			{
-//				sleep_reset();		//needs update, kills SPI
-				low_power_mode();
-			}
-
 			break;
 		}
 		default:
@@ -443,25 +439,26 @@ void align_offset_test()
 void low_power_mode()
 {
 
-	slow_clock_8MHz();	//switch to HSI and turn off the PLL, thus dropping the current consumption to under 4.4ma
-
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);	//disable the gate driver. this is likely already done by the master, but might as well assert it anyway
+
+	int i;
+	for(i=0;i<5;i++)
+		t_data[i] = 0xFF;				//set tx data to 0xFF to indicate low power mode has been entered
+
+	slow_clock_8MHz();	//switch to HSI and turn off the PLL, thus dropping the current consumption to under 4.4ma
 
 	/*
 	 * We're awake, but we need to handle UART and SPI for the pressure sensor (even if we don't have a
 	 * sensor, we can't kill the bus for the sensor that's active).
 	 */
-	sleep_flag = 1;
 	while(sleep_flag)
 	{
-//		__WFI();
 		/*
 		 *	handle new spi buffer
 		 */
 		if(new_spi_packet == 1)
 		{
 			parse_master_cmd();
-			t_data[0] = control_mode;
 			new_spi_packet = 0;
 		}
 
@@ -500,6 +497,10 @@ void low_power_mode()
 		}
 	}
 	speedup_clock_48MHz();
+
+	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);	//disable the gate driver. this is likely already done by the master, but might as well assert it anyway
+	for(i=0;i<5;i++)
+		t_data[i] = i;				//set tx data to 0xFF to indicate low power mode has been entered
 }
 
 /*
