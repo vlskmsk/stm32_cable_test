@@ -129,3 +129,37 @@ void parse_master_cmd()
 }
 
 
+
+void handle_uart_buf()
+{
+	/*
+	 * once we've recieved a flag that new uart data must be parsed, scan the double buffer for a complete data set
+	 */
+	int i;
+	for(i = 0; i < NUM_BYTES_UART_DMA; i++)
+	{
+		if (uart_read_buffer[i] == 's')
+		{
+			int j;
+			for(j = 0; j < NUM_PRES_UART_BYTES; j++)
+			{
+				pres_data[j] = uart_read_buffer[ (i+j) % (NUM_BYTES_UART_DMA-1) ];						//we can do outside of the handler
+			}
+			break;
+		}
+	}
+
+	/*
+	 * we've recieved a new round of data, so load it into the spi transmit buffer.
+	 * the motor control spi protocol will carry it over to the master
+	 */
+	if(press_data_transmit_flag == 1)  //Bird
+	{
+		//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
+		for(int i = 5; i < NUM_SPI_BYTES; i++)
+		{
+			t_data[i] = pres_data[i-5];
+		}
+	}
+}
+

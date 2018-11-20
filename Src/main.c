@@ -11,6 +11,8 @@
 /*
  * TODO: Figure out how to quickly change dma-adc configuration to swap between
  * foc and trapezoidal motor
+ *
+ * main.c is getting a little crowded... clean this up
  */
 
 //#define TEST_MODE
@@ -33,9 +35,10 @@ void dowse_align_offset(float des_align_offset);
 void sleep_reset();
 void low_power_mode();
 
+
+
 void slow_clock_8MHz();
 void speedup_clock_48MHz();
-
 
 
 /*
@@ -84,7 +87,7 @@ int main(void)
 	TIM1->CCR4 = 100;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
-	HAL_UART_Receive_DMA(&huart1, uart_read_buffer, 42);
+	HAL_UART_Receive_DMA(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA );
 	HAL_UART_DMAPause(&huart1);
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 
@@ -176,43 +179,15 @@ int main(void)
 			new_spi_packet = 0;
 		}
 
-		if(sleep_flag)
-			low_power_mode();
-		/*
-		 * TODO: push the if statement below into a UART_PACKET flag, same as
-		 * spi handler above.
-		 */
 		if(new_uart_packet == 1)
 		{
-			/*
-			 * once we've recieved a flag that new uart data must be parsed, scan the double buffer for a complete data set
-			 */
-			for(int i = 0; i < 42; i++)
-			{
-				if (uart_read_buffer[i] == 's')
-				{
-					for(int j = 0; j < 21; j++)
-					{
-						pres_data[j] = uart_read_buffer[i+j];						//we can do outside of the handler
-					}
-					break;
-				}
-			}
-
-			/*
-			 * we've recieved a new round of data, so load it into the spi transmit buffer.
-			 * the motor control spi protocol will carry it over to the master
-			 */
-			if(press_data_transmit_flag == 1)  //Bird
-			{
-				for(int i = 5; i < 26; i++)
-				{
-					t_data[i] = pres_data[i-5];
-				}
-			}
-
+			handle_uart_buf();
 			new_uart_packet = 0;
 		}
+
+		if(sleep_flag)
+			low_power_mode();
+
 
 		switch(control_mode)
 		{
@@ -441,8 +416,6 @@ void align_offset_test()
 }
 
 
-
-
 void low_power_mode()
 {
 
@@ -474,35 +447,11 @@ void low_power_mode()
 		 */
 		if(new_uart_packet == 1)
 		{
-			/*
-			 * once we've recieved a flag that new uart data must be parsed, scan the double buffer for a complete data set
-			 */
-			for(int i = 0; i < 42; i++)
-			{
-				if (uart_read_buffer[i] == 's')
-				{
-					for(int j = 0; j < 21; j++)
-					{
-						pres_data[j] = uart_read_buffer[i+j];						//we can do outside of the handler
-					}
-					break;
-				}
-			}
-
-			/*
-			 * we've recieved a new round of data, so load it into the spi transmit buffer.
-			 * the motor control spi protocol will carry it over to the master
-			 */
-			if(press_data_transmit_flag == 1)  //Bird
-			{
-				for(int i = 5; i < 26; i++)
-				{
-					t_data[i] = pres_data[i-5];
-				}
-			}
+			handle_uart_buf();
 			new_uart_packet = 0;
 		}
 	}
+
 	speedup_clock_48MHz();
 
 	if(control_mode == TRAPEZOIDAL_MODE)
@@ -630,6 +579,14 @@ void slow_clock_8MHz()
 	 * TODO: re-configure UART clock source so that the baud rate is correct (to allow for pressure
 	 * data reception while in lower-power mode)
 	 */
+	RCC_PeriphCLKInitTypeDef PeriphClkInit;
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+	PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
 }
 
 /*

@@ -10,7 +10,11 @@
 #include "init.h"
 #include "commutation.h"
 
-#define NUM_SPI_BYTES 26
+#define NUM_PRES_UART_BYTES 	9	//number of uart bytes used for pressure data transmission
+#define NUM_BYTES_UART_DMA		18	//double buffer for uart, in case we lose a byte somewhere in the transmission
+#define NUM_SPI_BYTES 			14	//equal to 5+NUM_PRES_UART_BYTES. first 5 bytes reserved
+
+
 
 uint8_t new_uart_packet;
 uint8_t new_spi_packet;
@@ -49,8 +53,8 @@ uint16_t r_word;
 uint16_t t_word;
 uint8_t r_data[NUM_SPI_BYTES];
 uint8_t t_data[NUM_SPI_BYTES];
-uint8_t pres_data[NUM_SPI_BYTES];
-uint8_t uart_read_buffer[42];
+uint8_t pres_data[NUM_PRES_UART_BYTES];
+uint8_t uart_read_buffer[NUM_BYTES_UART_DMA];
 uint8_t r_flag;
 uint8_t t_flag;
 int32_t gl_master_duty;
@@ -66,5 +70,6 @@ control_type control_mode;
 
 void parse_master_cmd();
 void execute_master_cmd();
+void handle_uart_buf();
 
 #endif /* COMM_H_ */
