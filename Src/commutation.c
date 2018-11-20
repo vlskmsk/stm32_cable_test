@@ -123,6 +123,22 @@ int initZeroCrossPoint(uint16_t * adc_data_vals)
 	return total_average/2;
 }
 
+
+/*
+ * same as writing to CCER register. this is done in one line elsewhere in the code
+ */
+void start_pwm()
+{
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+}
+
+
 //TODO: make this not active brake
 void stop()
 {

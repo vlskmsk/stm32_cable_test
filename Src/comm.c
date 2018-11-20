@@ -120,6 +120,9 @@ void parse_master_cmd()
 	case CMD_SLEEP:  //Bird
 		sleep_flag = 1;
 		break;
+	case CMD_WAKEUP:
+		sleep_flag = 0;
+		break;
 	default:
 		break;
 	}

@@ -31,8 +31,12 @@ void align_offset_test();
 float check_encoder_region();
 void dowse_align_offset(float des_align_offset);
 void sleep_reset();
+void low_power_mode();
 
-void start_pwm();
+void slow_clock_8MHz();
+void speedup_clock_48MHz();
+
+
 
 /*
  * Quickly align the encoder in the correct position. Too fast for correct align offset calculation, but fast enough to spin in the right direction
@@ -123,6 +127,7 @@ int main(void)
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
+//	low_power_mode();
 
 	/*
 	 * gl_rotorInterval is the time between consecutive control updates.
@@ -325,7 +330,8 @@ int main(void)
 
 			if(sleep_flag)
 			{
-				sleep_reset();
+//				sleep_reset();		//needs update, kills SPI
+				low_power_mode();
 			}
 
 			break;
@@ -357,17 +363,6 @@ int main(void)
 	}
 #endif
 
-}
-
-
-void start_pwm()
-{
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
 }
 
 
@@ -445,8 +440,81 @@ void align_offset_test()
 
 
 
+void low_power_mode()
+{
+
+	slow_clock_8MHz();	//switch to HSI and turn off the PLL, thus dropping the current consumption to under 4.4ma
+
+	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);	//disable the gate driver. this is likely already done by the master, but might as well assert it anyway
+
+	/*
+	 * We're awake, but we need to handle UART and SPI for the pressure sensor (even if we don't have a
+	 * sensor, we can't kill the bus for the sensor that's active).
+	 */
+	sleep_flag = 1;
+	while(sleep_flag)
+	{
+//		__WFI();
+		/*
+		 *	handle new spi buffer
+		 */
+		if(new_spi_packet == 1)
+		{
+			parse_master_cmd();
+			t_data[0] = control_mode;
+			new_spi_packet = 0;
+		}
+
+		/*
+		 * Handle new uart double buffer
+		 */
+		if(new_uart_packet == 1)
+		{
+			/*
+			 * once we've recieved a flag that new uart data must be parsed, scan the double buffer for a complete data set
+			 */
+			for(int i = 0; i < 42; i++)
+			{
+				if (uart_read_buffer[i] == 's')
+				{
+					for(int j = 0; j < 21; j++)
+					{
+						pres_data[j] = uart_read_buffer[i+j];						//we can do outside of the handler
+					}
+					break;
+				}
+			}
+
+			/*
+			 * we've recieved a new round of data, so load it into the spi transmit buffer.
+			 * the motor control spi protocol will carry it over to the master
+			 */
+			if(press_data_transmit_flag == 1)  //Bird
+			{
+				for(int i = 5; i < 26; i++)
+				{
+					t_data[i] = pres_data[i-5];
+				}
+			}
+			new_uart_packet = 0;
+		}
+	}
+	speedup_clock_48MHz();
+}
+
+/*
+ * TODO: 	1. figure out how to recover from stop mode
+ * 			2. configure SPI gpio pins as Hi-z so
+ * 				they don't screw with the sensors that are active
+ *
+ * If this works and doesn't interfere with SPI, then in the long term we'll
+ * use this for drivers that aren't using pressure sensors, and low_power_mode
+ * for sensors that need to carry sensor data for the ultimate low power consumption
+ *
+ */
 void sleep_reset()
 {
+
 	/*
 	 * Tear down, set up for stop
 	 */
@@ -500,4 +568,107 @@ void dowse_align_offset(float des_align_offset)
 		else
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 	}
+}
+
+
+
+
+void slow_clock_8MHz()
+{
+	/*
+	 * switch the MUX over to HSI direct, from PLL
+	 */
+	uint32_t cfgr_tmp;
+	cfgr_tmp = RCC->CFGR;	//read cfgr register into temp register
+	cfgr_tmp &= ~(0x3);		//clear the SW bits
+	RCC->CFGR = cfgr_tmp;	//write to register
+	cfgr_tmp = (RCC->CFGR & 0b1100) >> 2;	//read the SWS bits
+	while(cfgr_tmp != 0b00)
+	{
+		cfgr_tmp = (RCC->CFGR & 0b1100) >> 2;	//wait until they match SW setting
+	}
+
+	/*
+	 * disable the PLL
+	 */
+	uint32_t rcc_cr_tmp = RCC->CR;
+	rcc_cr_tmp &= ~(1<<24);	//disable the PLL
+	RCC->CR = rcc_cr_tmp;
+	while( (RCC->CR & (1<<25)) != 0);	//wait until the PLL has fully stopped
+
+
+	/*
+	 * re-configure flash latency for 8MHz mode
+	 */
+	uint32_t FLatency = FLASH_LATENCY_0;
+	/* Increasing the number of wait states because of higher CPU frequency */
+	if(FLatency > (FLASH->ACR & FLASH_ACR_LATENCY))
+	{
+		/* Program the new number of wait states to the LATENCY bits in the FLASH_ACR register */
+		__HAL_FLASH_SET_LATENCY(FLatency);
+
+		/* Check that the new number of wait states is taken into account to access the Flash
+	    memory by reading the FLASH_ACR register */
+		if((FLASH->ACR & FLASH_ACR_LATENCY) != FLatency)
+		{
+			_Error_Handler(__FILE__, __LINE__);
+		}
+	}
+
+	/*
+	 * TODO: re-configure UART clock source so that the baud rate is correct (to allow for pressure
+	 * data reception while in lower-power mode)
+	 */
+}
+
+/*
+ * roll back the changes from slow_down_clock()
+ */
+void speedup_clock_48MHz()
+{
+
+	/*
+	 * TODO: roll back the UART clock settings made slow_clock
+	 */
+
+	/*
+	 * first reconfigure flash latency for 48MHz
+	 */
+	uint32_t FLatency = FLASH_LATENCY_1;
+	/* Increasing the number of wait states because of higher CPU frequency */
+	if(FLatency > (FLASH->ACR & FLASH_ACR_LATENCY))
+	{
+		/* Program the new number of wait states to the LATENCY bits in the FLASH_ACR register */
+		__HAL_FLASH_SET_LATENCY(FLatency);
+
+		/* Check that the new number of wait states is taken into account to access the Flash
+	    memory by reading the FLASH_ACR register */
+		if((FLASH->ACR & FLASH_ACR_LATENCY) != FLatency)
+		{
+			_Error_Handler(__FILE__, __LINE__);
+		}
+	}
+
+	/*
+	 * re-enable the PLL
+	 */
+	uint32_t rcc_cr_tmp = RCC->CR;
+	rcc_cr_tmp |= (1<<24);	//enable the PLL
+	RCC->CR = rcc_cr_tmp;
+
+	while( (RCC->CR & (1<<25)) == 0);	//wait until pll is ready
+
+	/*
+	 * switch the MUX back to PLL source instead of direct from HSI
+	 */
+	uint32_t cfgr_tmp = RCC->CFGR;
+	cfgr_tmp &= ~(0b11);	//clear the SW bits
+	cfgr_tmp |= 0b10;		//set to PLL select
+	RCC->CFGR = cfgr_tmp;	//write to register
+	cfgr_tmp = (RCC->CFGR & 0b1100) >> 2;
+	while(cfgr_tmp != 0b10)
+	{
+		cfgr_tmp = (RCC->CFGR & 0b1100) >> 2;	//wait until they match SW setting
+	}
+
 }

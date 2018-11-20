@@ -84,6 +84,8 @@ void openLoopPrint(const comm_step * commTable, int duty, int phase_delay_uS);
 void openLoopAccel(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity);
 void closedLoop(const comm_step * commTable, const int * bemfTable,  const int * edgePolarity, int duty);
 void stop();
+void start_pwm();
+
 void brake();
 void hardBrake(int duty);
 

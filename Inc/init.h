@@ -41,6 +41,7 @@ UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;  //Bird
 
 void SystemClock_Config(void);
+void SystemClock_Config_8MHz(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
 void MX_ADC_Init_FOC(void);

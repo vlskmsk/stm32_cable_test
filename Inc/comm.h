@@ -27,7 +27,10 @@ uint8_t new_spi_packet;
 #define CMD_ROTOR_SPEED		10
 #define CMD_RESET_T			11	//reset commutation interval estimation
 #define CMD_RESET_POS		12
+
 #define CMD_SLEEP			14
+#define CMD_WAKEUP			23
+
 #define CMD_PLAY_TONE		15	//play a tone! master data corresponds to
 
 #define CMD_SET_FOC_MODE	16
@@ -39,6 +42,7 @@ uint8_t new_spi_packet;
 #define CMD_READ_PRES		21
 
 #define CMD_NO_ACTION		22
+
 
 
 uint16_t r_word;
