@@ -433,6 +433,7 @@ void low_power_mode()
 	 */
 	while(sleep_flag)
 	{
+		__WFI();
 		/*
 		 *	handle new spi buffer
 		 */
