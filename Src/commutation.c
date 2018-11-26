@@ -313,12 +313,8 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 						{
 							TIM1->CCER = (TIM1->CCER & 0xFAAA);
 							stall_ts = HAL_GetTick()+1000;
+							openloop_spinup_window_count = 0;
 							return;	//if you've tried over 15 times, trigger stall detection for some time (1 second?)
-						}
-						if(openloop_spinup_window_count > 4)
-						{
-							stall_ts = HAL_GetTick()+4;
-							return;
 						}
 						openloop_spinup_window_count++;
 					}

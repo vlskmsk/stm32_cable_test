@@ -27,7 +27,7 @@
 #define BACKWARD_CLOSED 5
 
 float theta_enc = 0;
-extern uint8_t press_data_transmit_flag;
+//extern uint8_t press_data_transmit_flag;
 
 void align_offset_test();
 float check_encoder_region();
@@ -130,15 +130,6 @@ int main(void)
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
-//	adc_init(TRAPEZOIDAL_MODE);
-//	slow_clock_8MHz();	//switch to HSI and turn off the PLL, thus dropping the current consumption to under 4.4ma
-//	parse_master_cmd();
-//	speedup_clock_48MHz();
-//	while(1)
-//	{
-//		closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,1000);
-//	}
-
 	/*
 	 * gl_rotorInterval is the time between consecutive control updates.
 	 *
@@ -176,6 +167,8 @@ int main(void)
 		{
 			parse_master_cmd();
 			t_data[0] = control_mode;
+			if(r_data[0] == CMD_CHANGE_PWM || r_data[0] == CMD_CHANGE_IQ)
+				motor_update_ts = HAL_GetTick();	//
 			new_spi_packet = 0;
 		}
 
@@ -254,6 +247,9 @@ int main(void)
 			else if (gl_master_duty > 1000)
 				gl_master_duty = 1000;
 			int duty = gl_master_duty;
+			if(HAL_GetTick() > motor_update_ts + 700)
+				gl_master_duty = 0;
+
 			t_data[1] = (gl_rotorPos & 0xFF000000) >> 24;
 			t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
 			t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;

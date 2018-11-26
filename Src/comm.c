@@ -6,6 +6,8 @@
  */
 #include "comm.h"
 
+uint32_t motor_update_ts = 0;	//time of last spi transaction, for timeout
+
 uint8_t new_uart_packet = 0;
 uint8_t new_spi_packet = 0;
 uint8_t press_data_transmit_flag = 0;

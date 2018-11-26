@@ -47,7 +47,7 @@ uint8_t new_spi_packet;
 
 #define CMD_NO_ACTION		22
 
-
+extern uint32_t motor_update_ts;	//time of last spi transaction, for timeout
 
 uint16_t r_word;
 uint16_t t_word;
