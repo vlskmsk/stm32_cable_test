@@ -278,8 +278,8 @@ int main(void)
 					if(prev_state == BACKWARD_CLOSED || prev_state == BACKWARD_OPEN)
 						brake();
 
-					if(prev_state != FORWARD_CLOSED)
-						openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
+//					if(prev_state != FORWARD_CLOSED)
+//						openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
 
 					closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,duty);
 					state = FORWARD_CLOSED;
@@ -299,8 +299,8 @@ int main(void)
 					if(prev_state == FORWARD_CLOSED || prev_state == FORWARD_OPEN)
 						brake();
 
-					if(prev_state != BACKWARD_CLOSED)
-						openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
+//					if(prev_state != BACKWARD_CLOSED)
+//						openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
 
 					closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,duty);
 					state = BACKWARD_CLOSED;

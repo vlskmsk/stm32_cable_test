@@ -12,6 +12,8 @@
 #include "circ.h"
 //#include <math.h>
 
+#define ENABLE_STALL_PROTECTION
+
 #define PI 3.14159265359
 
 #define MIN_CLOSED_DUTY 300

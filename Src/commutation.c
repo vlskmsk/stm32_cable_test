@@ -309,7 +309,7 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 #ifdef ENABLE_STALL_PROTECTION
 					if(HAL_GetTick()-openloop_spinup_ts < 100)		//only upcount if you're spinning up in the same 'window' determined by timeframe
 					{
-						if(openloop_spinup_window_count > 75)	//75 is a really high number. this should effectively disable stall
+						if(openloop_spinup_window_count > 25)	//75 is a really high number. this should effectively disable stall
 						{
 							TIM1->CCER = (TIM1->CCER & 0xFAAA);
 							stall_ts = HAL_GetTick()+1000;
