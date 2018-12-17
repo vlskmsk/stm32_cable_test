@@ -250,7 +250,6 @@ void openLoopAccel(const comm_step * commTable, const int * bemfTable,  const in
 		if(stepIdx >= 6)
 			stepIdx = 0;
 		gl_comm_step = stepIdx;
-		//openLoopEst(commTable, bemfTable, edgePolarity, duty, phase_delay_uS);
 		duty+=15;
 		if(duty>duty_max_thresh)
 			duty = duty_max_thresh;
@@ -309,10 +308,10 @@ void closedLoop(const comm_step * commTable, const int * bemfTable,  const int *
 #ifdef ENABLE_STALL_PROTECTION
 					if(HAL_GetTick()-openloop_spinup_ts < 100)		//only upcount if you're spinning up in the same 'window' determined by timeframe
 					{
-						if(openloop_spinup_window_count > 25)	//75 is a really high number. this should effectively disable stall
+						if(openloop_spinup_window_count > 15)	//75 is a really high number. this should effectively disable stall
 						{
 							TIM1->CCER = (TIM1->CCER & 0xFAAA);
-							stall_ts = HAL_GetTick()+1000;
+							stall_ts = HAL_GetTick()+75;
 							openloop_spinup_window_count = 0;
 							return;	//if you've tried over 15 times, trigger stall detection for some time (1 second?)
 						}

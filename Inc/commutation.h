@@ -12,7 +12,7 @@
 #include "circ.h"
 //#include <math.h>
 
-#define ENABLE_STALL_PROTECTION
+//#define ENABLE_STALL_PROTECTION
 
 #define PI 3.14159265359
 
