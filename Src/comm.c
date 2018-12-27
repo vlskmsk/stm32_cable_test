@@ -77,9 +77,9 @@ void parse_master_cmd()
 		break;
 	case CMD_CHANGE_IQ :
 	{
-		uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
-		float * tmp = (float *)(&r_word);
-		gl_iq_u = *tmp;
+//		uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
+//		float * tmp = (float *)(&(r_data[1]));
+//		gl_iq_u = *tmp;
 		break;
 	}
 	case CMD_GET_ENCODER_POS :

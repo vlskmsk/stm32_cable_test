@@ -200,8 +200,9 @@ int main(void)
 				foc_theta_prev = -TWO_PI;
 			}
 			/***********************************Parse torque*************************************/
-			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
-			float * tmp = (float *)(&r_word);
+//			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
+//			float * tmp = (float *)(&r_word);
+			float * tmp = (float *)(&(r_data[1]));
 
 			/**********load iq torque component, set id torque component for high speed**********/
 			float iq_u = *tmp;
@@ -221,12 +222,11 @@ int main(void)
 
 			/******************************parse motor angle*************************************/
 			float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
-			uint32_t * t_ptr = (uint32_t * )(&theta_m);
-			uint32_t t_word = *t_ptr;
-			t_data[1] = (t_word & 0xFF000000)>>24;
-			t_data[2] = (t_word & 0x00FF0000)>>16;
-			t_data[3] = (t_word & 0x0000FF00)>>8;
-			t_data[4] = (t_word & 0x000000FF);
+
+			uint8_t * t_ptr = (uint8_t *)(&theta_m);
+			int i;
+			for(i=0;i<4;i++)
+				t_data[i+1] = t_ptr[i];
 
 			gl_rotorPos = (int32_t)theta_m*0.954929659;//3/pi
 
