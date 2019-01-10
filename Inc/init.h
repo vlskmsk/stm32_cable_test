@@ -8,7 +8,7 @@
 #ifndef INIT_H_
 #define INIT_H_
 #include "main.h"
-#include "stm32f0xx_hal.h"
+#include "stm32f3xx_hal.h"
 
 //#define ARM_MATH_CM0
 //#include <arm_math.h>
@@ -25,32 +25,24 @@
 #define ENABLE_PORT GPIOA
 #define ENABLE_PIN GPIO_PIN_11
 
-ADC_HandleTypeDef hadc;
-DMA_HandleTypeDef hdma_adc;
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
-I2C_HandleTypeDef hi2c1;
-
-SPI_HandleTypeDef hspi1;
-DMA_HandleTypeDef hdma_spi1_rx;
-DMA_HandleTypeDef hdma_spi1_tx;
+SPI_HandleTypeDef hspi3;
+DMA_HandleTypeDef hdma_spi3_rx;
+DMA_HandleTypeDef hdma_spi3_tx;
 
 TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim14;
 
 UART_HandleTypeDef huart1;
-DMA_HandleTypeDef hdma_usart1_rx;  //Bird
 
 void SystemClock_Config(void);
-void SystemClock_Config_8MHz(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
-void MX_ADC_Init_FOC(void);
-void MX_ADC_Init_TRAP(void);
-void MX_SPI1_Init(void);
-void MX_USART1_UART_Init(void);
+void MX_ADC1_Init(void);
 void MX_TIM1_Init(void);
-void MX_TIM14_Init(void);
-void MX_I2C1_Init(void);
+void MX_USART1_UART_Init(void);
+void MX_SPI3_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 

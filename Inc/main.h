@@ -10,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * COPYRIGHT(c) 2018 STMicroelectronics
+  * COPYRIGHT(c) 2019 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -48,6 +48,13 @@
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
+
+#define STAT_Pin GPIO_PIN_13
+#define STAT_GPIO_Port GPIOC
+#define ENABLE_Pin GPIO_PIN_11
+#define ENABLE_GPIO_Port GPIOA
+#define CAL_Pin GPIO_PIN_8
+#define CAL_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**

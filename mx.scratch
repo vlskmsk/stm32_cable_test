@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project>
-<ProjectName>C:\Users\Ocanath\Google Drive\workspace\psyonic-bldc-driver\\psyonic-bldc-driver</ProjectName>
+<ProjectName>C:\Users\Ocanath\Google Drive\workspace\psyonic-bldc-driver-f3\\psyonic-bldc-driver-f3</ProjectName>
 <ProjectNature>C</ProjectNature> 
 <CMSIS>..\Drivers\CMSIS</CMSIS>
-<HAL_Driver>C:\Users\Ocanath\STM32Cube\Repository\STM32Cube_FW_F0_V1.9.0\Drivers\CMSIS</HAL_Driver>
+<HAL_Driver>C:\Users\Ocanath\STM32Cube\Repository\STM32Cube_FW_F3_V1.9.0\Drivers\CMSIS</HAL_Driver>
 <Toolchain>SW4STM32</Toolchain>
 <Version>0</Version>
 
@@ -22,8 +22,8 @@
 
 <configs>
   <config>
-    <name>psyonic-bldc-driver</name>				
-    <device>STM32F030C6Tx</device>		 
+    <name>psyonic-bldc-driver-f3</name>				
+    <device>STM32F302C8Tx</device>		 
     <heapSize>0x200</heapSize>
     <stackSize>0x400</stackSize>
     
@@ -31,8 +31,8 @@
 			
     <usedDebug>true</usedDebug>
     	<debugprobe>swd</debugprobe>
-    <optimization>2</optimization>
-    <icfloc>0</icfloc>
+    <optimization>6</optimization>
+    <icfloc>1</icfloc>
     <Adefines>
         <define></define>
     </Adefines>   
@@ -59,9 +59,9 @@
     
 	<Cincludes>
 	   <include>..\Inc</include>
-	   <include>..\Drivers\STM32F0xx_HAL_Driver\Inc</include>
-	   <include>..\Drivers\STM32F0xx_HAL_Driver\Inc\Legacy</include>
-	   <include>..\Drivers\CMSIS\Device\ST\STM32F0xx\Include</include>
+	   <include>..\Drivers\STM32F3xx_HAL_Driver\Inc</include>
+	   <include>..\Drivers\STM32F3xx_HAL_Driver\Inc\Legacy</include>
+	   <include>..\Drivers\CMSIS\Device\ST\STM32F3xx\Include</include>
 	   <include>..\Drivers\CMSIS\Include</include>
 
     </Cincludes>

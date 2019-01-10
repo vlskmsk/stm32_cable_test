@@ -1,5 +1,5 @@
 #include "main.h"
-#include "stm32f0xx_hal.h"
+#include "stm32f3xx_hal.h"
 #include "adc.h"
 #include "delay_uS.h"
 #include "commutation.h"
@@ -65,28 +65,26 @@ int main(void)
 	HAL_Init();
 
 	SystemClock_Config();
-
 	MX_GPIO_Init();
 	MX_DMA_Init();
-	MX_ADC_Init_TRAP();
-	MX_SPI1_Init();
-	MX_USART1_UART_Init();
+	MX_ADC1_Init();
 	MX_TIM1_Init();
-	MX_TIM14_Init();
+	MX_USART1_UART_Init();
+	MX_SPI3_Init();
 
-	HAL_ADC_Start_DMA(&hadc, (uint32_t *)dma_adc_trap, NUM_ADC_TRAP);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)dma_adc_trap, NUM_ADC_TRAP);
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 
 	//	HAL_TIM_Base_Start(&htim14);
 	//	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
+//	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
 
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
 	TIM1->CCR4 = 100;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
-	HAL_SPI_TransmitReceive_DMA(&hspi1, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
+	HAL_SPI_TransmitReceive_DMA(&hspi3, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
 	HAL_UART_Receive_DMA(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA );
 	HAL_UART_DMAPause(&huart1);
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
@@ -200,8 +198,8 @@ int main(void)
 				foc_theta_prev = -TWO_PI;
 			}
 			/***********************************Parse torque*************************************/
-//			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
-//			float * tmp = (float *)(&r_word);
+			//			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
+			//			float * tmp = (float *)(&r_word);
 			float * tmp = (float *)(&(r_data[1]));
 
 			/**********load iq torque component, set id torque component for high speed**********/
@@ -278,8 +276,8 @@ int main(void)
 					if(prev_state == BACKWARD_CLOSED || prev_state == BACKWARD_OPEN)
 						brake();
 
-//					if(prev_state != FORWARD_CLOSED)
-//						openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
+					//					if(prev_state != FORWARD_CLOSED)
+					//						openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
 
 					closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,duty);
 					state = FORWARD_CLOSED;
@@ -299,8 +297,8 @@ int main(void)
 					if(prev_state == FORWARD_CLOSED || prev_state == FORWARD_OPEN)
 						brake();
 
-//					if(prev_state != BACKWARD_CLOSED)
-//						openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
+					//					if(prev_state != BACKWARD_CLOSED)
+					//						openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
 
 					closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,duty);
 					state = BACKWARD_CLOSED;
@@ -637,3 +635,71 @@ void speedup_clock_48MHz()
 	}
 
 }
+
+
+
+
+
+
+
+
+//
+///**
+//  ******************************************************************************
+//  * @file           : main.c
+//  * @brief          : Main program body
+//  ******************************************************************************
+//  ** This notice applies to any and all portions of this file
+//  * that are not between comment pairs USER CODE BEGIN and
+//  * USER CODE END. Other portions of this file, whether
+//  * inserted by the user or by software development tools
+//  * are owned by their respective copyright owners.
+//  *
+//  * COPYRIGHT(c) 2019 STMicroelectronics
+//  *
+//  * Redistribution and use in source and binary forms, with or without modification,
+//  * are permitted provided that the following conditions are met:
+//  *   1. Redistributions of source code must retain the above copyright notice,
+//  *      this list of conditions and the following disclaimer.
+//  *   2. Redistributions in binary form must reproduce the above copyright notice,
+//  *      this list of conditions and the following disclaimer in the documentation
+//  *      and/or other materials provided with the distribution.
+//  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+//  *      may be used to endorse or promote products derived from this software
+//  *      without specific prior written permission.
+//  *
+//  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+//  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+//  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+//  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+//  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+//  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//  *
+//  ******************************************************************************
+//  */
+///* Includes ------------------------------------------------------------------*/
+//#include "main.h"
+//
+//
+//
+//int main(void)
+//{
+//  HAL_Init();
+//
+//  SystemClock_Config();
+//  MX_GPIO_Init();
+//  MX_DMA_Init();
+//  MX_ADC1_Init();
+//  MX_TIM1_Init();
+//  MX_USART1_UART_Init();
+//  MX_SPI3_Init();
+//  while (1)
+//  {
+//
+//  }
+//
+//}
