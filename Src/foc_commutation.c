@@ -379,6 +379,10 @@ void obtain_encoder_offset()
 	align_offset = avg_offset/(float)num_samples;
 }
 
+float time_seconds()
+{
+	return ((float)HAL_GetTick())*.001;
+}
 void obtain_encoder_midpoints()
 {
 	float t_start = time_seconds();
