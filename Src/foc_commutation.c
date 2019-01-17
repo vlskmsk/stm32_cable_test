@@ -414,8 +414,8 @@ void obtain_encoder_midpoints()
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 	}
 	TIMER_UPDATE_DUTY(0,0,0);
-	cos_mid = (s_max + s_min)/2;
-	sin_mid = (c_max + c_min)/2;
+	sin_mid = (s_max + s_min)/2;
+	cos_mid = (c_max + c_min)/2;
 }
 
 void get_current_cal_offsets()
