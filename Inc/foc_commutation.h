@@ -13,6 +13,22 @@
 float foc_theta_prev;	//
 float mech_theta_prev;
 
+#define DIS_ALL 0xFAAA		//and mask
+#define MASK_1 0x0550		//or mask
+#define MASK_2 0x0505		//or mask
+#define MASK_3 0x0055		//or mask
+#define ENABLE_ALL 0x0555	//or mask
+
+#define MASK_1_S2 0x0510
+#define MASK_1_S3 0x0150
+
+#define MASK_2_S1 0x0501
+#define MASK_2_S3 0x0105
+
+#define MASK_3_S1 0x0051
+#define MASK_3_S2 0x0015
+
+
 #define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
 		TIM1->CCR1 = duty1; \

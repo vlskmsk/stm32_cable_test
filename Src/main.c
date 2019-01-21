@@ -2,7 +2,7 @@
 #include "stm32f3xx_hal.h"
 #include "adc.h"
 #include "delay_uS.h"
-#include "commutation.h"
+
 #include "comm.h"
 #include "foc_commutation.h"
 #include "mag-encoder.h"
@@ -57,6 +57,20 @@ void foc_vishan_lock_pos()
 	HAL_Delay(15);
 }
 
+/*
+ * same as writing to CCER register. this is done in one line elsewhere in the code
+ */
+void start_pwm()
+{
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+}
+
 
 volatile uint32_t time_exp;
 
@@ -76,10 +90,6 @@ int main(void)
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 
-	//	HAL_TIM_Base_Start(&htim14);
-	//	HAL_TIM_PWM_Start_IT(&htim14, TIM_CHANNEL_1);
-//	HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);
-
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
 	TIM1->CCR4 = 100;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
@@ -96,18 +106,11 @@ int main(void)
 	HAL_Delay(1);
 
 	/*
-	 * Only valid for adc initialized for trap mode
-	 */
-	adc_init(TRAPEZOIDAL_MODE);
-	gl_zero_cross_point = initZeroCrossPoint(dma_adc_trap);
-	/*
 	 * TODO: configure for foc mode
 	 */
-	adc_init(FOC_MODE);
+
 	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	get_current_cal_offsets();
-
-	//	init_observer();
 
 	TIMER_UPDATE_DUTY(0,0,0);
 
@@ -123,20 +126,9 @@ int main(void)
 
 	TIMER_UPDATE_DUTY(500,500,500);
 
-	uint8_t state = BRAKE;
-	uint8_t prev_state = state;
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
-	/*
-	 * gl_rotorInterval is the time between consecutive control updates.
-	 *
-	 * For FOC, this number is the time between consecutive angle updates; specifically, theta_enc - foc_theta_prev
-	 *
-	 * For trapezoidal, this number is the time between consecutive 60 degree angle updates
-	 *
-	 * The time itself is in 6th's of a microsecond.
-	 */
 	//	while(1);
 
 	//	 * TODO: test lookup table with foc
@@ -151,20 +143,19 @@ int main(void)
 	//	align_offset_test();
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
-	adc_init(FOC_MODE);
 	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	foc_vishan_lock_pos();
 	mech_theta_prev = 0;
 	foc_theta_prev = -TWO_PI;
-	control_mode = FOC_MODE;
+
 #ifndef TEST_MODE
-	control_type prev_control_mode = control_mode;
+
 	while(1)
 	{
 		if(new_spi_packet == 1)
 		{
 			parse_master_cmd();
-			t_data[0] = control_mode;
+			t_data[0] = 0;
 			if(r_data[0] == CMD_CHANGE_PWM || r_data[0] == CMD_CHANGE_IQ)
 				motor_update_ts = HAL_GetTick();	//
 			new_spi_packet = 0;
@@ -179,139 +170,32 @@ int main(void)
 		if(sleep_flag)
 			low_power_mode();
 
+		/***********************************Parse torque*************************************/
+		//			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
+		//			float * tmp = (float *)(&r_word);
+		float * tmp = (float *)(&(r_data[1]));
 
-		switch(control_mode)
-		{
-		case FOC_MODE:
-		{
-			/*
-			 * TODO: advanced transition logic forces transition to occur during only certain phases of closed loop
-			 * OR
-			 * tracks the number of mechanical rotations and RE-INITIALIZES the encoder!!!! (NOTE: this is the best mehtod, as it
-			 * is valid for n pole pairs for all valid n)
-			 */
-			if(prev_control_mode != FOC_MODE)
-			{
-				adc_init(FOC_MODE);
-				TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
-				foc_vishan_lock_pos();
-				foc_theta_prev = -TWO_PI;
-			}
-			/***********************************Parse torque*************************************/
-			//			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
-			//			float * tmp = (float *)(&r_word);
-			float * tmp = (float *)(&(r_data[1]));
+		/**********load iq torque component, set id torque component for high speed**********/
+		float iq_u = *tmp;
+//		float id_u = iq_u * 6;
+		float id_u = 0;
 
-			/**********load iq torque component, set id torque component for high speed**********/
-			float iq_u = *tmp;
-			float id_u = iq_u * 6;
+		/***********************limit iq and id to avoid overheating*************************/
+		if(iq_u > 80)
+			iq_u = 80;
+		if(iq_u < -80)
+			iq_u = -80;
 
-			/***********************limit iq and id to avoid overheating*************************/
-			if(iq_u > 30)
-				iq_u = 30;
-			if(iq_u < -30)
-				iq_u = -30;
-			if(id_u > 75)
-				id_u = 75;
-			if(id_u < -75)
-				id_u = -75;
+		foc(iq_u,id_u);		//run foc!!!
+		/******************************parse motor angle*************************************/
+		float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
 
-			foc(iq_u,id_u);		//run foc!!!
+		uint8_t * t_ptr = (uint8_t *)(&theta_m);
+		int i;
+		for(i=0;i<4;i++)
+			t_data[i+1] = t_ptr[i];
 
-			/******************************parse motor angle*************************************/
-			float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
 
-			uint8_t * t_ptr = (uint8_t *)(&theta_m);
-			int i;
-			for(i=0;i<4;i++)
-				t_data[i+1] = t_ptr[i];
-
-			gl_rotorPos = (int32_t)theta_m*0.954929659;//3/pi
-
-			break;
-		}
-		case TRAPEZOIDAL_MODE:
-		{
-
-			if(prev_control_mode != TRAPEZOIDAL_MODE)
-			{
-				adc_init(TRAPEZOIDAL_MODE);
-			}
-			/*
-			 * format
-			 */
-			if(gl_master_duty < -1000)
-				gl_master_duty = -1000;
-			else if (gl_master_duty > 1000)
-				gl_master_duty = 1000;
-			int duty = gl_master_duty;
-			if(HAL_GetTick() > motor_update_ts + 700)
-				gl_master_duty = 0;
-
-			t_data[1] = (gl_rotorPos & 0xFF000000) >> 24;
-			t_data[2] = (gl_rotorPos & 0x00FF0000) >> 16;
-			t_data[3] = (gl_rotorPos & 0x0000FF00) >> 8;
-			t_data[4] = (gl_rotorPos & 0x000000FF);
-
-			if (duty > -MIN_BRAKE_DUTY && duty < MIN_BRAKE_DUTY)	//first, tighter condition
-			{
-				state = BRAKE;
-				brake();
-			}
-			else if(duty > -MIN_ACTIVE_DUTY && duty < MIN_ACTIVE_DUTY)
-			{
-				state = STOP;
-				stop();
-			}
-			else if (duty >= MIN_ACTIVE_DUTY)
-			{
-
-				if(duty < MIN_CLOSED_DUTY)
-				{
-					stop();
-					state = FORWARD_OPEN;
-				}
-				else
-				{
-					if(prev_state == BACKWARD_CLOSED || prev_state == BACKWARD_OPEN)
-						brake();
-
-					//					if(prev_state != FORWARD_CLOSED)
-					//						openLoopAccel(fw,forwardADCBemfTable, forwardEdgePolarity);
-
-					closedLoop(fw,forwardADCBemfTable,forwardEdgePolarity,duty);
-					state = FORWARD_CLOSED;
-				}
-			}
-			else if (duty <= -MIN_ACTIVE_DUTY)
-			{
-
-				duty = -duty;
-				if(duty < MIN_CLOSED_DUTY)
-				{
-					stop();
-					state = BACKWARD_OPEN;
-				}
-				else
-				{
-					if(prev_state == FORWARD_CLOSED || prev_state == FORWARD_OPEN)
-						brake();
-
-					//					if(prev_state != BACKWARD_CLOSED)
-					//						openLoopAccel(bw,backwardADCBemfTable,backwardEdgePolarity);
-
-					closedLoop(bw,backwardADCBemfTable,backwardEdgePolarity,duty);
-					state = BACKWARD_CLOSED;
-				}
-			}
-			prev_state = state;
-
-			break;
-		}
-		default:
-			break;
-		};
-		prev_control_mode = control_mode;
 
 	}
 #else
@@ -410,6 +294,7 @@ void align_offset_test()
 }
 
 
+/*TODO: implement low power mode on f301*/
 void low_power_mode()
 {
 
@@ -418,8 +303,6 @@ void low_power_mode()
 	int i;
 	for(i=0;i<5;i++)
 		t_data[i] = 0xFF;				//set tx data to 0xFF to indicate low power mode has been entered
-
-	slow_clock_8MHz();	//switch to HSI and turn off the PLL, thus dropping the current consumption to under 4.4ma
 
 	/*
 	 * We're awake, but we need to handle UART and SPI for the pressure sensor (even if we don't have a
@@ -447,13 +330,6 @@ void low_power_mode()
 		}
 	}
 
-	speedup_clock_48MHz();
-
-	if(control_mode == TRAPEZOIDAL_MODE)
-		adc_init(TRAPEZOIDAL_MODE);
-	else if (control_mode == FOC_MODE)
-		adc_init(TRAPEZOIDAL_MODE);
-
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);	//disable the gate driver. this is likely already done by the master, but might as well assert it anyway
 }
 
@@ -479,10 +355,10 @@ void sleep_reset()
 	HAL_GPIO_WritePin(STAT_PORT, STAT_PIN, 0);
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
 
-	HAL_TIM_Base_Stop(&htim14);
+//	HAL_TIM_Base_Stop(&htim14);
 	HAL_TIM_Base_Stop(&htim1);
-	HAL_ADC_Stop_DMA(&hadc);
-	HAL_SPI_DMAStop(&hspi1);
+	HAL_ADC_Stop_DMA(&hadc1);
+	HAL_SPI_DMAStop(&hspi3);
 
 
 	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);

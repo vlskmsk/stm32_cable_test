@@ -41,13 +41,5 @@ unsigned long int TIM14_ms_count = 0;
 //	return TIM14_ms_count;
 //}
 
-void delay_T14_us(int cycles)
-{
 
-	//TIM2->EGR |= 0b1;	//reinitialize the counter register
-	//htim14.Instance->CNT = 0;
-	//TIM14->CNT;
-	TIM14->CNT = 0;
-	while(TIM14->CNT <= cycles);
-}
 

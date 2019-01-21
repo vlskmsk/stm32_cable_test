@@ -12,7 +12,7 @@ uint8_t new_uart_packet = 0;
 uint8_t new_spi_packet = 0;
 uint8_t press_data_transmit_flag = 0;
 
-control_type control_mode = FOC_MODE;
+
 
 uint16_t r_word = 0;
 uint16_t t_word = 0;
@@ -67,10 +67,10 @@ void parse_master_cmd()
 		HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 		break;
 	case CMD_SET_FOC_MODE:
-		control_mode = FOC_MODE;
+
 		break;
 	case CMD_SET_TRAP_MODE:
-		control_mode = TRAPEZOIDAL_MODE;
+
 		break;
 	case CMD_CHANGE_PWM :
 		gl_master_duty = master_data;
@@ -93,7 +93,6 @@ void parse_master_cmd()
 		mode = MODE_SEND_ROTOR_SPEED;
 		break;
 	case CMD_RESET_POS:
-		gl_rotorPos = master_data;
 		/*
 		 *	symmetric bit depth in new protocol so sign extension not necessary, but resetting the encoder
 		 *	is necessary. This is challenging, and more thought is needed.
@@ -101,7 +100,6 @@ void parse_master_cmd()
 		 */
 		break;
 	case CMD_RESET_T:
-		gl_rotorInterval = 0;
 		break;
 	case CMD_DRIVER_ENABLE:
 		HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);

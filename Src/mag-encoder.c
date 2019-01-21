@@ -11,8 +11,8 @@ const float elec_conv_ratio = .5;
 
 //const int16_t cos_mid = 1992;
 //const int16_t sin_mid = 1992;		//my encoder
-int16_t cos_mid = 1912;
-int16_t sin_mid = 2054;		//my encoder
+int16_t cos_mid = 2043;
+int16_t sin_mid = 1941;
 //float cos_correct = 0.0002952465308532625;
 //float sin_correct = 0.0002989536621823618;
 //const int16_t sin_mid = 1250;		//steven encoder

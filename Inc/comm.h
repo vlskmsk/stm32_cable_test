@@ -8,7 +8,7 @@
 #ifndef COMM_H_
 #define COMM_H_
 #include "init.h"
-#include "commutation.h"
+
 
 #define NUM_PRES_UART_BYTES 	9	//number of uart bytes used for pressure data transmission
 #define NUM_BYTES_UART_DMA		18	//double buffer for uart, in case we lose a byte somewhere in the transmission
@@ -66,7 +66,7 @@ float gl_iq_u;
 uint8_t sleep_flag;
 
 
-control_type control_mode;
+
 
 void parse_master_cmd();
 void execute_master_cmd();

@@ -6,8 +6,6 @@
  */
 #include "foc_commutation.h"
 #include "adc.h"
-#include "commutation.h"
-#include <math.h>
 #include "delay_uS.h"
 #include "mag-encoder.h"
 #include "sin_lookup.h"
@@ -45,8 +43,8 @@ void foc(float iq_ref,float id_ref)
 	conv_raw_current(&i_a,&i_b, &i_c);
 	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
-	gl_rotorInterval = TIM14->CNT;
-	TIM14->CNT = 0;
+
+
 	float theta_enc = unwrap( theta_rel_rad(), &foc_theta_prev);
 	float theta_elec = theta_enc*elec_conv_ratio;
 	theta_elec = fmod_2pi(theta_elec + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
@@ -410,8 +408,8 @@ void obtain_encoder_midpoints()
 		TIMER_UPDATE_DUTY(tA,tB,tC);
 	}
 	TIMER_UPDATE_DUTY(0,0,0);
-	cos_mid = (s_max + s_min)/2;
-	sin_mid = (c_max + c_min)/2;
+	sin_mid = (s_max + s_min)/2;
+	cos_mid = (c_max + c_min)/2;
 }
 
 void get_current_cal_offsets()
@@ -421,14 +419,14 @@ void get_current_cal_offsets()
 	gl_current_input_offset_B = 0;
 	gl_current_input_offset_C = 0;
 	int i;
-	const int numSamples = 500;
+	const int numSamples = 300;
 	for(i=0;i<numSamples;i++)
 	{
 		gl_current_input_offset_A += dma_adc_foc[ADC_CHAN_CURRENT_A];
 		gl_current_input_offset_B += dma_adc_foc[ADC_CHAN_CURRENT_B];
 		gl_current_input_offset_C += dma_adc_foc[ADC_CHAN_CURRENT_C];
-		delay_T14_us(10);
-//		HAL_Delay(1);
+//		delay_T14_us(10);
+		HAL_Delay(1);
 	}
 	gl_current_input_offset_A /= numSamples;
 	gl_current_input_offset_B /= numSamples;
