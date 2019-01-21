@@ -18,7 +18,7 @@ typedef enum {FOC_MODE, TRAPEZOIDAL_MODE, HYBRID_MODE} control_type;
 #define ADCAL	0x80000000
 
 #define NUM_ADC_FOC  5
-#define NUM_ADC_TRAP 6
+
 
 #define RISING 1
 #define FALLING 0
@@ -32,7 +32,6 @@ typedef enum {FOC_MODE, TRAPEZOIDAL_MODE, HYBRID_MODE} control_type;
 #define ADC_CHAN_CURRENT_C 2
 
 uint16_t dma_adc_foc[NUM_ADC_FOC];
-uint16_t dma_adc_trap[NUM_ADC_TRAP];
 
 void adc_init(control_type mode);
 

@@ -86,7 +86,7 @@ int main(void)
 	MX_USART1_UART_Init();
 	MX_SPI3_Init();
 
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)dma_adc_trap, NUM_ADC_TRAP);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 
