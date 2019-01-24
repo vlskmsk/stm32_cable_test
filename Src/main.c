@@ -36,11 +36,6 @@ void sleep_reset();
 void low_power_mode();
 
 
-
-void slow_clock_8MHz();
-void speedup_clock_48MHz();
-
-
 /*
  * Quickly align the encoder in the correct position. Too fast for correct align offset calculation, but fast enough to spin in the right direction
  * NOTE: some other method is necessary for closed->foc. Current plan is to track closed state/step, and force transition to occur if the step is in the valid half
@@ -68,7 +63,7 @@ void start_pwm()
 	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
-//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+	//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 }
 
 
@@ -77,14 +72,14 @@ volatile uint32_t time_exp;
 int main(void)
 {
 	HAL_Init();
-
 	SystemClock_Config();
 	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_ADC1_Init();
 	MX_TIM1_Init();
-	MX_USART1_UART_Init();
 	MX_SPI3_Init();
+	MX_USART1_UART_Init();
+
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
 
@@ -92,11 +87,9 @@ int main(void)
 
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
-	TIM1->CCR4 = 100;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
+	TIM1->CCR4 = 950;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	HAL_SPI_TransmitReceive_DMA(&hspi3, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
-	HAL_UART_Receive_DMA(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA );
-	HAL_UART_DMAPause(&huart1);
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 
 	HAL_Delay(1);
@@ -109,12 +102,13 @@ int main(void)
 	 * TODO: configure for foc mode
 	 */
 
-	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+	//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	get_current_cal_offsets();
 
 	TIMER_UPDATE_DUTY(0,0,0);
 
 	//	obtain_encoder_midpoints();
+
 #ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
 #elif defined(DOWSE_ALIGN_OFFSET)
@@ -128,6 +122,7 @@ int main(void)
 
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+
 
 	//	while(1);
 
@@ -143,11 +138,21 @@ int main(void)
 	//	align_offset_test();
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
-	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+	//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	foc_vishan_lock_pos();
 	mech_theta_prev = 0;
 	foc_theta_prev = -TWO_PI;
+	TIMER_UPDATE_DUTY(500,500,500);
 
+	while(1)
+	{
+		if(new_spi_packet==1)
+		{
+			parse_master_cmd();
+			new_spi_packet=0;
+		}
+		foc(40,0);
+	}
 #ifndef TEST_MODE
 
 	while(1)
@@ -177,7 +182,7 @@ int main(void)
 
 		/**********load iq torque component, set id torque component for high speed**********/
 		float iq_u = *tmp;
-//		float id_u = iq_u * 6;
+		//		float id_u = iq_u * 6;
 		float id_u = 0;
 
 		/***********************limit iq and id to avoid overheating*************************/
@@ -355,7 +360,7 @@ void sleep_reset()
 	HAL_GPIO_WritePin(STAT_PORT, STAT_PIN, 0);
 	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
 
-//	HAL_TIM_Base_Stop(&htim14);
+	//	HAL_TIM_Base_Stop(&htim14);
 	HAL_TIM_Base_Stop(&htim1);
 	HAL_ADC_Stop_DMA(&hadc1);
 	HAL_SPI_DMAStop(&hspi3);
@@ -400,182 +405,3 @@ void dowse_align_offset(float des_align_offset)
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 	}
 }
-
-
-
-
-void slow_clock_8MHz()
-{
-	/*
-	 * switch the MUX over to HSI direct, from PLL
-	 */
-	uint32_t cfgr_tmp;
-	cfgr_tmp = RCC->CFGR;	//read cfgr register into temp register
-	cfgr_tmp &= ~(0x3);		//clear the SW bits
-	RCC->CFGR = cfgr_tmp;	//write to register
-	cfgr_tmp = (RCC->CFGR & 0b1100) >> 2;	//read the SWS bits
-	while(cfgr_tmp != 0b00)
-	{
-		cfgr_tmp = (RCC->CFGR & 0b1100) >> 2;	//wait until they match SW setting
-	}
-
-	/*
-	 * disable the PLL
-	 */
-	uint32_t rcc_cr_tmp = RCC->CR;
-	rcc_cr_tmp &= ~(1<<24);	//disable the PLL
-	RCC->CR = rcc_cr_tmp;
-	while( (RCC->CR & (1<<25)) != 0);	//wait until the PLL has fully stopped
-
-
-	/*
-	 * re-configure flash latency for 8MHz mode
-	 */
-	uint32_t FLatency = FLASH_LATENCY_0;
-	/* Increasing the number of wait states because of higher CPU frequency */
-	if(FLatency > (FLASH->ACR & FLASH_ACR_LATENCY))
-	{
-		/* Program the new number of wait states to the LATENCY bits in the FLASH_ACR register */
-		__HAL_FLASH_SET_LATENCY(FLatency);
-
-		/* Check that the new number of wait states is taken into account to access the Flash
-	    memory by reading the FLASH_ACR register */
-		if((FLASH->ACR & FLASH_ACR_LATENCY) != FLatency)
-		{
-			_Error_Handler(__FILE__, __LINE__);
-		}
-	}
-
-	/*
-	 * TODO: re-configure UART clock source so that the baud rate is correct (to allow for pressure
-	 * data reception while in lower-power mode)
-	 */
-	RCC_PeriphCLKInitTypeDef PeriphClkInit;
-	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
-	PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-}
-
-/*
- * roll back the changes from slow_down_clock()
- */
-void speedup_clock_48MHz()
-{
-
-	/*
-	 * TODO: roll back the UART clock settings made slow_clock
-	 */
-
-	/*
-	 * first reconfigure flash latency for 48MHz
-	 */
-	uint32_t FLatency = FLASH_LATENCY_1;
-	/* Increasing the number of wait states because of higher CPU frequency */
-	if(FLatency > (FLASH->ACR & FLASH_ACR_LATENCY))
-	{
-		/* Program the new number of wait states to the LATENCY bits in the FLASH_ACR register */
-		__HAL_FLASH_SET_LATENCY(FLatency);
-
-		/* Check that the new number of wait states is taken into account to access the Flash
-	    memory by reading the FLASH_ACR register */
-		if((FLASH->ACR & FLASH_ACR_LATENCY) != FLatency)
-		{
-			_Error_Handler(__FILE__, __LINE__);
-		}
-	}
-
-	/*
-	 * re-enable the PLL
-	 */
-	uint32_t rcc_cr_tmp = RCC->CR;
-	rcc_cr_tmp |= (1<<24);	//enable the PLL
-	RCC->CR = rcc_cr_tmp;
-
-	while( (RCC->CR & (1<<25)) == 0);	//wait until pll is ready
-
-	/*
-	 * switch the MUX back to PLL source instead of direct from HSI
-	 */
-	uint32_t cfgr_tmp = RCC->CFGR;
-	cfgr_tmp &= ~(0b11);	//clear the SW bits
-	cfgr_tmp |= 0b10;		//set to PLL select
-	RCC->CFGR = cfgr_tmp;	//write to register
-	cfgr_tmp = (RCC->CFGR & 0b1100) >> 2;
-	while(cfgr_tmp != 0b10)
-	{
-		cfgr_tmp = (RCC->CFGR & 0b1100) >> 2;	//wait until they match SW setting
-	}
-
-}
-
-
-
-
-
-
-
-
-//
-///**
-//  ******************************************************************************
-//  * @file           : main.c
-//  * @brief          : Main program body
-//  ******************************************************************************
-//  ** This notice applies to any and all portions of this file
-//  * that are not between comment pairs USER CODE BEGIN and
-//  * USER CODE END. Other portions of this file, whether
-//  * inserted by the user or by software development tools
-//  * are owned by their respective copyright owners.
-//  *
-//  * COPYRIGHT(c) 2019 STMicroelectronics
-//  *
-//  * Redistribution and use in source and binary forms, with or without modification,
-//  * are permitted provided that the following conditions are met:
-//  *   1. Redistributions of source code must retain the above copyright notice,
-//  *      this list of conditions and the following disclaimer.
-//  *   2. Redistributions in binary form must reproduce the above copyright notice,
-//  *      this list of conditions and the following disclaimer in the documentation
-//  *      and/or other materials provided with the distribution.
-//  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-//  *      may be used to endorse or promote products derived from this software
-//  *      without specific prior written permission.
-//  *
-//  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-//  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-//  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-//  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-//  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-//  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-//  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-//  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-//  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//  *
-//  ******************************************************************************
-//  */
-///* Includes ------------------------------------------------------------------*/
-//#include "main.h"
-//
-//
-//
-//int main(void)
-//{
-//  HAL_Init();
-//
-//  SystemClock_Config();
-//  MX_GPIO_Init();
-//  MX_DMA_Init();
-//  MX_ADC1_Init();
-//  MX_TIM1_Init();
-//  MX_USART1_UART_Init();
-//  MX_SPI3_Init();
-//  while (1)
-//  {
-//
-//  }
-//
-//}

@@ -42,16 +42,15 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 {
 	new_spi_packet = 1;
 }
-
-/*
- * TODO: use flag, take this out and do it in the main loop (to prioritize motor control).
- * why is double-buffering necessary?
- */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
-{
-	new_uart_packet = 1;
-//	asm("NOP");																//why the NOP
-}
+//
+///*
+// * TODO: use flag, take this out and do it in the main loop (to prioritize motor control).
+// * why is double-buffering necessary?
+// */
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
+//{
+//	new_uart_packet = 1;
+//}
 
 void parse_master_cmd()
 {
@@ -109,12 +108,12 @@ void parse_master_cmd()
 		break;
 	case CMD_EN_PRES:  //Bird
 		asm("NOP");						//why?
-		HAL_UART_DMAResume(&huart1);
+//		HAL_UART_DMAResume(&huart1);
 		press_data_transmit_flag = 1;
 		break;
 	case CMD_DIS_PRES:  //Bird
 		asm("NOP");
-		HAL_UART_DMAPause(&huart1);
+//		HAL_UART_DMAPause(&huart1);
 		press_data_transmit_flag = 0;
 		break;
 	case CMD_SLEEP:  //Bird
