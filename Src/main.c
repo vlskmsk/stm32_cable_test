@@ -30,7 +30,7 @@ float theta_enc = 0;
 //extern uint8_t press_data_transmit_flag;
 
 void align_offset_test();
-float check_encoder_region();
+void check_encoder_region();
 void dowse_align_offset(float des_align_offset);
 void sleep_reset();
 void low_power_mode();
@@ -89,7 +89,6 @@ int main(void)
 	TIMER_UPDATE_DUTY(0,0,0);
 	TIM1->CCR4 = 950;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
-	HAL_SPI_TransmitReceive_DMA(&hspi3, t_data, r_data, NUM_SPI_BYTES);	//think need to change DMA settings to word from byte or half word
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
 
 	HAL_Delay(1);
@@ -139,19 +138,19 @@ int main(void)
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
 	//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
-	foc_vishan_lock_pos();
-	mech_theta_prev = 0;
-	foc_theta_prev = -TWO_PI;
+	check_encoder_region();
+//	float theta_m_prev = foc_theta_prev;
 	TIMER_UPDATE_DUTY(500,500,500);
 
 	while(1)
 	{
+		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
 		if(new_spi_packet==1)
 		{
 			parse_master_cmd();
 			new_spi_packet=0;
 		}
-		foc(40,0);
+		foc(-40,0);
 	}
 #ifndef TEST_MODE
 
@@ -227,26 +226,6 @@ int main(void)
 }
 
 
-/*
- * check and correct the encoder region for KMZ60 encoder. Necessary because encoder returns
- * twice the actual angle
- */
-float check_encoder_region()
-{
-	uint32_t ts = HAL_GetTick();
-	foc_theta_prev = theta_abs_rad();
-	float theta_enc_start = unwrap( theta_rel_rad(), &foc_theta_prev)*.5;	//on your marks...
-	float theta_enc_end = 0;	//get set
-	while(HAL_GetTick() < ts + 50)
-	{
-		foc(12,0);
-		theta_enc_end = unwrap( theta_rel_rad(), &foc_theta_prev)*.5;
-	}
-	if(theta_enc_end - theta_enc_start < 0)
-		return -TWO_PI;
-	else
-		return 0;
-}
 
 
 float ao_pos = 0;
@@ -405,3 +384,51 @@ void dowse_align_offset(float des_align_offset)
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 	}
 }
+
+
+/*
+ *
+ */
+void check_encoder_region()
+{
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+	uint32_t ts = HAL_GetTick();
+	float theta_m_prev = 0;
+	float theta_set = (unwrap(theta_abs_rad(), &theta_m_prev)*.5)+.4;	//get the initial position and use it to set the motor setpoint.
+	float err = 0;
+	uint32_t try_ts = 100;
+	uint32_t off_ts = 0;
+	while(1)
+	{
+		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5;	//get current motor position
+		err = theta_set-theta_m;		// and error
+		float tau = 30*err;				//position control
+		if(tau > 50)
+			tau = 50;
+		if(tau < -50)
+			tau = -50;
+		foc(tau,0);
+
+		if(err < 0)
+			err = -err;		//get the absolute value of the error
+
+		if(err > .6 && HAL_GetTick() > ts)	//if the error is great and you haven't tried for some time, reverse the direction
+		{
+			foc_theta_prev -= TWO_PI;
+			ts = HAL_GetTick()+try_ts;
+			try_ts+=50;	//if you failed on the last attempt, try for just a liiitle bit longer. This improves stability (i.e. no infinite oscillations if you're significantly out of bounds)
+		}
+
+		if(err > .1)	//if the error is great,
+			off_ts = HAL_GetTick();	//set the timestamp
+		else
+		{
+			if(HAL_GetTick() - off_ts > 50)	//if you've settled (low error for an acceptable time) break
+			{
+				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+				break;
+			}
+		}
+	}
+}
+

@@ -264,6 +264,7 @@ void MX_USART1_UART_Init(void)
 
 }
 
+
 /**
  * Enable DMA controller clock
  */
@@ -276,12 +277,6 @@ void MX_DMA_Init(void)
 	/* DMA1_Channel1_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-	/* DMA1_Channel2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-	/* DMA1_Channel3_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
 }
 
@@ -333,7 +328,6 @@ void MX_GPIO_Init(void)
 	HAL_GPIO_Init(ENABLE_GPIO_Port, &GPIO_InitStruct);
 
 }
-
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
