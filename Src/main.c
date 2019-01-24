@@ -142,20 +142,11 @@ int main(void)
 //	float theta_m_prev = foc_theta_prev;
 	TIMER_UPDATE_DUTY(500,500,500);
 
-	while(1)
-	{
-		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
-		if(new_spi_packet==1)
-		{
-			parse_master_cmd();
-			new_spi_packet=0;
-		}
-		foc(-40,0);
-	}
 #ifndef TEST_MODE
 
 	while(1)
 	{
+		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
 		if(new_spi_packet == 1)
 		{
 			parse_master_cmd();
