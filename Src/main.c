@@ -114,7 +114,7 @@ int main(void)
 	dowse_align_offset(HALF_PI);
 #else
 	//	align_offset = 2.51820064;				//offset angle IN RADIANS
-	align_offset = HALF_PI;
+	align_offset = -TWO_PI;
 #endif
 
 	TIMER_UPDATE_DUTY(500,500,500);
