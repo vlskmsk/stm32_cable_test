@@ -18,6 +18,7 @@
 //#define TEST_MODE
 //#define GET_ALIGN_OFFSET
 //#define DOWSE_ALIGN_OFFSET
+//#define TEST_FOC
 
 #define BRAKE 0
 #define STOP 1
@@ -34,7 +35,7 @@ void check_encoder_region();
 void dowse_align_offset(float des_align_offset);
 void sleep_reset();
 void low_power_mode();
-
+void test_foc();
 
 /*
  * Quickly align the encoder in the correct position. Too fast for correct align offset calculation, but fast enough to spin in the right direction
@@ -106,7 +107,7 @@ int main(void)
 
 	TIMER_UPDATE_DUTY(0,0,0);
 
-	//	obtain_encoder_midpoints();
+//	obtain_encoder_midpoints();
 
 #ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
@@ -114,7 +115,10 @@ int main(void)
 	dowse_align_offset(HALF_PI);
 #else
 	//	align_offset = 2.51820064;				//offset angle IN RADIANS
-	align_offset = -TWO_PI;
+	align_offset = -2.24159265359;
+#endif
+#ifdef TEST_FOC
+	test_foc();
 #endif
 
 	TIMER_UPDATE_DUTY(500,500,500);
@@ -423,3 +427,24 @@ void check_encoder_region()
 	}
 }
 
+void test_foc()
+{
+	HAL_Delay(1000);
+	uint32_t spin_time = 1000;
+	while(1)
+	{
+//		for(align_offset = -PI; align_offset < PI; align_offset += .1)
+//		{
+			uint32_t ts = HAL_GetTick()+spin_time;
+			while(HAL_GetTick() < ts)
+			{
+				foc(10,0);
+			}
+			ts = HAL_GetTick() + spin_time;
+			while(HAL_GetTick() < ts)
+			{
+				foc(-10,0);
+			}
+//		}
+	}
+}

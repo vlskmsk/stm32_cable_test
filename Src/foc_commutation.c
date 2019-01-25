@@ -237,6 +237,7 @@ void obtain_encoder_offset()
 		HAL_Delay(1);
 	}
 	align_offset = avg_offset/(float)num_samples;
+	TIMER_UPDATE_DUTY(500,500,500);
 }
 
 float time_seconds(){
