@@ -32,7 +32,7 @@ float theta_enc = 0;
 
 void align_offset_test();
 void check_encoder_region();
-void dowse_align_offset(float des_align_offset);
+void dowse_align_offset();
 void sleep_reset();
 void low_power_mode();
 void test_foc();
@@ -107,7 +107,30 @@ int main(void)
 
 	TIMER_UPDATE_DUTY(0,0,0);
 
-//	obtain_encoder_midpoints();
+//	//	obtain_encoder_midpoints();
+//	volatile float v_ctl_angle = 0;
+//	for(v_ctl_angle = -PI; v_ctl_angle < PI; v_ctl_angle+=0.00872664625)
+//	{
+//		float v_theta = fmod_2pi(v_ctl_angle+PI)-PI;//unnecessary, but doing anyway
+//		float sth = sin_fast(v_theta);
+//		float cth = cos_fast(v_theta);
+//
+//		uint32_t tA, tB, tC;
+//		float ialpha,ibeta;
+//		inverse_park_transform(0.1, 0.0, sth, cth, &ialpha, &ibeta);
+//		svm(ialpha,ibeta,TIM1->ARR,&tA,&tB,&tC);
+//		TIMER_UPDATE_DUTY(tA,tB,tC);
+//		float find_angle = 0;
+//		if(theta_abs_rad() < find_angle+.05 && theta_abs_rad() > -find_angle-.05)
+//		{
+//			while(1)
+//			{
+//				HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
+//				HAL_Delay(20);
+//			}
+//		}
+//		HAL_Delay(1);
+//	}
 
 #ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
@@ -115,7 +138,9 @@ int main(void)
 	dowse_align_offset(HALF_PI);
 #else
 	//	align_offset = 2.51820064;				//offset angle IN RADIANS
-	align_offset = -2.24159265359;
+//	align_offset = -2.24159265359;
+	align_offset = -1.14159265359;	//we got a problem
+//	align_offset = 3.0368185;
 #endif
 #ifdef TEST_FOC
 	test_foc();
@@ -143,7 +168,7 @@ int main(void)
 	//	float comp_angle = check_encoder_region();
 	//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
 	check_encoder_region();
-//	float theta_m_prev = foc_theta_prev;
+	//	float theta_m_prev = foc_theta_prev;
 	TIMER_UPDATE_DUTY(500,500,500);
 
 #ifndef TEST_MODE
@@ -359,26 +384,6 @@ void sleep_reset()
 	sleep_flag = 0;
 }
 
-/*
- * Specialized function for VISHAN ONLY (only single pole pair motor with a variable align offset)
- */
-void dowse_align_offset(float des_align_offset)
-{
-	float i_alpha,i_beta;
-	uint32_t tA,tB,tC;
-	inverse_park_transform(0, 0.3, 0, 1, &i_alpha, &i_beta);	//maybe call theta rel again?
-	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-	TIMER_UPDATE_DUTY(tA,tB,tC);		//TODO: since this produces (.2, -.1, -.1) -> (600, 450, 450), test (600, 400+50*sin(t), 400+50*sin(t)) and see if there
-	while(1)
-	{
-		float theta_m = theta_abs_rad();
-		float tol = .05;
-		if(theta_m < des_align_offset+tol && theta_m > des_align_offset-tol)
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
-		else
-			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-	}
-}
 
 
 /*
@@ -427,24 +432,43 @@ void check_encoder_region()
 	}
 }
 
-void test_foc()
+void dowse_align_offset()
 {
 	HAL_Delay(1000);
 	uint32_t spin_time = 1000;
 	while(1)
 	{
-//		for(align_offset = -PI; align_offset < PI; align_offset += .1)
-//		{
+		for(align_offset = -PI; align_offset < PI; align_offset += .1)
+		{
 			uint32_t ts = HAL_GetTick()+spin_time;
 			while(HAL_GetTick() < ts)
 			{
-				foc(10,0);
+				foc(25,0);
 			}
 			ts = HAL_GetTick() + spin_time;
 			while(HAL_GetTick() < ts)
 			{
-				foc(-10,0);
+				foc(-25,0);
 			}
-//		}
+		}
+		HAL_Delay(3000);
+	}
+}
+void test_foc()
+{
+	uint32_t spin_time = 1000;
+	while(1)
+	{
+
+		uint32_t ts = HAL_GetTick()+spin_time;
+		while(HAL_GetTick() < ts)
+		{
+			foc(25,0);
+		}
+		ts = HAL_GetTick() + spin_time;
+		while(HAL_GetTick() < ts)
+		{
+			foc(-25,0);
+		}
 	}
 }
