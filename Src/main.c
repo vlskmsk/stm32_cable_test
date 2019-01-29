@@ -18,7 +18,7 @@
 //#define TEST_MODE
 //#define GET_ALIGN_OFFSET
 //#define DOWSE_ALIGN_OFFSET
-//#define TEST_FOC
+#define TEST_FOC
 
 #define BRAKE 0
 #define STOP 1
@@ -139,7 +139,7 @@ int main(void)
 #else
 	//	align_offset = 2.51820064;				//offset angle IN RADIANS
 //	align_offset = -2.24159265359;
-	align_offset = -1.14159265359;	//we got a problem
+	align_offset = -.8;	//we got a problem
 //	align_offset = 3.0368185;
 #endif
 #ifdef TEST_FOC
