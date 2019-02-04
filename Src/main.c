@@ -139,7 +139,8 @@ int main(void)
 #else
 	//	align_offset = 2.51820064;				//offset angle IN RADIANS
 //	align_offset = -2.24159265359;
-	align_offset = -.8;	//we got a problem
+	//align_offset = -0.025;	//we got a problem
+	align_offset = -1.3;	//gonna keep this arbitrarily and switch over to dev on the iq match method. hopefully.
 //	align_offset = 3.0368185;
 #endif
 #ifdef TEST_FOC
