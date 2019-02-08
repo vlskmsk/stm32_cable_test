@@ -18,7 +18,7 @@
 //#define TEST_MODE
 //#define GET_ALIGN_OFFSET
 //#define DOWSE_ALIGN_OFFSET
-#define TEST_FOC
+//#define TEST_FOC
 
 #define BRAKE 0
 #define STOP 1
