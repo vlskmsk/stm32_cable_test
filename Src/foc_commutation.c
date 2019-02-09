@@ -60,7 +60,7 @@ void foc(float iq_ref,float id_ref)
 	inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
 
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-	TIMER_UPDATE_DUTY(tB,tA,tC);
+	TIMER_UPDATE_DUTY(tC,tA,tB);
 }
 
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC)

@@ -18,7 +18,7 @@
 //#define TEST_MODE
 //#define GET_ALIGN_OFFSET
 //#define DOWSE_ALIGN_OFFSET
-//#define TEST_FOC
+#define TEST_FOC
 
 #define BRAKE 0
 #define STOP 1
@@ -72,15 +72,14 @@ volatile uint32_t time_exp;
 
 int main(void)
 {
+
 	HAL_Init();
 	SystemClock_Config();
 	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_ADC1_Init();
-	MX_TIM1_Init();
 	MX_SPI3_Init();
-	MX_USART1_UART_Init();
-
+	MX_TIM1_Init();
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
 
@@ -107,30 +106,7 @@ int main(void)
 
 	TIMER_UPDATE_DUTY(0,0,0);
 
-//	//	obtain_encoder_midpoints();
-//	volatile float v_ctl_angle = 0;
-//	for(v_ctl_angle = -PI; v_ctl_angle < PI; v_ctl_angle+=0.00872664625)
-//	{
-//		float v_theta = fmod_2pi(v_ctl_angle+PI)-PI;//unnecessary, but doing anyway
-//		float sth = sin_fast(v_theta);
-//		float cth = cos_fast(v_theta);
-//
-//		uint32_t tA, tB, tC;
-//		float ialpha,ibeta;
-//		inverse_park_transform(0.1, 0.0, sth, cth, &ialpha, &ibeta);
-//		svm(ialpha,ibeta,TIM1->ARR,&tA,&tB,&tC);
-//		TIMER_UPDATE_DUTY(tA,tB,tC);
-//		float find_angle = 0;
-//		if(theta_abs_rad() < find_angle+.05 && theta_abs_rad() > -find_angle-.05)
-//		{
-//			while(1)
-//			{
-//				HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
-//				HAL_Delay(20);
-//			}
-//		}
-//		HAL_Delay(1);
-//	}
+	//	//	obtain_encoder_midpoints();
 
 #ifdef GET_ALIGN_OFFSET
 	obtain_encoder_offset();
@@ -138,10 +114,10 @@ int main(void)
 	dowse_align_offset(HALF_PI);
 #else
 	//	align_offset = 2.51820064;				//offset angle IN RADIANS
-//	align_offset = -2.24159265359;
+	//	align_offset = -2.24159265359;
 	//align_offset = -0.025;	//we got a problem
 	align_offset = -1.3;	//gonna keep this arbitrarily and switch over to dev on the iq match method. hopefully.
-//	align_offset = 3.0368185;
+	//	align_offset = 3.0368185;
 #endif
 #ifdef TEST_FOC
 	test_foc();
@@ -151,18 +127,6 @@ int main(void)
 
 
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-
-
-	//	while(1);
-
-	//	 * TODO: test lookup table with foc
-	//	 */
-	//	/*
-	//	 * TODO: verify that the lookup table is faster
-	//	 * 		2 methods:
-	//	 * 		put in closed loop and check current draw increase
-	//	 * 		use tim14 high resolution .16us timer for some number of consecuitve computations (i.e. time for 100 computations of a changing theta for both methods)
-	//	 */
 
 	//	align_offset_test();
 	/*****************************************************************************************/
@@ -219,8 +183,6 @@ int main(void)
 		int i;
 		for(i=0;i<4;i++)
 			t_data[i+1] = t_ptr[i];
-
-
 
 	}
 #else
@@ -473,3 +435,7 @@ void test_foc()
 		}
 	}
 }
+
+
+
+

@@ -49,12 +49,12 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define STAT_Pin GPIO_PIN_13
-#define STAT_GPIO_Port GPIOC
-#define ENABLE_Pin GPIO_PIN_11
-#define ENABLE_GPIO_Port GPIOA
-#define CAL_Pin GPIO_PIN_8
+#define STAT_Pin GPIO_PIN_1
+#define STAT_GPIO_Port GPIOF
+#define CAL_Pin GPIO_PIN_6
 #define CAL_GPIO_Port GPIOB
+#define ENABLE_Pin GPIO_PIN_7
+#define ENABLE_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**

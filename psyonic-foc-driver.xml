@@ -10,10 +10,10 @@
 ]>
 
 <targetDefinitions>
-  <board id="psyonic-bldc-driver-f3">
-    <name>psyonic-bldc-driver-f3</name>
+  <board id="psyonic-foc-driver">
+    <name>psyonic-foc-driver</name>
     <dbgIF>SWD</dbgIF>
     <dbgDEV>ST-Link</dbgDEV>
-    <mcuId>stm32f302c8tx</mcuId>
+    <mcuId>stm32f301k6ux</mcuId>
   </board>
 </targetDefinitions>

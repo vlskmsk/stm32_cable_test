@@ -16,36 +16,33 @@
 
 #define COMM_PWM_PERIOD 1000
 
-#define STAT_PORT GPIOC
-#define STAT_PIN GPIO_PIN_13
+#define STAT_PORT 	GPIOF
+#define STAT_PIN 	GPIO_PIN_1
 
-#define CAL_PORT GPIOB
-#define CAL_PIN GPIO_PIN_8
+#define CAL_PORT 	GPIOB
+#define CAL_PIN 	GPIO_PIN_6
 
-#define ENABLE_PORT GPIOA
-#define ENABLE_PIN GPIO_PIN_11
+#define ENABLE_PORT GPIOB
+#define ENABLE_PIN 	GPIO_PIN_7
 
 
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
 SPI_HandleTypeDef hspi3;
-DMA_HandleTypeDef hdma_spi3_rx;
-DMA_HandleTypeDef hdma_spi3_tx;
 
 TIM_HandleTypeDef htim1;
-
-UART_HandleTypeDef huart1;
-
 
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
 void MX_ADC1_Init(void);
-void MX_TIM1_Init(void);
 void MX_SPI3_Init(void);
-void MX_USART1_UART_Init(void);
+void MX_TIM1_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
+
+
 
 #endif /* INIT_H_ */
