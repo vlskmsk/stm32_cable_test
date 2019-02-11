@@ -20,13 +20,14 @@
 #define ONE_BY_TWO_PI 			0.1591549
 #define ONE_BY_THREE_PI			1.04719755
 
-const float elec_conv_ratio;
-
+extern const float elec_conv_ratio;
 const float rad_to_deg;
 
-float align_offset;				//offset angle IN RADIANS
-int16_t cos_mid;
-int16_t sin_mid;		//my encoder
+extern float theta_m_prev;
+extern float align_offset;				//offset angle IN RADIANS
+extern int16_t cos_mid;
+extern int16_t sin_mid;		//my encoder
+
 float theta_abs_rad();
 float theta_rel_rad();
 float theta_abs_deg();

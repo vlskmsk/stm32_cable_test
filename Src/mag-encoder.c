@@ -5,8 +5,10 @@
  *      Author: Ocanath
  */
 #include "mag-encoder.h"
-#include <math.h>
+//#include <math.h>
 
+float theta_m_prev=0;
+float align_offset; 
 const float elec_conv_ratio = .5;
 
 //const int16_t cos_mid = 1992;
@@ -133,7 +135,7 @@ float fmod_2pi(float in)
 	return in-TWO_PI*fv;
 }
 
-const float rad_to_deg = 180.0/M_PI;
+const float rad_to_deg = 180.0/PI;
 float theta_abs_deg()
 {
 	return theta_abs_rad()*rad_to_deg;
