@@ -10,8 +10,8 @@
 #include "init.h"
 #include "mag-encoder.h"
 
-float foc_theta_prev;	//
-float mech_theta_prev;
+extern float foc_theta_prev;	//
+extern float mech_theta_prev;
 
 #define DIS_ALL 0xFAAA		//and mask
 #define MASK_1 0x0550		//or mask

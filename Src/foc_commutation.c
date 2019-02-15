@@ -10,6 +10,9 @@
 #include "mag-encoder.h"
 #include "sin_lookup.h"
 
+float foc_theta_prev=0;
+float mech_theta_prev= -5000;	//-1200
+
 //#include <core_cm0.h>
 float mL = 0;
 float mR = 0;
@@ -54,8 +57,8 @@ void foc(float iq_ref,float id_ref)
 	float i_q, i_d;
 	park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
 
-	controller_PI(iq_ref, i_q, 0.01, 0.000000001, &x_iq_PI, &uq);		//this sort of works
-	controller_PI(id_ref, i_d, 0.01, 0.000000000, &x_id_PI, &ud);		//high current
+	controller_PI(iq_ref, i_q, 0.01, 0.0, &x_iq_PI, &uq);		//this sort of works
+	controller_PI(id_ref, i_d, 0.01, 0.0, &x_id_PI, &ud);		//high current
 
 	inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
 
