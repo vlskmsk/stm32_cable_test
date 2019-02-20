@@ -37,6 +37,13 @@ void sleep_reset();
 void low_power_mode();
 void test_foc();
 
+typedef union
+{
+	float v;
+	uint8_t d[4];
+}floatsend_t;
+
+
 /*
  * Quickly align the encoder in the correct position. Too fast for correct align offset calculation, but fast enough to spin in the right direction
  * NOTE: some other method is necessary for closed->foc. Current plan is to track closed state/step, and force transition to occur if the step is in the valid half
@@ -172,6 +179,7 @@ int main(void)
 	//	float theta_m_prev = foc_theta_prev;
 	TIMER_UPDATE_DUTY(500,500,500);
 
+
 #ifndef TEST_MODE
 
 	while(1)
@@ -196,12 +204,14 @@ int main(void)
 			low_power_mode();
 
 		/***********************************Parse torque*************************************/
-		//			uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
-		//			float * tmp = (float *)(&r_word);
-		float * tmp = (float *)(&(r_data[1]));
+		floatsend_t tau_format;
+		int i;
+		for(i=0;i<4;i++)
+			tau_format.d[i] = r_data[i+1];
 
 		/**********load iq torque component, set id torque component for high speed**********/
-		float iq_u = *tmp;
+//		float iq_u = *tmp;
+		float iq_u = tau_format.v;
 		//		float id_u = iq_u * 6;
 		float id_u = 0;
 
@@ -215,12 +225,15 @@ int main(void)
 		/******************************parse motor angle*************************************/
 		float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
 
-		uint8_t * t_ptr = (uint8_t *)(&theta_m);
-		int i;
+
+//		uint8_t * t_ptr = (uint8_t *)(&theta_m);
+//		int i;
+//		for(i=0;i<4;i++)
+//			t_data[i+1] = t_ptr[i];
+		floatsend_t theta_transmit;
+		theta_transmit.v = theta_m;
 		for(i=0;i<4;i++)
-			t_data[i+1] = t_ptr[i];
-
-
+			t_data[i+1] = theta_transmit.d[i];
 
 	}
 #else

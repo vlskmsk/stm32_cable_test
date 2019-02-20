@@ -11,7 +11,8 @@
 #include "sin_lookup.h"
 
 float foc_theta_prev=0;
-float mech_theta_prev= -5000;	//-1200
+//float mech_theta_prev= -5000;	//-1200
+float mech_theta_prev= 0;
 
 //#include <core_cm0.h>
 float mL = 0;
