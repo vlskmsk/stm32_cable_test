@@ -37,12 +37,6 @@ void sleep_reset();
 void low_power_mode();
 void test_foc();
 
-typedef union
-{
-	float v;
-	uint8_t d[4];
-}floatsend_t;
-
 
 /*
  * Quickly align the encoder in the correct position. Too fast for correct align offset calculation, but fast enough to spin in the right direction
@@ -179,6 +173,7 @@ int main(void)
 	//	float theta_m_prev = foc_theta_prev;
 	TIMER_UPDATE_DUTY(500,500,500);
 
+	m_q_offset = mech_theta_prev;
 
 #ifndef TEST_MODE
 
@@ -203,37 +198,63 @@ int main(void)
 		if(sleep_flag)
 			low_power_mode();
 
-		/***********************************Parse torque*************************************/
-		floatsend_t tau_format;
-		int i;
-		for(i=0;i<4;i++)
-			tau_format.d[i] = r_data[i+1];
+		switch(control_mode)
+		{
+		case CMD_CHANGE_IQ:
+		{
+			/***********************************Parse torque*************************************/
+			floatsend_t tau_format;
+			int i;
+			for(i=0;i<4;i++)
+				tau_format.d[i] = r_data[i+1];
+			/**********load iq torque component, set id torque component for high speed**********/
+			float iq_u = tau_format.v;
+			float id_u = 0;
+			/***************limit iq and id to avoid overheating, run FOC************************/
+			if(iq_u > 80)
+				iq_u = 80;
+			if(iq_u < -80)
+				iq_u = -80;
+			foc(iq_u,id_u);		//run foc!!!
+			/******************************parse motor angle*************************************/
+			float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
+			floatsend_t theta_transmit;
+			theta_transmit.v = theta_m;
+			for(i=0;i<4;i++)
+				t_data[i+1] = theta_transmit.d[i];
+			break;
+		}
+		case CMD_CHANGE_POS:
+		{
+			/***********************************Parse position*************************************/
+			floatsend_t qd_format;
+			int i;
+			for(i=0;i<4;i++)
+				qd_format.d[i] = r_data[i+1];
+			/**********position control maths**********/
+			float qd = qd_format.v;
 
-		/**********load iq torque component, set id torque component for high speed**********/
-//		float iq_u = *tmp;
-		float iq_u = tau_format.v;
-		//		float id_u = iq_u * 6;
-		float id_u = 0;
+			float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev) - m_q_offset*2;
+			floatsend_t theta_transmit;
+			theta_transmit.v = theta_m;
+			for(i=0;i<4;i++)
+				t_data[i+1] = theta_transmit.d[i];
 
-		/***********************limit iq and id to avoid overheating*************************/
-		if(iq_u > 80)
-			iq_u = 80;
-		if(iq_u < -80)
-			iq_u = -80;
+			float err = (qd - theta_m*.5*0.134497135);
+			float iq_u = err*kd_gain;	//TODO: make this global kd, add to spi protocol
+			/***********************limit iq and id to avoid overheating*************************/
+			if(iq_u > 80)
+				iq_u = 80;
+			if(iq_u < -80)
+				iq_u = -80;
+			foc(iq_u,0);
+			break;
+		}
 
-		foc(iq_u,id_u);		//run foc!!!
-		/******************************parse motor angle*************************************/
-		float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
+		default:
+			break;
+		};
 
-
-//		uint8_t * t_ptr = (uint8_t *)(&theta_m);
-//		int i;
-//		for(i=0;i<4;i++)
-//			t_data[i+1] = t_ptr[i];
-		floatsend_t theta_transmit;
-		theta_transmit.v = theta_m;
-		for(i=0;i<4;i++)
-			t_data[i+1] = theta_transmit.d[i];
 
 	}
 #else
