@@ -6,6 +6,9 @@
  */
 #include "comm.h"
 
+float kd_gain = .5;
+float m_q_offset = 0;
+
 uint32_t motor_update_ts = 0;	//time of last spi transaction, for timeout
 
 uint8_t new_uart_packet = 0;
@@ -51,7 +54,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 //{
 //	new_uart_packet = 1;
 //}
-
+uint8_t control_mode = CMD_CHANGE_IQ;
 void parse_master_cmd()
 {
 	uint8_t master_cmd = r_data[0];
@@ -79,6 +82,30 @@ void parse_master_cmd()
 //		uint32_t r_word = (r_data[1]<<24) | (r_data[2] << 16) | (r_data[3] << 8) | r_data[4];
 //		float * tmp = (float *)(&(r_data[1]));
 //		gl_iq_u = *tmp;
+		control_mode = CMD_CHANGE_IQ;
+		break;
+	}
+	case CMD_CHANGE_POS:
+	{
+		control_mode = CMD_CHANGE_POS;
+		break;
+	}
+	case CMD_CHANGE_KD:
+	{
+		floatsend_t kd_format;
+		int i;
+		for(i=0;i<4;i++)
+			kd_format.d[i]=r_data[i+1];
+		kd_gain = kd_format.v;
+		break;
+	}
+	case CMD_ZERO_POS:
+	{
+		floatsend_t pos_format;
+		int i;
+		for(i=0;i<4;i++)
+			pos_format.d[i] = r_data[i+1];
+		m_q_offset = pos_format.v;
 		break;
 	}
 	case CMD_GET_ENCODER_POS :

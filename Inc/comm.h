@@ -9,12 +9,20 @@
 #define COMM_H_
 #include "init.h"
 
+typedef union
+{
+	float v;
+	uint8_t d[4];
+}floatsend_t;
+
+extern float m_q_offset;
+extern float kd_gain;
 
 #define NUM_PRES_UART_BYTES 	9	//number of uart bytes used for pressure data transmission
 #define NUM_BYTES_UART_DMA		18	//double buffer for uart, in case we lose a byte somewhere in the transmission
 #define NUM_SPI_BYTES 			14	//equal to 5+NUM_PRES_UART_BYTES. first 5 bytes reserved
 
-
+extern uint8_t control_mode;
 
 uint8_t new_uart_packet;
 uint8_t new_spi_packet;
@@ -23,6 +31,11 @@ uint8_t new_spi_packet;
 #define CMD_LED_ON 			1
 #define CMD_CHANGE_PWM 		2
 #define CMD_CHANGE_IQ		3
+#define CMD_CHANGE_POS 		30
+#define CMD_CHANGE_KD		31
+#define CMD_ZERO_POS 		32
+
+
 #define CMD_GET_ENCODER_POS	5	//the flux position of the rotor in ABSOLUTE frame (dh, once unwrap works maybe record offset)
 #define CMD_HARD_BRAKE		6
 #define CMD_DRIVER_ENABLE	7
@@ -46,6 +59,7 @@ uint8_t new_spi_packet;
 #define CMD_READ_PRES		21
 
 #define CMD_NO_ACTION		22
+
 
 extern uint32_t motor_update_ts;	//time of last spi transaction, for timeout
 

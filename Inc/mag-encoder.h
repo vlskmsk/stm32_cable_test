@@ -21,6 +21,7 @@
 #define ONE_BY_THREE_PI			1.04719755
 
 extern const float elec_conv_ratio;
+
 const float rad_to_deg;
 
 extern float theta_m_prev;
