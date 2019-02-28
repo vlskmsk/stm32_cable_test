@@ -163,7 +163,6 @@ volatile uint32_t time_exp;
 
 int main(void)
 {
-
 	HAL_Init();
 	SystemClock_Config();
 	MX_GPIO_Init();
@@ -171,6 +170,7 @@ int main(void)
 	MX_ADC1_Init();
 	MX_SPI3_Init();
 	MX_TIM1_Init();
+	MX_USART1_UART_Init();
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
 
@@ -562,7 +562,3 @@ void test_foc()
 		}
 	}
 }
-
-
-
-
