@@ -6,9 +6,9 @@
  */
 #include "comm.h"
 
-float kd_gain = .5;
+float kd_gain = .5f;
 float m_q_offset = 0;
-
+float m_gear_ratio_conv = 0.134497135f;
 uint32_t motor_update_ts = 0;	//time of last spi transaction, for timeout
 
 uint8_t new_uart_packet = 0;
@@ -97,6 +97,15 @@ void parse_master_cmd()
 		for(i=0;i<4;i++)
 			kd_format.d[i]=r_data[i+1];
 		kd_gain = kd_format.v;
+		break;
+	}
+	case CMD_CHANGE_GEAR_CONV:
+	{
+		floatsend_t gr_format;
+		int i;
+		for(i=0;i<4;i++)
+			gr_format.d[i] = r_data[i+1];
+		m_gear_ratio_conv = gr_format.v;
 		break;
 	}
 	case CMD_ZERO_POS:

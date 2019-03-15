@@ -295,7 +295,7 @@ int main(void)
 			for(i=0;i<4;i++)
 				t_data[i+1] = theta_transmit.d[i];
 
-			float err = (qd - theta_m*.5*0.134497135);
+			float err = (qd - theta_m*.5*m_gear_ratio_conv);
 			float iq_u = err*kd_gain;	//TODO: make this global kd, add to spi protocol
 			/***********************limit iq and id to avoid overheating*************************/
 			if(iq_u > 80)
