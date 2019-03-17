@@ -226,6 +226,20 @@ int main(void)
 	/*****************************************************************************************/
 	//	float comp_angle = check_encoder_region();
 	//	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;
+
+
+	/******Anti-lockup measure. Hopefully a simpler solution. If this doesn't work, attempt integral error approach***********/
+	uint32_t init_twitch_ts=HAL_GetTick()+50;
+	while(HAL_GetTick() < init_twitch_ts)
+		 foc(25,0);
+	init_twitch_ts = HAL_GetTick()+25;
+	while(HAL_GetTick() < init_twitch_ts)
+		 foc(-25,0);
+	init_twitch_ts = HAL_GetTick()+20;
+	while(HAL_GetTick() < init_twitch_ts)
+	 foc(0,0);
+	/***********Exp. simple anti-lockup end*******/
+
 	check_encoder_region();
 	//	float theta_m_prev = foc_theta_prev;
 	TIMER_UPDATE_DUTY(500,500,500);
