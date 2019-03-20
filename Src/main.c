@@ -51,14 +51,26 @@ int main(void)
 
 
 
-
+/*
+ * CURRENT STATUS: sleep mode offers essentially no performance benefit over just calling WFI.
+ * get about 13mA draw on single channel. if I use HAL_PWR_EnterSTOPMode, it draws a whopping 1mA!!!!
+ * BUT it does not recover. I.e. if I comment out SuspendTick to allow it to immediately clear out of the power down mode,
+ * something doesn't get set back up right/restored properly.
+ *
+ * In short, We can call EnterSleepMode, but it doesn't do much. We can call STOPMode, but it doesn't
+ * recover properly. WFI based exiting is good, and UNTESTED!!! i.e., in theory just blasting an SPI interrupt
+ * should clear us out of sleep mode but I don't have the hand board, so i haven't tested it yet.
+ *
+ * The proper test is to set this up, observe the current draw, then blast out an SPI instruction after a long time
+ * (say, 10seconds) and then do a high speed FOC test, or a position control test.
+ */
 	/*********************************Begin Sleeptest********************************************/
 		HAL_Delay(3000);
 		HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,0);
 		TIM1->CCER = (TIM1->CCER & DIS_ALL);
 		HAL_TIM_Base_Stop(&htim1);
-		HAL_SuspendTick();
+		HAL_SuspendTick();														//If you don't suspend the tick interrupt, WFI will clear within 1ms
 		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
 
 		HAL_PWR_DisableSleepOnExit();
@@ -66,7 +78,7 @@ int main(void)
 		HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
 		//__WFI();	//power down
 
-		HAL_ResumeTick();
+		HAL_ResumeTick();														//fix what you tore down
 		HAL_TIM_Base_Start(&htim1);
 		TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;	//start_pwm();
 		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,1);
