@@ -8,7 +8,7 @@
 //#include <math.h>
 
 float theta_m_prev=0;
-float align_offset; 
+float align_offset = -1.3;
 const float elec_conv_ratio = .5;
 
 //const int16_t cos_mid = 1992;
