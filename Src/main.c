@@ -52,6 +52,12 @@ int main(void)
 
 
 /*
+ * MORE CURRENT STATUS!!!!: I read in the documentation that STOPMode changes SystemClock settings, and the reduced current draw and
+ * blink update speed seemed to corroborate this. After re-calling SystemClockConfig(); immediately after power down, I
+ * recovered the correct blink frequency, and drew the correct amount of current for manual_calib(). I HAVE NOT TESTED THIS
+ * WITH WFI() RECOVERY OR MOTOR CONTROL!!!!! both of these should be done on the hand board with the described test. HOWEVER
+ * things are looking pretty good right now! going to call for the day.
+ *
  * CURRENT STATUS: sleep mode offers essentially no performance benefit over just calling WFI.
  * get about 13mA draw on single channel. if I use HAL_PWR_EnterSTOPMode, it draws a whopping 1mA!!!!
  * BUT it does not recover. I.e. if I comment out SuspendTick to allow it to immediately clear out of the power down mode,
@@ -73,9 +79,11 @@ int main(void)
 		HAL_SuspendTick();														//If you don't suspend the tick interrupt, WFI will clear within 1ms
 		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
 
+		HAL_PWR_EnableBkUpAccess();
 		HAL_PWR_DisableSleepOnExit();
-	//	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+//		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
 		HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+		SystemClock_Config();//systemclock configuration gets screwed up by STOPMode, so recover our settings (brute force)
 		//__WFI();	//power down
 
 		HAL_ResumeTick();														//fix what you tore down
@@ -83,9 +91,11 @@ int main(void)
 		TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;	//start_pwm();
 		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,1);
 	/**************************************End**************************************/
-
-
-
+//		while(1)
+//		{
+//			HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
+//			HAL_Delay(75);
+//		}
 
 
 
