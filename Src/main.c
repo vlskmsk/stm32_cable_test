@@ -10,7 +10,7 @@
 //V7 R2 Hardware
 
 //#define TEST_FOC
-//#define CALIBRATE_MODE
+#define CALIBRATE_MODE
 //#define GET_ENCODER_MIDPOINTS
 
 void sleep_reset();
@@ -41,6 +41,44 @@ int main(void)
 	TIM1->CCR4 = 950;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	get_current_cal_offsets();
+
+
+
+
+
+
+
+
+
+
+
+	/*********************************Begin Sleeptest********************************************/
+		HAL_Delay(3000);
+		HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,0);
+		TIM1->CCER = (TIM1->CCER & DIS_ALL);
+		HAL_TIM_Base_Stop(&htim1);
+		HAL_SuspendTick();
+		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
+
+		HAL_PWR_DisableSleepOnExit();
+	//	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+		HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+		//__WFI();	//power down
+
+		HAL_ResumeTick();
+		HAL_TIM_Base_Start(&htim1);
+		TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;	//start_pwm();
+		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,1);
+	/**************************************End**************************************/
+
+
+
+
+
+
+
+
 
 	/*******************************************ALIGN OFFSET!!! CRITICAL FOR FOC FUNCTIONALITY*******************************************************/
 	align_offset = -1.3;	//Currently all vishan motors will be given this (arbitrarily assigned) offset.
