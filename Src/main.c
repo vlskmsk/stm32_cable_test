@@ -9,8 +9,8 @@
 #include "foc-calibration.h"
 //V7 R2 Hardware
 
-//#define TEST_FOC
-#define CALIBRATE_MODE
+#define TEST_FOC
+//#define CALIBRATE_MODE
 //#define GET_ENCODER_MIDPOINTS
 
 void sleep_reset();
@@ -52,51 +52,16 @@ int main(void)
 
 
 /*
- * MORE CURRENT STATUS!!!!: I read in the documentation that STOPMode changes SystemClock settings, and the reduced current draw and
- * blink update speed seemed to corroborate this. After re-calling SystemClockConfig(); immediately after power down, I
- * recovered the correct blink frequency, and drew the correct amount of current for manual_calib(). I HAVE NOT TESTED THIS
- * WITH WFI() RECOVERY OR MOTOR CONTROL!!!!! both of these should be done on the hand board with the described test. HOWEVER
- * things are looking pretty good right now! going to call for the day.
- *
- * CURRENT STATUS: sleep mode offers essentially no performance benefit over just calling WFI.
- * get about 13mA draw on single channel. if I use HAL_PWR_EnterSTOPMode, it draws a whopping 1mA!!!!
- * BUT it does not recover. I.e. if I comment out SuspendTick to allow it to immediately clear out of the power down mode,
- * something doesn't get set back up right/restored properly.
- *
- * In short, We can call EnterSleepMode, but it doesn't do much. We can call STOPMode, but it doesn't
- * recover properly. WFI based exiting is good, and UNTESTED!!! i.e., in theory just blasting an SPI interrupt
- * should clear us out of sleep mode but I don't have the hand board, so i haven't tested it yet.
- *
- * The proper test is to set this up, observe the current draw, then blast out an SPI instruction after a long time
- * (say, 10seconds) and then do a high speed FOC test, or a position control test.
+* Stop mode recovery-> full speed FOC commutation confirmed. recovery now causes no performance hit.
+* Repeated call functionality confirmed. 3 calls of sleep_reset with SystemClock config, and no impact of FOC performance.
+*
+* TODO: figure out why SPI interrupt recovery is not working (probably requires EVENT, which has been implemented already)
+* i.e. does not clear WFI() from an SPI interrupt. Worst case, just use the SS pin as an EVENT pin or a GPIO interrupt.
  */
-	/*********************************Begin Sleeptest********************************************/
-		HAL_Delay(3000);
-		HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,0);
-		TIM1->CCER = (TIM1->CCER & DIS_ALL);
-		HAL_TIM_Base_Stop(&htim1);
-		HAL_SuspendTick();														//If you don't suspend the tick interrupt, WFI will clear within 1ms
-		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
-
-		HAL_PWR_EnableBkUpAccess();
-		HAL_PWR_DisableSleepOnExit();
-//		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
-		HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
-		SystemClock_Config();//systemclock configuration gets screwed up by STOPMode, so recover our settings (brute force)
-		//__WFI();	//power down
-
-		HAL_ResumeTick();														//fix what you tore down
-		HAL_TIM_Base_Start(&htim1);
-		TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;	//start_pwm();
-		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,1);
-	/**************************************End**************************************/
-//		while(1)
-//		{
-//			HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
-//			HAL_Delay(75);
-//		}
-
+	HAL_Delay(3000);
+	sleep_reset();
+	sleep_reset();
+	sleep_reset();
 
 
 
@@ -291,48 +256,37 @@ void low_power_mode()
 }
 
 /*
- * TODO: 	1. figure out how to recover from stop mode
- * 			2. configure SPI gpio pins as Hi-z so
- * 				they don't screw with the sensors that are active
- *
- * If this works and doesn't interfere with SPI, then in the long term we'll
- * use this for drivers that aren't using pressure sensors, and low_power_mode
- * for sensors that need to carry sensor data for the ultimate low power consumption
- *
+* DESIRED BEHAVIOUR:
+* Call this function will disable the DRV8323, suspend all ADC, TIMER, and Systick interrupts, and place the STM32 in STOP mode. Upon recieving an interrupt
+* from SPI slave select, a WFI call from HAL_PWR_EnterSTOPMode will clear, the system clock will be re-initialized, and normal function will resume.
+*
+*
+* I have done successful tests of repeated calls of this function (by commenting out SuspendTick, WFI() gets cleared within 1ms of the call).
+*
+* With SystemClockConfig(), the uC is able to properly recover and commute an FOC motor at high speed. I did not directly measure speed
+* differences, but the audible tone and current draw was qualitatively correct at requested tau=+/-70. Additionally the uC current draw was the same.
+*
+* TODO: fix WFI recovery.
  */
 void sleep_reset()
 {
+		HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,0);
+		TIM1->CCER = (TIM1->CCER & DIS_ALL);
+		HAL_TIM_Base_Stop(&htim1);
+		HAL_SuspendTick();														//If you don't suspend the tick interrupt, WFI will clear within 1ms
+		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
 
-	/*
-	 * Tear down, set up for stop
-	 */
-	TIM1->CCER = (TIM1->CCER & DIS_ALL);
-	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
-
-	HAL_GPIO_WritePin(STAT_PORT, STAT_PIN, 0);
-	HAL_GPIO_WritePin(CAL_PORT, CAL_PIN, 0);
-
-	//	HAL_TIM_Base_Stop(&htim14);
-	HAL_TIM_Base_Stop(&htim1);
-	HAL_ADC_Stop_DMA(&hadc1);
-	HAL_SPI_DMAStop(&hspi3);
+		HAL_PWR_EnableBkUpAccess();
+		HAL_PWR_DisableSleepOnExit();
+//		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+		HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
 
 
-	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
-	GPIO_InitTypeDef GPIO_InitStruct;
-	/*Configure GPIO pin : PA15 */
-	GPIO_InitStruct.Pin = GPIO_PIN_15;
-	GPIO_InitStruct.Mode = GPIO_MODE_EVT_FALLING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+		SystemClock_Config();//systemclock configuration gets screwed up by STOPMode, so recover our settings (brute force)
+		HAL_ResumeTick();														//fix what you tore down
+		HAL_TIM_Base_Start(&htim1);
+		TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;	//start_pwm();
+		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,1);
 
-	HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE);
-	NVIC_SystemReset();
-	/*Everything below this statement will not get executed.
-	 * Reason for the reset statement is because for some reason
-	 * exiting stop mode causes the cpu to run ridiculously slow.
-	 * THIS IS A HACK/WORKAROUND, what should replace it is
-	 * returning the system settings to normal and entering the og loop
-	 */
-	sleep_flag = 0;
 }
