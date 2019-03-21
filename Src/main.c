@@ -60,9 +60,6 @@ int main(void)
  */
 	HAL_Delay(3000);
 	sleep_reset();
-	sleep_reset();
-	sleep_reset();
-
 
 
 
