@@ -85,7 +85,7 @@ uint8_t sleep_flag;
 
 
 
-
+void uart_print_float(float v);
 void parse_master_cmd();
 void execute_master_cmd();
 void handle_uart_buf();

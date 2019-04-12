@@ -32,11 +32,16 @@ uint8_t sleep_flag = 0;
 
 float gl_iq_u = 0;
 
+void uart_print_float(float v)
+{
+	floatsend_t ft;
+	ft.v = v;
+	HAL_UART_Transmit(&huart1, ft.d, 4, 10);
+}
+
 /*
  * Command structure is determined by the highest 4 bits
  */
-
-
 int mode = 0;
 #define MODE_SEND_ROTOR_POS  	2
 #define MODE_SEND_ROTOR_SPEED  	3

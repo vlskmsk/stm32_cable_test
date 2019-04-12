@@ -5,6 +5,19 @@
  *      Author: Ocanath
  */
 #include "foc-calibration.h"
+#include "comm.h"
+
+
+static float err_uart_print = 0;
+static uint32_t uart_print_ts = 0;
+static void uart_calib_err_print_handle()
+{
+	if(HAL_GetTick() > uart_print_ts)
+	{
+		uart_print_float(err_uart_print);
+		uart_print_ts = HAL_GetTick()+10;
+	}
+}
 
 /*
  * This function uses the check_align_offset function to determine whether the pre-programmed align offset is correct on a VISHAN motor
@@ -19,6 +32,8 @@ void manual_align_calib()
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 		else
 			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+
+		err_uart_print = err;	//shared for periodic printing
 	}
 }
 
@@ -60,6 +75,8 @@ float check_align_offset(uint32_t run_time, float tau_ref)
 		prev_theta = theta_m;
 
 		foc(tau_ref,0);
+
+		uart_calib_err_print_handle();
 	}
 
 	/*make sure we've picked an align offset that's not completely out of bounds, by checking that we've actually traveled an appreciable distance during phase 1*/
@@ -82,6 +99,8 @@ float check_align_offset(uint32_t run_time, float tau_ref)
 		prev_theta = theta_m;
 
 		foc(-tau_ref,0);
+
+		uart_calib_err_print_handle();
 	}
 
 	/*First, check to make sure you passed all edge condition flags*/

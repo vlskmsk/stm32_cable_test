@@ -9,7 +9,7 @@
 #include "foc-calibration.h"
 //V7 R2 Hardware
 
-#define TEST_FOC
+//#define TEST_FOC
 //#define CALIBRATE_MODE
 //#define GET_ENCODER_MIDPOINTS
 
@@ -18,6 +18,9 @@ void low_power_mode();
 void start_pwm();
 
 volatile uint32_t time_exp;
+
+
+
 
 int main(void)
 {
@@ -42,15 +45,6 @@ int main(void)
 
 	get_current_cal_offsets();
 
-
-
-
-
-
-
-
-
-
 /*
 * Stop mode recovery-> full speed FOC commutation confirmed. recovery now causes no performance hit.
 * Repeated call functionality confirmed. 3 calls of sleep_reset with SystemClock config, and no impact of FOC performance.
@@ -58,8 +52,8 @@ int main(void)
 * TODO: figure out why SPI interrupt recovery is not working (probably requires EVENT, which has been implemented already)
 * i.e. does not clear WFI() from an SPI interrupt. Worst case, just use the SS pin as an EVENT pin or a GPIO interrupt.
  */
-	HAL_Delay(3000);
-	sleep_reset();
+//	HAL_Delay(3000);
+//	sleep_reset();
 
 
 
