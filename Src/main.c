@@ -45,15 +45,15 @@ int main(void)
 
 	get_current_cal_offsets();
 
-/*
-* Stop mode recovery-> full speed FOC commutation confirmed. recovery now causes no performance hit.
-* Repeated call functionality confirmed. 3 calls of sleep_reset with SystemClock config, and no impact of FOC performance.
-*
-* TODO: figure out why SPI interrupt recovery is not working (probably requires EVENT, which has been implemented already)
-* i.e. does not clear WFI() from an SPI interrupt. Worst case, just use the SS pin as an EVENT pin or a GPIO interrupt.
- */
-//	HAL_Delay(3000);
-//	sleep_reset();
+	/*
+	 * Stop mode recovery-> full speed FOC commutation confirmed. recovery now causes no performance hit.
+	 * Repeated call functionality confirmed. 3 calls of sleep_reset with SystemClock config, and no impact of FOC performance.
+	 *
+	 * TODO: figure out why SPI interrupt recovery is not working (probably requires EVENT, which has been implemented already)
+	 * i.e. does not clear WFI() from an SPI interrupt. Worst case, just use the SS pin as an EVENT pin or a GPIO interrupt.
+	 */
+	//	HAL_Delay(3000);
+	//	sleep_reset();
 
 
 
@@ -247,39 +247,43 @@ void low_power_mode()
 }
 
 /*
-* DESIRED BEHAVIOUR:
-* Call this function will disable the DRV8323, suspend all ADC, TIMER, and Systick interrupts, and place the STM32 in STOP mode. Upon recieving an interrupt
-* from SPI slave select, a WFI call from HAL_PWR_EnterSTOPMode will clear, the system clock will be re-initialized, and normal function will resume.
-*
-*
-* I have done successful tests of repeated calls of this function (by commenting out SuspendTick, WFI() gets cleared within 1ms of the call).
-*
-* With SystemClockConfig(), the uC is able to properly recover and commute an FOC motor at high speed. I did not directly measure speed
-* differences, but the audible tone and current draw was qualitatively correct at requested tau=+/-70. Additionally the uC current draw was the same.
-*
-* TODO: fix WFI recovery.
+ * DESIRED BEHAVIOUR:
+ * Call this function will disable the DRV8323, suspend all ADC, TIMER, and Systick interrupts, and place the STM32 in STOP mode. Upon recieving an interrupt
+ * from SPI slave select, a WFI call from HAL_PWR_EnterSTOPMode will clear, the system clock will be re-initialized, and normal function will resume.
+ *
+ *
+ * I have done successful tests of repeated calls of this function (by commenting out SuspendTick, WFI() gets cleared within 1ms of the call).
+ *
+ * With SystemClockConfig(), the uC is able to properly recover and commute an FOC motor at high speed. I did not directly measure speed
+ * differences, but the audible tone and current draw was qualitatively correct at requested tau=+/-70. Additionally the uC current draw was the same.
+ *
+ * TODO: fix WFI recovery.
  */
 void sleep_reset()
 {
-		HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,0);
-		TIM1->CCER = (TIM1->CCER & DIS_ALL);
-		HAL_TIM_Base_Stop(&htim1);
-		HAL_SuspendTick();														//If you don't suspend the tick interrupt, WFI will clear within 1ms
-		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
-
-		HAL_PWR_EnableBkUpAccess();
-		HAL_PWR_DisableSleepOnExit();
-//		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
-		HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+	HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,0);
+	TIM1->CCER = (TIM1->CCER & DIS_ALL);
+	HAL_TIM_Base_Stop(&htim1);
+	HAL_SuspendTick();														//If you don't suspend the tick interrupt, WFI will clear within 1ms
+	HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
 
 
-		SystemClock_Config();//systemclock configuration gets screwed up by STOPMode, so recover our settings (brute force)
-		HAL_ResumeTick();														//fix what you tore down
-		HAL_TIM_Base_Start(&htim1);
-		TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;	//start_pwm();
-		HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,1);
+	HAL_PWR_EnableBkUpAccess();
+	HAL_PWR_DisableSleepOnExit();
+	//		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	GPIO_InitStruct.Pin = GPIO_PIN_15;
+	GPIO_InitStruct.Mode = GPIO_MODE_EVT_FALLING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE);
+
+	//TODO: re-enable PA15 as nSS hardware input
+	SystemClock_Config();//systemclock configuration gets screwed up by STOPMode, so recover our settings (brute force)
+	HAL_ResumeTick();														//fix what you tore down
+	HAL_TIM_Base_Start(&htim1);
+	TIM1->CCER = (TIM1->CCER & DIS_ALL) | ENABLE_ALL;	//start_pwm();
+	HAL_GPIO_WritePin(ENABLE_PORT,ENABLE_PIN,1);
 
 }
-
-
