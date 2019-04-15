@@ -158,10 +158,9 @@ void parse_master_cmd()
 		press_data_transmit_flag = 0;
 		break;
 	case CMD_SLEEP:  //Bird
-		sleep_flag = 1;
+		sleep_reset();
 		break;
 	case CMD_WAKEUP:
-		sleep_flag = 0;
 		break;
 	default:
 		break;
