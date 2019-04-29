@@ -145,7 +145,7 @@ void MX_SPI3_Init(void)
 	hspi3.Init.Direction = SPI_DIRECTION_2LINES;
 	hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
 	hspi3.Init.CLKPolarity = SPI_POLARITY_HIGH;
-	hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+	hspi3.Init.CLKPhase = SPI_PHASE_2EDGE;
 	hspi3.Init.NSS = SPI_NSS_HARD_INPUT;
 	hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
 	hspi3.Init.TIMode = SPI_TIMODE_DISABLE;

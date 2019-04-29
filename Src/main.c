@@ -81,6 +81,7 @@ int main(void)
 	{
 		/*Handle SPI Interrupt Packets*/
 		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
+		HAL_UART_Receive_IT(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA);
 		if(new_spi_packet == 1)
 		{
 			parse_master_cmd();

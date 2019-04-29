@@ -50,6 +50,13 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 {
 	new_spi_packet = 1;
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
+{
+	press_data_transmit_flag = 1;
+	new_uart_packet = 1;
+}
+
 //
 ///*
 // * TODO: use flag, take this out and do it in the main loop (to prioritize motor control).
@@ -147,15 +154,16 @@ void parse_master_cmd()
 	case CMD_DRIVER_DISABLE:
 		HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
 		break;
+/* Pressure Sensor Related Case. */
 	case CMD_EN_PRES:  //Bird
-		asm("NOP");						//why?
-//		HAL_UART_DMAResume(&huart1);
 		press_data_transmit_flag = 1;
 		break;
 	case CMD_DIS_PRES:  //Bird
-		asm("NOP");
-//		HAL_UART_DMAPause(&huart1);
 		press_data_transmit_flag = 0;
+		break;
+/* Bootloader Related Case. */
+	case CMD_BOOTLOAD:
+		NVIC_SystemReset();
 		break;
 	case CMD_SLEEP:  //Bird
 		sleep_reset();
@@ -172,8 +180,10 @@ void parse_master_cmd()
 void handle_uart_buf()
 {
 	/*
-	 * once we've recieved a flag that new uart data must be parsed, scan the double buffer for a complete data set
+	 * we've recieved a new round of data, so load it into the spi transmit buffer.
+	 * the motor control spi protocol will carry it over to the master
 	 */
+/*
 	int i;
 	for(i = 0; i < NUM_BYTES_UART_DMA; i++)
 	{
@@ -182,23 +192,21 @@ void handle_uart_buf()
 			int j;
 			for(j = 0; j < NUM_PRES_UART_BYTES; j++)
 			{
-				pres_data[j] = uart_read_buffer[ (i+j) % (NUM_BYTES_UART_DMA-1) ];						//we can do outside of the handler
+				t_data[j+5] = uart_read_buffer[ (i+j) % (NUM_BYTES_UART_DMA-1) ];						//we can do outside of the handler
 			}
 			break;
 		}
 	}
+*/
 
-	/*
-	 * we've recieved a new round of data, so load it into the spi transmit buffer.
-	 * the motor control spi protocol will carry it over to the master
-	 */
 	if(press_data_transmit_flag == 1)  //Bird
 	{
 		//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
 		for(int i = 5; i < NUM_SPI_BYTES; i++)
 		{
-			t_data[i] = pres_data[i-5];
+			t_data[i] = uart_read_buffer[i-5];
 		}
 	}
+
 }
 
