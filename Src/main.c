@@ -73,7 +73,21 @@ int main(void)
 		foc(0,0);
 	/***********Exp. simple anti-lockup end*******/
 
-	check_encoder_region();
+//	check_encoder_region();
+	uint8_t retc = CAL_ERR_TIMEOUT;
+	while(retc != CAL_SUCCESS)
+	{
+		/*
+		 * use original check encoder region, with a slightly larger setpoint jump
+		 * (since we have a gearbox) and the ability to reverse directions if we
+		 * timeout after 3 seconds. Is a more robust solution that will likely
+		 * complete in the same amount of time
+		 */
+		retc = check_encoder_region(0.5f, 50, 0.15f, 0.7f, 3000);
+		if(retc == CAL_ERR_TIMEOUT)
+			retc = check_encoder_region(-0.5f, 50, 0.15f, 0.7f, 3000);
+	}
+
 	//	float theta_m_prev = foc_theta_prev;
 	TIMER_UPDATE_DUTY(500,500,500);
 

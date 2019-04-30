@@ -124,17 +124,14 @@ float check_align_offset(uint32_t run_time, float tau_ref)
  * condition during position control, it will flip which direction is positive by changing the quadrant alignment. It does this until a stable error
  * value is achieved under FOC position control.
  */
-static const float enc_region_step = 0.4f; //step from current position that you're going to track
-static const float enc_region_dir_change_err = 0.6f;
-static const float enc_region_accept_err = 0.1f;
-static const uint32_t reverse_timeout = 50;
-static const uint32_t settle_timeout = 50;	//time to clear if you're within error
-void check_encoder_region()
+/*original params: .4f, 50, .1f, .6f*/
+uint8_t check_encoder_region(float start_step, uint32_t settle_time, float settle_err, float reverse_err, uint32_t timeout)
 {
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+	uint32_t exit_ts = HAL_GetTick() + timeout;
 	uint32_t ts = HAL_GetTick();
 	theta_m_prev = 0;
-	float theta_set = (unwrap(theta_abs_rad(), &theta_m_prev)*.5) + enc_region_step;	//get the initial position and use it to set the motor setpoint.
+	float theta_set = (unwrap(theta_abs_rad(), &theta_m_prev)*.5) + start_step;	//get the initial position and use it to set the motor setpoint.
 	float err = 0;
 	uint32_t try_ts = 100;
 	uint32_t off_ts = 0;
@@ -152,22 +149,91 @@ void check_encoder_region()
 		if(err < 0)
 			err = -err;		//get the absolute value of the error
 
-		if(err > enc_region_dir_change_err && HAL_GetTick() > ts)	//if the error is great and you haven't tried for some time, reverse the direction
+		if(err > reverse_err && HAL_GetTick() > ts)	//if the error is great and you haven't tried for some time, reverse the direction
 		{
 			foc_theta_prev -= TWO_PI;
 			ts = HAL_GetTick()+try_ts;
-			try_ts+=reverse_timeout;	//if you failed on the last attempt, try for just a liiitle bit longer. This improves stability (i.e. no infinite oscillations if you're significantly out of bounds)
+			try_ts+=50;	//if you failed on the last attempt, try for just a liiitle bit longer. This improves stability (i.e. no infinite oscillations if you're significantly out of bounds)
 		}
 
-		if(err > enc_region_accept_err)	//if the error is great,
+		if(err > settle_err)	//if the error is great,
 			off_ts = HAL_GetTick();	//set the timestamp
 		else
 		{
-			if(HAL_GetTick() - off_ts > settle_timeout)	//if you've settled (low error for an acceptable time) break
+			if(HAL_GetTick() - off_ts > settle_time)	//if you've settled (low error for an acceptable time) break
 			{
 				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-				break;
+				return CAL_SUCCESS;
 			}
 		}
+		if(HAL_GetTick() > exit_ts)
+			return CAL_ERR_TIMEOUT;
 	}
 }
+
+
+static float abs_f(float in)
+{
+	if(in < 0)
+		return -in;
+	else
+		return in;
+}
+
+static float abs_err_prev = 0.0f;
+static uint32_t check_encoder_region_2_timestamp = 0;
+uint8_t check_encoder_region_2(float start_offset, float diff_err_thresh, uint32_t timeout)
+{
+//	diff_err_thresh = abs_f(diff_err_thresh);//user input guard
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+	check_encoder_region_2_timestamp = HAL_GetTick() + timeout;
+
+	float inital_position = unwrap(theta_abs_rad(), &theta_m_prev)*.5;
+	float setpoint = inital_position + start_offset;
+	uint32_t err_check_ts = HAL_GetTick() + 100;
+	uint32_t consec_pos_err_cnt = 0;
+	uint32_t consec_low_diff_err_cnt = 0;
+	while(1)
+	{
+		uint32_t period = 5;
+		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5;	//get current motor position
+		float err = setpoint - theta_m;
+		float tau = 30.0f*err;				//position control
+		if(tau > 50)
+			tau = 50;
+		if(tau < -50)
+			tau = -50;
+		foc(tau,0);
+
+		if(HAL_GetTick() > err_check_ts)
+		{
+			float abs_err = abs_f(err);
+			float diff_err = abs_err - abs_err_prev;	//i.e. the change in the absolute value of the error
+
+			if(diff_err > diff_err_thresh)
+			{
+				consec_low_diff_err_cnt = 0;
+				consec_pos_err_cnt++;
+				if(consec_pos_err_cnt > 5)
+				{
+					foc_theta_prev -= TWO_PI; //used by inline foc loop, will reverse the foc direction
+					period = 50;
+				}
+			}
+			else if (diff_err < -diff_err_thresh)
+			{
+				consec_pos_err_cnt = 0;
+				consec_low_diff_err_cnt++;
+				if(consec_low_diff_err_cnt >= 5)//300ms of low error
+					return CAL_SUCCESS;
+			}
+			err_check_ts = HAL_GetTick() + period;
+			abs_err_prev = abs_err;
+		}
+
+		if(HAL_GetTick() > check_encoder_region_2_timestamp)
+			return CAL_ERR_TIMEOUT;
+	}
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+}
+
