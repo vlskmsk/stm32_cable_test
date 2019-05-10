@@ -53,7 +53,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
 {
-	press_data_transmit_flag = 1;
+	//press_data_transmit_flag = 1;
 	new_uart_packet = 1;
 }
 
@@ -155,7 +155,8 @@ void parse_master_cmd()
 		HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
 		break;
 /* Pressure Sensor Related Case. */
-	case CMD_EN_PRES:  //Bird
+	case CMD_EN_PRES:
+		pressure_data_align();
 		press_data_transmit_flag = 1;
 		break;
 	case CMD_DIS_PRES:  //Bird
@@ -163,6 +164,7 @@ void parse_master_cmd()
 		break;
 /* Bootloader Related Case. */
 	case CMD_BOOTLOAD:
+		asm("NOP");
 		NVIC_SystemReset();
 		break;
 	case CMD_SLEEP:  //Bird
@@ -175,6 +177,17 @@ void parse_master_cmd()
 	}
 }
 
+void pressure_data_align(void)
+{
+	while(1) {
+		HAL_UART_Receive(&huart1, uart_read_buffer, 1, 100);
+		if(uart_read_buffer[0] == 's')
+		{
+			HAL_UART_Receive(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA-1, 1000);
+			break;
+		}
+	}
+}
 
 
 void handle_uart_buf()
