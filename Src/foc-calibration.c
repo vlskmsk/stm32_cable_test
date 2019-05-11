@@ -137,6 +137,26 @@ uint8_t check_encoder_region(float start_step, uint32_t settle_time, float settl
 	uint32_t off_ts = 0;
 	while(1)
 	{
+/**************************When there is no motor attached, you spin here literally forever. quickly adding communication protocol here***************************/
+		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
+		HAL_UART_Receive_IT(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA);
+		if(new_spi_packet == 1)
+		{
+			parse_master_cmd();
+			t_data[0] = 0;
+			if(r_data[0] == CMD_CHANGE_PWM || r_data[0] == CMD_CHANGE_IQ)
+				motor_update_ts = HAL_GetTick();	//
+			new_spi_packet = 0;
+		}
+
+		/*TODO: Enable/test UART!!! This should be INTERRUPT based, not DMA based.*/
+		if(new_uart_packet == 1)
+		{
+			handle_uart_buf();
+			new_uart_packet = 0;
+		}
+/********************************************end communication protocol*******************************************************************/
+
 		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5;	//get current motor position
 		err = theta_set-theta_m;		// and error
 		float tau = 30*err;				//position control
