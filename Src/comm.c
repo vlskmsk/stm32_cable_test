@@ -57,6 +57,37 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
 	new_uart_packet = 1;
 }
 
+/*
+ * TODO: make this function NON BLOCKING.
+ * This is not an acceptable long-term solution to
+ * data alignment.
+ */
+void pressure_data_align(void)
+{
+	TIMER_UPDATE_DUTY(0,0,0);	//FOC cannot be interrupted without a full disable. this is EXTREMELY important. Disable the driver if you do ANYTHING time consuming
+	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
+	uint32_t align_timeout = HAL_GetTick() + 1000;
+	uint32_t blink_ts = 0;
+	uart_read_buffer[0] = 0;
+	while(HAL_GetTick() < align_timeout)	//i'll give you a full 100ms before you get back to doing what you're supposed to do, i.e. moving a motor.
+	{
+		HAL_UART_Receive(&huart1, uart_read_buffer, 1, 100);
+		if(uart_read_buffer[0] == 's')
+		{
+			HAL_UART_Receive(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA-1, 1000);
+			break;
+		}
+		if(HAL_GetTick()>blink_ts)
+		{
+			HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
+			blink_ts = HAL_GetTick()+50;
+		}
+	}
+	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+}
+
+
 //
 ///*
 // * TODO: use flag, take this out and do it in the main loop (to prioritize motor control).
@@ -177,17 +208,6 @@ void parse_master_cmd()
 	}
 }
 
-void pressure_data_align(void)
-{
-	while(1) {
-		HAL_UART_Receive(&huart1, uart_read_buffer, 1, 100);
-		if(uart_read_buffer[0] == 's')
-		{
-			HAL_UART_Receive(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA-1, 1000);
-			break;
-		}
-	}
-}
 
 
 void handle_uart_buf()

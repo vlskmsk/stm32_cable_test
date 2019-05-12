@@ -8,6 +8,8 @@
 #ifndef COMM_H_
 #define COMM_H_
 #include "init.h"
+#include "foc_commutation.h"
+#include "sleep.h"
 
 typedef union
 {
