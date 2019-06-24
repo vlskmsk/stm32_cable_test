@@ -229,10 +229,11 @@ uint8_t check_encoder_region_2(uint32_t track_time, uint32_t timeout)
 	const float speed_thresh = setpoint_change_rate*1000.0f + 20.0f;
 
 	uint32_t try_ts = 0;	//block execution of the fix block for now.
-	uint32_t print_ts = 0;
 	uint32_t fail_ts = HAL_GetTick();
 	while(1)
 	{
+		handle_comms();
+
 		float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5;	//get current motor position
 
 		/*Position Control*/
@@ -253,7 +254,7 @@ uint8_t check_encoder_region_2(uint32_t track_time, uint32_t timeout)
 			abs_err_prev = abs_err;
 
 			dq = (theta_m - q_prev)*1000.0f;	//speed
-			dq = (dq+dq_prev)*.5;
+			dq = (dq+dq_prev)*.5f;
 			dq_prev=dq;
 			q_prev = theta_m;
 
@@ -262,11 +263,10 @@ uint8_t check_encoder_region_2(uint32_t track_time, uint32_t timeout)
 			err_check_ts = HAL_GetTick();
 		}
 
-
 		float abs_dq = abs_f(dq); //precompute the abs of the motor speed
 		if(HAL_GetTick() >= try_ts)
 		{
-			if(abs_err > 0.6f && abs_dq > speed_thresh && diff_err > .03f)	//if you are rapidly diverging
+			if((abs_err > 0.6f && abs_dq > speed_thresh && diff_err > .03f) || abs_err > 10.0f)	//if you are rapidly diverging
 			{
 				foc_theta_prev -= TWO_PI;	//put the encoder in the correct region
 				setpoint = theta_m;	//reset tracking so there are no violent pops
@@ -281,18 +281,85 @@ uint8_t check_encoder_region_2(uint32_t track_time, uint32_t timeout)
 				try_ts = HAL_GetTick()+1000;	//wait a couple ms
 				fail_ts = HAL_GetTick();
 			}
+
 		}
 
 		if(HAL_GetTick()-fail_ts > track_time)
 		{
 			if(abs_err < 0.4f)
+			{
+				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 				return CAL_SUCCESS;
+			}
 
 		}
 
 		if(HAL_GetTick() > check_encoder_region_2_timestamp)
+		{
+			HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 			return CAL_ERR_TIMEOUT;
+		}
 	}
-	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 }
 
+void force_encoder_region()
+{
+	uint8_t retc = VERIFY_FAILED;
+	while(retc != VERIFY_PASSED)
+	{
+		retc = verify_encoder_region(30.0f, 200.0f, 2, 500);
+		if(retc == VERIFY_FAILED)
+			foc_theta_prev -= TWO_PI;	//put the encoder in the correct region
+	}
+}
+
+uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thresh, uint32_t timeout)
+{
+	float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5f;	//get current motor position
+	uint32_t tau_switch_ts = HAL_GetTick()+200;
+	uint32_t print_ts = 0;
+	float pos_prev = theta_m;
+	int pass_count = 0;
+	while(1)
+	{
+		theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5f;	//get current motor position
+		foc(tau,0);
+
+		float diff = theta_m - pos_prev;
+		if(abs_f(diff) >= diff_thresh)
+		{
+			pos_prev = theta_m;
+			if((tau > 0 && diff > diff_thresh) || (tau < 0 && diff < -diff_thresh))
+			{
+				pass_count++;
+				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
+			}
+			else
+			{
+				pass_count--;
+				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+			}
+			tau = -tau;
+			tau_switch_ts = HAL_GetTick();	//TODO: instead of time, move the rotor so the change in position is at least diff_thresh
+		}
+		if((HAL_GetTick() - tau_switch_ts) > timeout)
+		{
+			tau=-tau;
+			tau_switch_ts = HAL_GetTick();
+		}
+
+		if(pass_count >= pass_count_thresh)
+			return VERIFY_PASSED;
+		else if (pass_count <= -pass_count_thresh)
+			return VERIFY_FAILED;
+
+		if(HAL_GetTick() >= print_ts)
+		{
+			uart_print_float(theta_m*.05f);
+			uart_print_float(tau);
+			print_ts = HAL_GetTick()+7;
+		}
+
+	}
+
+}
