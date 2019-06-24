@@ -307,7 +307,7 @@ void force_encoder_region()
 	uint8_t retc = VERIFY_FAILED;
 	while(retc != VERIFY_PASSED)
 	{
-		retc = verify_encoder_region(30.0f, 200.0f, 2, 500);
+		retc = verify_encoder_region(30.0f, 100.0f, 2, 500);
 		if(retc == VERIFY_FAILED)
 			foc_theta_prev -= TWO_PI;	//put the encoder in the correct region
 	}
@@ -344,6 +344,7 @@ uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thres
 		if((HAL_GetTick() - tau_switch_ts) > timeout)
 		{
 			tau=-tau;
+			pos_prev = theta_m;
 			tau_switch_ts = HAL_GetTick();
 		}
 
