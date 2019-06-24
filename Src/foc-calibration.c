@@ -305,18 +305,39 @@ uint8_t check_encoder_region_2(uint32_t track_time, uint32_t timeout)
 void force_encoder_region()
 {
 	uint8_t retc = VERIFY_FAILED;
+	float tau = 5.0f;
 	while(retc != VERIFY_PASSED)
 	{
-		retc = verify_encoder_region(30.0f, 100.0f, 2, 500);
+		retc = verify_encoder_region(tau, 100.0f, 2, 500);
 		if(retc == VERIFY_FAILED)
+		{
 			foc_theta_prev -= TWO_PI;	//put the encoder in the correct region
+		}
+		if(retc == VERIFY_TIMEOUT)
+		{
+			if(tau > 0)
+			{
+				tau+=5.0f;
+				if(tau > 50.0f)
+					tau = 50.0f;
+			}
+			if(tau < 0)
+			{
+				tau -= 5.0f;
+				if(tau < -50.0f)
+					tau = -50.0f;
+			}
+			tau = -tau;
+		}
+
 	}
 }
+
 
 uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thresh, uint32_t timeout)
 {
 	float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5f;	//get current motor position
-	uint32_t tau_switch_ts = HAL_GetTick()+200;
+	uint32_t tau_switch_ts = HAL_GetTick();
 	float pos_prev = theta_m;
 	int pass_count = 0;
 	while(1)
@@ -342,11 +363,7 @@ uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thres
 			tau_switch_ts = HAL_GetTick();	//TODO: instead of time, move the rotor so the change in position is at least diff_thresh
 		}
 		if((HAL_GetTick() - tau_switch_ts) > timeout)
-		{
-			tau=-tau;
-			pos_prev = theta_m;
-			tau_switch_ts = HAL_GetTick();
-		}
+			return VERIFY_TIMEOUT;
 
 		if(pass_count >= pass_count_thresh)
 			return VERIFY_PASSED;

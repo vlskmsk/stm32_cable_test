@@ -11,7 +11,7 @@
 #include "foc_commutation.h"
 
 typedef enum {CAL_ERR_TIMEOUT, CAL_SUCCESS} regioncheck_retv;
-enum {VERIFY_FAILED, VERIFY_PASSED};
+enum {VERIFY_FAILED, VERIFY_PASSED, VERIFY_TIMEOUT};
 
 void manual_align_calib();
 
