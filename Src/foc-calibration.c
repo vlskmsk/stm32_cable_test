@@ -317,7 +317,6 @@ uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thres
 {
 	float theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5f;	//get current motor position
 	uint32_t tau_switch_ts = HAL_GetTick()+200;
-	uint32_t print_ts = 0;
 	float pos_prev = theta_m;
 	int pass_count = 0;
 	while(1)
@@ -353,12 +352,7 @@ uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thres
 		else if (pass_count <= -pass_count_thresh)
 			return VERIFY_FAILED;
 
-		if(HAL_GetTick() >= print_ts)
-		{
-			uart_print_float(theta_m*.05f);
-			uart_print_float(tau);
-			print_ts = HAL_GetTick()+7;
-		}
+		handle_comms();
 
 	}
 
