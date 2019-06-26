@@ -305,10 +305,10 @@ uint8_t check_encoder_region_2(uint32_t track_time, uint32_t timeout)
 void force_encoder_region()
 {
 	uint8_t retc = VERIFY_FAILED;
-	float tau = 5.0f;
+	float tau = 10.0f;
 	while(retc != VERIFY_PASSED)
 	{
-		retc = verify_encoder_region(tau, 100.0f, 2, 500);
+		retc = verify_encoder_region(tau, 50.0f, 2, 500);
 		if(retc == VERIFY_FAILED)
 		{
 			foc_theta_prev -= TWO_PI;	//put the encoder in the correct region
