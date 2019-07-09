@@ -104,6 +104,11 @@ inline void handle_comms()
 		t_data[0] = 0;
 		if(r_data[0] == CMD_CHANGE_PWM || r_data[0] == CMD_CHANGE_IQ)
 			motor_update_ts = HAL_GetTick();	//
+		int i;
+		for(i=0;i<4;i++)
+			rx_format.d[i] = r_data[i+1];
+		for(i=0;i<4;i++)
+			t_data[i+1] = tx_format.d[i];	//parse 2*theta into bytes to send over SPI
 		new_spi_packet = 0;
 	}
 
