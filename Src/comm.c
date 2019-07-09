@@ -15,10 +15,11 @@ uint8_t new_uart_packet = 0;
 uint8_t new_spi_packet = 0;
 uint8_t press_data_transmit_flag = 0;
 
-
-
 uint16_t r_word = 0;
 uint16_t t_word = 0;
+
+floatsend_t rx_format;
+floatsend_t tx_format;
 
 uint8_t r_data[NUM_SPI_BYTES] = {0};
 uint8_t t_data[NUM_SPI_BYTES] = {0};
@@ -153,11 +154,12 @@ void parse_master_cmd()
 	}
 	case CMD_ZERO_POS:
 	{
-		floatsend_t pos_format;
-		int i;
-		for(i=0;i<4;i++)
-			pos_format.d[i] = r_data[i+1];
-		m_q_offset = pos_format.v;
+//		floatsend_t pos_format;
+//		int i;
+//		for(i=0;i<4;i++)
+//			pos_format.d[i] = r_data[i+1];
+//		m_q_offset = pos_format.v;
+		m_q_offset = unwrap(theta_abs_rad(), &mech_theta_prev);
 		break;
 	}
 	case CMD_GET_ENCODER_POS :

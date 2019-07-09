@@ -67,37 +67,19 @@ int main(void)
 
 	while(1)
 	{
-		/*Handle SPI Interrupt Packets*/
-		HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
-		HAL_UART_Receive_IT(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA);
-		if(new_spi_packet == 1)
-		{
-			parse_master_cmd();
-			t_data[0] = 0;
-			if(r_data[0] == CMD_CHANGE_PWM || r_data[0] == CMD_CHANGE_IQ)
-				motor_update_ts = HAL_GetTick();	//
-			new_spi_packet = 0;
-		}
+		handle_comms();
 
-		/*TODO: Enable/test UART!!! This should be INTERRUPT based, not DMA based.*/
-		if(new_uart_packet == 1)
-		{
-			handle_uart_buf();
-			new_uart_packet = 0;
-		}
+		/*After parsing I2C and SPI, perform motor control functions*/
+		float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev) - m_q_offset;	//necessary to multiply internal offset by 2, because master expects format of 2*theta (from KMZ60 encoder)
+		tx_format.v = theta_m;	//in all cases, send position
 
-		/*Once SPI and UART data has been parsed*/
 		switch(control_mode)
 		{
 		case CMD_CHANGE_IQ:
 		{
 			/***********************************Parse torque*************************************/
-			floatsend_t tau_format;
-			int i;
-			for(i=0;i<4;i++)
-				tau_format.d[i] = r_data[i+1];
 			/**********load iq torque component, set id torque component for high speed**********/
-			float iq_u = tau_format.v;
+			float iq_u = rx_format.v;
 			float id_u = 0;
 			/***************limit iq and id to avoid overheating, run FOC************************/
 			if(iq_u > 80)
@@ -106,30 +88,15 @@ int main(void)
 				iq_u = -80;
 			foc(iq_u,id_u);		//run foc!!!
 			/******************************parse motor angle*************************************/
-			float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev);
-			floatsend_t theta_transmit;
-			theta_transmit.v = theta_m;
-			for(i=0;i<4;i++)
-				t_data[i+1] = theta_transmit.d[i];
 			break;
 		}
 		case CMD_CHANGE_POS:
 		{
 			/***********************************Parse position*************************************/
-			floatsend_t qd_format;
-			int i;
-			for(i=0;i<4;i++)
-				qd_format.d[i] = r_data[i+1];
-			float qd = qd_format.v;
+			float qd = rx_format.v;
 			/**********position control maths**********/
 
-			float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev) - m_q_offset*2;	//necessary to multiply internal offset by 2, because master expects format of 2*theta (from KMZ60 encoder)
-			floatsend_t theta_transmit;
-			theta_transmit.v = theta_m;
-			for(i=0;i<4;i++)
-				t_data[i+1] = theta_transmit.d[i];	//parse 2*theta into bytes to send over SPI
-
-			float err = (qd - theta_m*.5*m_gear_ratio_conv);	//qd will be given to us in FINGER coordinates (i.e. degrees, assuming zero reference is full extension). Therefore, we must convert to these units
+			float err = (qd - theta_m*.5f*m_gear_ratio_conv);	//qd will be given to us in FINGER coordinates (i.e. degrees, assuming zero reference is full extension). Therefore, we must convert to these units
 			float iq_u = err*kd_gain;	//master can change kd_gain with an SPI command
 			/***********************limit iq and id to avoid overheating*************************/
 			if(iq_u > 80)
@@ -143,6 +110,7 @@ int main(void)
 			break;
 		};
 	}
+
 }
 
 /*

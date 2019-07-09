@@ -71,8 +71,11 @@ extern uint32_t motor_update_ts;	//time of last spi transaction, for timeout
 
 uint16_t r_word;
 uint16_t t_word;
-uint8_t r_data[NUM_SPI_BYTES];
-uint8_t t_data[NUM_SPI_BYTES];
+extern uint8_t r_data[NUM_SPI_BYTES];
+extern uint8_t t_data[NUM_SPI_BYTES];
+extern floatsend_t rx_format;
+extern floatsend_t tx_format;
+
 uint8_t pres_data[NUM_PRES_UART_BYTES];
 uint8_t uart_read_buffer[NUM_BYTES_UART_DMA];
 uint8_t r_flag;
@@ -85,11 +88,32 @@ float gl_iq_u;
 
 uint8_t sleep_flag;
 
-
-
 void uart_print_float(float v);
 void parse_master_cmd();
 void execute_master_cmd();
 void handle_uart_buf();
+
+inline void handle_comms()
+{
+	/*Handle SPI Interrupt Packets*/
+	HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
+	HAL_UART_Receive_IT(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA);
+	if(new_spi_packet == 1)
+	{
+		parse_master_cmd();
+		t_data[0] = 0;
+		if(r_data[0] == CMD_CHANGE_PWM || r_data[0] == CMD_CHANGE_IQ)
+			motor_update_ts = HAL_GetTick();	//
+		new_spi_packet = 0;
+	}
+
+	/*TODO: Enable/test UART!!! This should be INTERRUPT based, not DMA based.*/
+	if(new_uart_packet == 1)
+	{
+		handle_uart_buf();
+		new_uart_packet = 0;
+	}
+}
+
 
 #endif /* COMM_H_ */
