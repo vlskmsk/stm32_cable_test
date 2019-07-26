@@ -19,7 +19,8 @@ void start_pwm();
 
 volatile uint32_t time_exp;
 
-
+#define BUSY_FORCE_ENCODER_REGION 	0xDE
+#define MAIN_LOOP_READY 			0xAD
 
 
 int main(void)
@@ -61,10 +62,12 @@ int main(void)
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 
 	/*Anti lockup and encoder region alignment absorbed into a new force procedure.*/
+	t_data[0] = BUSY_FORCE_ENCODER_REGION;
 	force_encoder_region();
 
 	TIMER_UPDATE_DUTY(500,500,500);
 
+	t_data[0] = MAIN_LOOP_READY;
 	while(1)
 	{
 		handle_comms();
@@ -82,10 +85,10 @@ int main(void)
 			float iq_u = rx_format.v;
 			float id_u = 0;
 			/***************limit iq and id to avoid overheating, run FOC************************/
-			if(iq_u > 80)
-				iq_u = 80;
-			if(iq_u < -80)
-				iq_u = -80;
+			if(iq_u > iq_limit)
+				iq_u = iq_limit;
+			if(iq_u < -iq_limit)
+				iq_u = -iq_limit;
 			foc(iq_u,id_u);		//run foc!!!
 			/******************************parse motor angle*************************************/
 			break;
@@ -99,10 +102,10 @@ int main(void)
 			float err = (qd - theta_m*.5f*m_gear_ratio_conv);	//qd will be given to us in FINGER coordinates (i.e. degrees, assuming zero reference is full extension). Therefore, we must convert to these units
 			float iq_u = err*kd_gain;	//master can change kd_gain with an SPI command
 			/***********************limit iq and id to avoid overheating*************************/
-			if(iq_u > 80)
-				iq_u = 80;
-			if(iq_u < -80)
-				iq_u = -80;
+			if(iq_u > iq_limit)
+				iq_u = iq_limit;
+			if(iq_u < -iq_limit)
+				iq_u = -iq_limit;
 			foc(iq_u,0);
 			break;
 		}

@@ -6,6 +6,7 @@
  */
 #include "comm.h"
 
+float iq_limit = 80.0f;
 float kd_gain = .5f;
 float m_q_offset = 0;
 float m_gear_ratio_conv = 0.134497135f;
@@ -141,6 +142,14 @@ void parse_master_cmd()
 		for(i=0;i<4;i++)
 			kd_format.d[i]=r_data[i+1];
 		kd_gain = kd_format.v;
+		break;
+	}
+	case CMD_CHANGE_IQ_LIM:
+	{
+		floatsend_t fmt;
+		for(int i = 0; i < 4; i++)
+			fmt.d[i] = r_data[i+1];
+		iq_limit = fmt.v;
 		break;
 	}
 	case CMD_CHANGE_GEAR_CONV:

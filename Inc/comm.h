@@ -19,6 +19,7 @@ typedef union
 
 extern float m_q_offset;
 extern float kd_gain;
+extern float iq_limit;
 extern float m_gear_ratio_conv;
 
 #define NUM_PRES_UART_BYTES 	9	//number of uart bytes used for pressure data transmission
@@ -66,6 +67,7 @@ uint8_t new_spi_packet;
 #define CMD_NO_ACTION			22
 #define CMD_BOOTLOAD        	24
 
+#define CMD_CHANGE_IQ_LIM		26
 
 extern uint32_t motor_update_ts;	//time of last spi transaction, for timeout
 
