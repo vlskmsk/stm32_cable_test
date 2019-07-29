@@ -103,7 +103,6 @@ inline void handle_comms()
 	if(new_spi_packet == 1)
 	{
 		parse_master_cmd();
-		t_data[0] = 0;
 		if(r_data[0] == CMD_CHANGE_PWM || r_data[0] == CMD_CHANGE_IQ)
 			motor_update_ts = HAL_GetTick();	//
 		int i;
