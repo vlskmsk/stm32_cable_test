@@ -189,7 +189,6 @@ void force_encoder_region()
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 	while(retc != VERIFY_PASSED)
 	{
-		handle_comms();
 		retc = verify_encoder_region(tau, 25.0f, 2, 500);
 		if(retc == VERIFY_FAILED)
 		{
