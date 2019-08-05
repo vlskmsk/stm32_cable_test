@@ -189,7 +189,7 @@ void force_encoder_region()
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 	while(retc != VERIFY_PASSED)
 	{
-		retc = verify_encoder_region(tau, 25.0f, 2, 500);
+		retc = verify_encoder_region(tau, 30.0f, 3, 500);
 		if(retc == VERIFY_FAILED)
 		{
 			foc_theta_prev -= TWO_PI;	//put the encoder in the correct region
@@ -198,15 +198,15 @@ void force_encoder_region()
 		{
 			if(tau > 0)
 			{
-				tau+=5.0f;
-				if(tau > 50.0f)
-					tau = 50.0f;
+				tau+=10.0f;
+				if(tau > 80.0f)
+					tau = 80.0f;
 			}
 			if(tau < 0)
 			{
-				tau -= 5.0f;
-				if(tau < -50.0f)
-					tau = -50.0f;
+				tau -= 10.0f;
+				if(tau < -80.0f)
+					tau = -80.0f;
 			}
 			tau = -tau;
 		}
