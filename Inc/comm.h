@@ -11,6 +11,9 @@
 #include "foc_commutation.h"
 #include "sleep.h"
 
+#define BUSY_FORCE_ENCODER_REGION 	0xDE
+#define MAIN_LOOP_READY 			0xAD
+
 typedef union
 {
 	float v;
@@ -68,6 +71,8 @@ uint8_t new_spi_packet;
 #define CMD_BOOTLOAD        	24
 
 #define CMD_CHANGE_IQ_LIM		26
+
+#define CMD_STOP_TONE			27
 
 extern uint32_t motor_update_ts;	//time of last spi transaction, for timeout
 

@@ -135,6 +135,23 @@ void parse_master_cmd()
 		control_mode = CMD_CHANGE_POS;
 		break;
 	}
+	case CMD_PLAY_TONE:
+	{
+		if(t_data[0] == MAIN_LOOP_READY)
+		{
+			control_mode = CMD_PLAY_TONE;
+			TIM1->PSC = (r_data[1] << 8) | r_data[2];
+			TIMER_UPDATE_DUTY(490,510,490);
+		}
+		break;
+	}
+	case CMD_STOP_TONE:
+	{
+		TIMER_UPDATE_DUTY(500,500,500);
+		control_mode = CMD_STOP_TONE;
+		TIM1->PSC = 0;
+		break;
+	}
 	case CMD_CHANGE_KD:
 	{
 		floatsend_t kd_format;

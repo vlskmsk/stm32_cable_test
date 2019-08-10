@@ -19,8 +19,6 @@ void start_pwm();
 
 volatile uint32_t time_exp;
 
-#define BUSY_FORCE_ENCODER_REGION 	0xDE
-#define MAIN_LOOP_READY 			0xAD
 
 
 int main(void)
