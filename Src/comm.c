@@ -152,6 +152,11 @@ void parse_master_cmd()
 		TIM1->PSC = 0;
 		break;
 	}
+	case CMD_FORCE_ENCODER:
+	{
+		control_mode = CMD_FORCE_ENCODER;
+		break;
+	}
 	case CMD_CHANGE_KD:
 	{
 		floatsend_t kd_format;

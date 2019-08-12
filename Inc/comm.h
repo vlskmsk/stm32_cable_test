@@ -10,6 +10,7 @@
 #include "init.h"
 #include "foc_commutation.h"
 #include "sleep.h"
+#include "foc-calibration.h"
 
 #define BUSY_FORCE_ENCODER_REGION 	0xDE
 #define MAIN_LOOP_READY 			0xAD
@@ -73,6 +74,7 @@ uint8_t new_spi_packet;
 #define CMD_CHANGE_IQ_LIM		26
 
 #define CMD_STOP_TONE			27
+#define CMD_FORCE_ENCODER		28
 
 extern uint32_t motor_update_ts;	//time of last spi transaction, for timeout
 

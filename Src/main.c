@@ -107,8 +107,20 @@ int main(void)
 			foc(iq_u,0);
 			break;
 		}
-		default:
+		case CMD_FORCE_ENCODER:
+		{
+			t_data[0] = BUSY_FORCE_ENCODER_REGION;
+			force_encoder_region();	//this MUST be called outside of the handle_comms() function path!!! otherwise, you get infinite recursion and death
+			TIMER_UPDATE_DUTY(500,500,500);
+			t_data[0] = MAIN_LOOP_READY;
+			control_mode = CMD_CHANGE_IQ;
 			break;
+		}
+		default:
+		{
+			unwrap( theta_rel_rad(), &foc_theta_prev);	//no matter what, track the correct value of foc electrical theta
+			break;
+		}
 		};
 	}
 
