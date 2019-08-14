@@ -234,12 +234,10 @@ uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thres
 			if((tau > 0 && diff > diff_thresh) || (tau < 0 && diff < -diff_thresh))
 			{
 				pass_count++;
-				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
 			}
 			else
 			{
 				pass_count--;
-				HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 			}
 			tau = -tau;
 			tau_switch_ts = HAL_GetTick();	//TODO: instead of time, move the rotor so the change in position is at least diff_thresh
