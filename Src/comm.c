@@ -34,6 +34,8 @@ uint8_t sleep_flag = 0;
 
 float gl_iq_u = 0;
 
+uint8_t uart_read_buffer[NUM_PRES_UART_BYTES] = {'h','e','l','l','o',' ','b','i','t'};
+
 void uart_print_float(float v)
 {
 	floatsend_t ft;
@@ -53,41 +55,43 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 	new_spi_packet = 1;
 }
 
+uint32_t uart_it_ts = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
 {
 	//press_data_transmit_flag = 1;
+	uart_it_ts = HAL_GetTick()+3;
 	new_uart_packet = 1;
 }
 
-/*
- * TODO: make this function NON BLOCKING.
- * This is not an acceptable long-term solution to
- * data alignment.
- */
-void pressure_data_align(void)
-{
-	TIMER_UPDATE_DUTY(0,0,0);	//FOC cannot be interrupted without a full disable. this is EXTREMELY important. Disable the driver if you do ANYTHING time consuming
-	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
-	uint32_t align_timeout = HAL_GetTick() + 1000;
-	uint32_t blink_ts = 0;
-	uart_read_buffer[0] = 0;
-	while(HAL_GetTick() < align_timeout)	//i'll give you a full 100ms before you get back to doing what you're supposed to do, i.e. moving a motor.
-	{
-		HAL_UART_Receive(&huart1, uart_read_buffer, 1, 100);
-		if(uart_read_buffer[0] == 's')
-		{
-			HAL_UART_Receive(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA-1, 1000);
-			break;
-		}
-		if(HAL_GetTick()>blink_ts)
-		{
-			HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
-			blink_ts = HAL_GetTick()+50;
-		}
-	}
-	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
-	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
-}
+///*
+// * TODO: make this function NON BLOCKING.
+// * This is not an acceptable long-term solution to
+// * data alignment.
+// */
+//void pressure_data_align(void)
+//{
+//	TIMER_UPDATE_DUTY(0,0,0);	//FOC cannot be interrupted without a full disable. this is EXTREMELY important. Disable the driver if you do ANYTHING time consuming
+//	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 0);
+//	uint32_t align_timeout = HAL_GetTick() + 1000;
+//	uint32_t blink_ts = 0;
+//	uart_read_buffer[0] = 0;
+//	while(HAL_GetTick() < align_timeout)	//i'll give you a full 100ms before you get back to doing what you're supposed to do, i.e. moving a motor.
+//	{
+//		HAL_UART_Receive(&huart1, uart_read_buffer, 1, 100);
+//		if(uart_read_buffer[0] == 's')
+//		{
+//			HAL_UART_Receive(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA-1, 1000);
+//			break;
+//		}
+//		if(HAL_GetTick()>blink_ts)
+//		{
+//			HAL_GPIO_TogglePin(STAT_PORT,STAT_PIN);
+//			blink_ts = HAL_GetTick()+50;
+//		}
+//	}
+//	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);
+//	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+//}
 
 
 //
@@ -220,7 +224,7 @@ void parse_master_cmd()
 		break;
 /* Pressure Sensor Related Case. */
 	case CMD_EN_PRES:
-		pressure_data_align();
+//		pressure_data_align();
 		press_data_transmit_flag = 1;
 		break;
 	case CMD_DIS_PRES:  //Bird
@@ -242,37 +246,4 @@ void parse_master_cmd()
 }
 
 
-
-void handle_uart_buf()
-{
-	/*
-	 * we've recieved a new round of data, so load it into the spi transmit buffer.
-	 * the motor control spi protocol will carry it over to the master
-	 */
-/*
-	int i;
-	for(i = 0; i < NUM_BYTES_UART_DMA; i++)
-	{
-		if (uart_read_buffer[i] == 's')
-		{
-			int j;
-			for(j = 0; j < NUM_PRES_UART_BYTES; j++)
-			{
-				t_data[j+5] = uart_read_buffer[ (i+j) % (NUM_BYTES_UART_DMA-1) ];						//we can do outside of the handler
-			}
-			break;
-		}
-	}
-*/
-
-	if(press_data_transmit_flag == 1)  //Bird
-	{
-		//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
-		for(int i = 5; i < NUM_SPI_BYTES; i++)
-		{
-			t_data[i] = uart_read_buffer[i-5];
-		}
-	}
-
-}
 

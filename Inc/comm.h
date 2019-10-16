@@ -27,7 +27,6 @@ extern float iq_limit;
 extern float m_gear_ratio_conv;
 
 #define NUM_PRES_UART_BYTES 	9	//number of uart bytes used for pressure data transmission
-#define NUM_BYTES_UART_DMA		18	//double buffer for uart, in case we lose a byte somewhere in the transmission
 #define NUM_SPI_BYTES 			14	//equal to 5+NUM_PRES_UART_BYTES. first 5 bytes reserved
 
 extern uint8_t control_mode;
@@ -85,8 +84,8 @@ extern uint8_t t_data[NUM_SPI_BYTES];
 extern floatsend_t rx_format;
 extern floatsend_t tx_format;
 
-uint8_t pres_data[NUM_PRES_UART_BYTES];
-uint8_t uart_read_buffer[NUM_BYTES_UART_DMA];
+//uint8_t pres_data[NUM_PRES_UART_BYTES];
+extern uint8_t uart_read_buffer[NUM_PRES_UART_BYTES];
 uint8_t r_flag;
 uint8_t t_flag;
 int32_t gl_master_duty;
@@ -94,19 +93,24 @@ int32_t gl_prev_master_duty;
 
 float gl_iq_u;
 
+extern uint32_t uart_it_ts;
+extern uint8_t press_data_transmit_flag;
 
 uint8_t sleep_flag;
 
 void uart_print_float(float v);
 void parse_master_cmd();
 void execute_master_cmd();
-void handle_uart_buf();
+
 
 inline void handle_comms()
 {
 	/*Handle SPI Interrupt Packets*/
 	HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_SPI_BYTES);
-	HAL_UART_Receive_IT(&huart1, uart_read_buffer, NUM_BYTES_UART_DMA);
+
+	if(HAL_GetTick() > uart_it_ts)
+		HAL_UART_Receive_IT(&huart1, uart_read_buffer, NUM_PRES_UART_BYTES);
+
 	if(new_spi_packet == 1)
 	{
 		parse_master_cmd();
@@ -123,7 +127,14 @@ inline void handle_comms()
 	/*TODO: Enable/test UART!!! This should be INTERRUPT based, not DMA based.*/
 	if(new_uart_packet == 1)
 	{
-		handle_uart_buf();
+		if(press_data_transmit_flag == 1)  //Bird
+		{
+			//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
+			for(int i = 5; i < NUM_SPI_BYTES; i++)
+			{
+				t_data[i] = uart_read_buffer[i-5];
+			}
+		}
 		new_uart_packet = 0;
 	}
 }
