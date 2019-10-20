@@ -188,14 +188,10 @@ void low_power_mode()
 		 */
 		if(new_uart_packet == 1)
 		{
-			if(press_data_transmit_flag == 1)  //Bird
-			{
-				//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
-				for(int i = 5; i < NUM_SPI_BYTES; i++)
-				{
-					t_data[i] = uart_read_buffer[i-5];
-				}
-			}
+			//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
+			for(int i = NUM_MOTOR_BYTES; i < (NUM_MOTOR_BYTES+num_uart_bytes); i++)
+				t_data[i] = uart_read_buffer[i-5];
+
 			new_uart_packet = 0;
 		}
 	}
