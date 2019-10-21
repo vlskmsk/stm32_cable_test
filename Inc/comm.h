@@ -101,6 +101,7 @@ float gl_iq_u;
 
 extern uint32_t uart_it_ts;
 extern uint8_t press_data_transmit_flag;
+extern uint8_t enable_pressure_flag;
 
 uint8_t sleep_flag;
 
@@ -133,9 +134,12 @@ inline void handle_comms()
 	/*TODO: Enable/test UART!!! This should be INTERRUPT based, not DMA based.*/
 	if(new_uart_packet == 1)
 	{
-		//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
-		for(int i = NUM_MOTOR_BYTES; i < (NUM_MOTOR_BYTES+num_uart_bytes); i++)
-			t_data[i] = uart_read_buffer[i-5];
+		if(enable_pressure_flag)
+		{
+			//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
+			for(int i = NUM_MOTOR_BYTES; i < (NUM_MOTOR_BYTES+num_uart_bytes); i++)
+				t_data[i] = uart_read_buffer[i-5];
+		}
 		new_uart_packet = 0;
 	}
 }

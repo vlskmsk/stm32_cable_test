@@ -19,9 +19,11 @@ floatsend_t rx_format;
 floatsend_t tx_format;
 
 uint8_t r_data[MAX_SPI_BYTES] = {0};
-uint8_t t_data[MAX_SPI_BYTES] = {0};
+uint8_t t_data[MAX_SPI_BYTES] = {0,0,0,0,0, 0xBD,'m','o','t','o','r','f','i','n','g','e','r'};
 
-uint8_t uart_read_buffer[MAX_UART_BYTES] = {0xDE, 0xAD, 'h', 'a', 'x','0', 'r', 0x04, 'l', 'y', 0xFF, 0xEE};
+uint8_t uart_read_buffer[MAX_UART_BYTES] = {0};
+
+uint8_t enable_pressure_flag = 0;
 
 int num_uart_bytes = BARO_SENSE_SIZE;
 
@@ -172,12 +174,15 @@ void parse_master_cmd()
 		break;
 /* Pressure Sensor Related Case. */
 	case CMD_EN_PRES_BARO:
+		enable_pressure_flag = 1;
 		num_uart_bytes = BARO_SENSE_SIZE;
 		break;
 	case CMD_EN_PRES_MAGSENSE:
+		enable_pressure_flag = 1;
 		num_uart_bytes = MAG_SENSE_SIZE;
 		break;
 	case CMD_DIS_PRES:  //Bird
+		enable_pressure_flag = 0;
 		break;
 /* Bootloader Related Case. */
 	case CMD_BOOTLOAD:
