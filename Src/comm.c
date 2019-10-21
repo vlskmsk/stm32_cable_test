@@ -23,7 +23,7 @@ uint8_t t_data[MAX_SPI_BYTES] = {0};
 
 uint8_t uart_read_buffer[MAX_UART_BYTES] = {0xDE, 0xAD, 'h', 'a', 'x','0', 'r', 0x04, 'l', 'y', 0xFF, 0xEE};
 
-int num_uart_bytes = MAG_SENSE_SIZE;
+int num_uart_bytes = BARO_SENSE_SIZE;
 
 void uart_print_float(float v)
 {
