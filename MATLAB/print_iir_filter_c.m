@@ -13,14 +13,15 @@ fprintf(fid, 'iirSOS %s[NUM_SECTIONS_%s] = {\n',varName,upper(varName));
 
 for i=1:len
     
-    fprintf('{ %f, %f, ', a(i,2),a(i,3));
-    fprintf(fid, '{ %f, %f, ', a(i,2),a(i,3));   
+    fprintf('    {\n        .a1 = %f,\n        .a2 = %f,\n', a(i,2),a(i,3));
+    fprintf(fid, '    {\n        .a1 = %f,\n        .a2 = %f,\n', a(i,2),a(i,3));
+
     
-    fprintf('%f, %f, %f, ', b(i,1),b(i,2),b(i,3));
-    fprintf(fid, '%f, %f, %f, ', b(i,1),b(i,2),b(i,3));
+    fprintf('        .b0 = %f,\n        .b1 = %f,\n        .b2 = %f,\n', b(i,1),b(i,2),b(i,3));
+    fprintf(fid, '        .b0 = %f,\n        .b1 = %f,\n        .b2 = %f,\n', b(i,1),b(i,2),b(i,3));
     
-    fprintf('%f, {0, 0, 0} }',G(i));    
-    fprintf(fid, '%f, {0, 0, 0} }',G(i));    
+    fprintf('        .gain = %f,\n        .w = {0, 0, 0}\n    }',G(i));    
+    fprintf(fid, '        .gain = %f,\n        .w = {0, 0, 0}\n    }',G(i));    
     
     if(i<len)
         fprintf(',\n');
