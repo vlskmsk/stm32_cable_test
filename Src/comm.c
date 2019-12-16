@@ -43,6 +43,10 @@ int mode = 0;
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 {
+	for(int i=0;i<4;i++)
+		t_data[i+1] = tx_format.d[i];	//
+	for(int i=0;i<4;i++)
+		rx_format.d[i] = r_data[i+1];
 	new_spi_packet = 1;
 }
 
