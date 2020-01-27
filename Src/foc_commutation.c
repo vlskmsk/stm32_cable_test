@@ -22,9 +22,9 @@ float L;
 float R;
 
 
-const float adc_conv_A = 0.005754743303571;
-const float adc_conv_B = 0.005754743303571;
-const float adc_conv_C = 0.005754743303571;
+const float adc_conv_A = 0.005084253416647f;
+const float adc_conv_B = 0.005244755289526f;
+const float adc_conv_C = 0.005244755289526f;
 
 int gl_sector=1;	//for SVM
 
@@ -42,9 +42,11 @@ float ud = 0;
 uint32_t tA,tB,tC;
 float prev_theta = 0;
 float theta_enc_prev=0;
+float gl_iq_meas = 0;
+
 void foc(float iq_ref,float id_ref)
 {
-	conv_raw_current(&i_a,&i_b, &i_c);
+	conv_raw_current(&i_c, &i_b, &i_a);
 	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
 
@@ -58,13 +60,15 @@ void foc(float iq_ref,float id_ref)
 	float i_q, i_d;
 	park_transform(i_alpha, i_beta, sin_theta,cos_theta, &i_q, &i_d);
 
+	gl_iq_meas = i_q;
+	
 	controller_PI(iq_ref, i_q, 0.01, 0.0, &x_iq_PI, &uq);		//this sort of works
 	controller_PI(id_ref, i_d, 0.01, 0.0, &x_id_PI, &ud);		//high current
 
 	inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
 
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-	TIMER_UPDATE_DUTY(tC,tA,tB);
+	TIMER_UPDATE_DUTY(tA,tB,tC);
 }
 
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC)
@@ -112,7 +116,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t1 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t2 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
-		*tA = (pwm_half_period - t1 - t2) * .5;
+		*tA = (pwm_half_period - t1 - t2) / 2;
 		*tB = *tA + t1;
 		*tC = *tB + t2;
 
@@ -122,7 +126,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t2 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t3 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
-		*tB = (pwm_half_period - t2 - t3) * .5;
+		*tB = (pwm_half_period - t2 - t3) / 2;
 		*tA = *tB + t3;
 		*tC = *tA + t2;
 		break;
@@ -131,7 +135,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t3 = (uint32_t)((TWO_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t4 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
-		*tB = (pwm_half_period - t3 - t4) * .5;
+		*tB = (pwm_half_period - t3 - t4) / 2;
 		*tC = *tB + t3;
 		*tA = *tC + t4;
 		break;
@@ -140,7 +144,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t4 = (uint32_t)((-alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t5 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
-		*tC = (pwm_half_period - t4 - t5) * .5;
+		*tC = (pwm_half_period - t4 - t5) / 2;
 		*tB = *tC + t5;
 		*tA = *tB + t4;
 
@@ -150,7 +154,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t5 = (uint32_t)((-alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t6 = (uint32_t)((alpha - ONE_BY_SQRT_3 * beta) * pwm_half_period);
-		*tC = (pwm_half_period - t5 - t6) * .5;
+		*tC = (pwm_half_period - t5 - t6) / 2;
 		*tA = *tC + t5;
 		*tB = *tA + t6;
 		break;
@@ -159,7 +163,7 @@ int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_
 	{
 		uint32_t t6 = (uint32_t)((-TWO_BY_SQRT_3 * beta) * pwm_half_period);
 		uint32_t t1 = (uint32_t)((alpha + ONE_BY_SQRT_3 * beta) * pwm_half_period);
-		*tA = (pwm_half_period - t6 - t1) * .5;
+		*tA = (pwm_half_period - t6 - t1) / 2;
 		*tC = *tA + t1;
 		*tB = *tC + t6;
 		break;

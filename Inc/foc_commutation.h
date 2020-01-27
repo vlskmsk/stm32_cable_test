@@ -13,6 +13,8 @@
 extern float foc_theta_prev;	//
 extern float mech_theta_prev;
 
+extern float gl_iq_meas;
+
 #define DIS_ALL 0xFAAA		//and mask
 #define MASK_1 0x0550		//or mask
 #define MASK_2 0x0505		//or mask

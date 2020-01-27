@@ -17,6 +17,7 @@ uint8_t new_spi_packet = 0;
 
 floatsend_t rx_format;
 floatsend_t tx_format;
+floatsend_t mcur_format;
 
 uint8_t r_data[MAX_SPI_BYTES] = {0};
 uint8_t t_data[MAX_SPI_BYTES] = {0,0,0,0,0, 0xBD,'m','o','t','o','r','f','i','n','g','e','r'};
@@ -26,6 +27,8 @@ uint8_t uart_read_buffer[MAX_UART_BYTES] = {0};
 uint8_t enable_pressure_flag = 0;
 
 int num_uart_bytes = BARO_SENSE_SIZE;
+
+static int gl_num_cursense_bytes = 0;
 
 void uart_print_float(float v)
 {
@@ -45,6 +48,8 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 {
 	for(int i=0;i<4;i++)
 		t_data[i+1] = tx_format.d[i];	//
+	for(int i=0; i < gl_num_cursense_bytes; i++)
+		t_data[i+5] = mcur_format.d[i];
 	for(int i=0;i<4;i++)
 		rx_format.d[i] = r_data[i+1];
 	new_spi_packet = 1;
@@ -179,13 +184,19 @@ void parse_master_cmd()
 /* Pressure Sensor Related Case. */
 	case CMD_EN_PRES_BARO:
 		enable_pressure_flag = 1;
+		gl_num_cursense_bytes = 0;
 		num_uart_bytes = BARO_SENSE_SIZE;
 		break;
 	case CMD_EN_PRES_MAGSENSE:
 		enable_pressure_flag = 1;
+		gl_num_cursense_bytes = 0;
 		num_uart_bytes = MAG_SENSE_SIZE;
 		break;
 	case CMD_DIS_PRES:  //Bird
+		enable_pressure_flag = 0;
+		break;
+	case CMD_EN_CURSENSE:
+		gl_num_cursense_bytes = 4;
 		enable_pressure_flag = 0;
 		break;
 /* Bootloader Related Case. */

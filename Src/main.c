@@ -40,7 +40,7 @@ int main(void)
 	/* * Enable STM32 Center Aligned PWM, set output voltage to -100% on each phase, and initialize the CCR4 register for ADC injection * */
 	start_pwm();
 	TIMER_UPDATE_DUTY(0,0,0);
-	TIM1->CCR4 = 950;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
+	TIM1->CCR4 = TIM1->ARR-1;	//for 7_5, you have about 8uS of sampling.you want to catch the current waveform right at the middle
 
 	get_current_cal_offsets();
 
@@ -71,7 +71,8 @@ int main(void)
 		/*After parsing I2C and SPI, perform motor control functions*/
 		float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev) - m_q_offset;	//necessary to multiply internal offset by 2, because master expects format of 2*theta (from KMZ60 encoder)
 		tx_format.v = theta_m;	//in all cases, send position
-
+		mcur_format.v = gl_iq_meas;
+		
 		switch(control_mode)
 		{
 		case CMD_CHANGE_IQ:

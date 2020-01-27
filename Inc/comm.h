@@ -79,7 +79,9 @@ uint8_t new_spi_packet;
 #define CMD_CHANGE_POS 			30
 #define CMD_CHANGE_KD			31
 #define CMD_ZERO_POS 			32
-#define CMD_CHANGE_GEAR_CONV	33	//experimental, not implemented on driver
+#define CMD_CHANGE_GEAR_CONV	33
+
+#define CMD_EN_CURSENSE			34
 
 extern uint32_t motor_update_ts;	//time of last spi transaction, for timeout
 
@@ -89,6 +91,8 @@ extern uint8_t r_data[MAX_SPI_BYTES];
 extern uint8_t t_data[MAX_SPI_BYTES];
 extern floatsend_t rx_format;
 extern floatsend_t tx_format;
+extern floatsend_t mcur_format;
+
 
 //uint8_t pres_data[NUM_PRES_UART_BYTES];
 extern uint8_t uart_read_buffer[MAX_UART_BYTES];
