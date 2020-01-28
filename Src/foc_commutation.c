@@ -46,7 +46,7 @@ float gl_iq_meas = 0;
 
 void foc(float iq_ref,float id_ref)
 {
-	conv_raw_current(&i_a, &i_c, &i_b);
+	conv_raw_current(&i_c, &i_b, &i_a);
 	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
 
 
@@ -62,15 +62,15 @@ void foc(float iq_ref,float id_ref)
 
 	gl_iq_meas = i_q;
 	
-//	controller_PI(iq_ref, i_q, 0.01, 0.0, &x_iq_PI, &uq);		//this sort of works
-//	controller_PI(id_ref, i_d, 0.01, 0.0, &x_id_PI, &ud);		//high current
-	uq = iq_ref * .01;
-	ud = 0;
+	controller_PI(iq_ref, i_q, 0.01, 0.0, &x_iq_PI, &uq);		//this sort of works
+	controller_PI(id_ref, i_d, 0.01, 0.0, &x_id_PI, &ud);		//high current
+//	uq = iq_ref * .01;
+//	ud = 0;
 	
 	inverse_park_transform(uq, ud, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
 
 	svm(i_alpha,i_beta,TIM1->ARR, &tA, &tB, &tC);
-	TIMER_UPDATE_DUTY(tC,tA,tB);
+	TIMER_UPDATE_DUTY(tA,tB,tC);
 }
 
 int svm(float alpha, float beta, uint32_t pwm_period_cnt, uint32_t * tA, uint32_t * tB, uint32_t * tC)

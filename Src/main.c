@@ -45,7 +45,7 @@ int main(void)
 	get_current_cal_offsets();
 
 	/*******************************************ALIGN OFFSET!!! CRITICAL FOR FOC FUNCTIONALITY*******************************************************/
-	align_offset = -1.3;	//Currently all vishan motors will be given this (arbitrarily assigned) offset.
+	align_offset = -5.50316763f;	//update for current sensing!!!
 #ifdef CALIBRATE_MODE
 	manual_align_calib();	//This is enabled for manual calibration of the encoder. Should not be used on a hand board driver, only on a single channel driver.
 #endif
