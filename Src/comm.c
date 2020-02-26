@@ -205,7 +205,7 @@ void parse_master_cmd()
 		NVIC_SystemReset();
 		break;
 	case CMD_SLEEP:  //Bird
-		sleep_reset();
+//		sleep_reset();
 		break;
 	case CMD_WAKEUP:
 		break;
