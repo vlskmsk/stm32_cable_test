@@ -13,6 +13,7 @@
 extern float foc_theta_prev;	//
 extern float mech_theta_prev;
 
+
 extern float gl_iq_meas;
 
 #define DIS_ALL 0xFAAA		//and mask
@@ -63,7 +64,7 @@ typedef struct vect2
 	float v2;
 }vect2;
 
-void foc(float iq_ref,float id_ref);
+void foc(float iq_ref);
 
 void get_current_cal_offsets();
 void conv_raw_current(float * i_a, float * i_b, float * i_c);

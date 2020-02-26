@@ -74,7 +74,7 @@ float check_align_offset(uint32_t run_time, float tau_ref)
 			dir_correct_flag = 0;
 		prev_theta = theta_m;
 
-		foc(tau_ref,0);
+		foc(tau_ref);
 
 		uart_calib_err_print_handle();
 	}
@@ -98,7 +98,7 @@ float check_align_offset(uint32_t run_time, float tau_ref)
 			dir_correct_flag = 0;
 		prev_theta = theta_m;
 
-		foc(-tau_ref,0);
+		foc(-tau_ref);
 
 		uart_calib_err_print_handle();
 	}
@@ -146,7 +146,7 @@ uint8_t check_encoder_region(float start_step, uint32_t settle_time, float settl
 			tau = 70;
 		if(tau < -70)
 			tau = -70;
-		foc(tau,0);
+		foc(tau);
 
 		if(err < 0)
 			err = -err;		//get the absolute value of the error
@@ -225,7 +225,7 @@ uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thres
 	while(1)
 	{
 		theta_m = unwrap(theta_abs_rad(), &theta_m_prev)*.5f;	//get current motor position
-		foc(tau,0);
+		foc(tau);
 
 		float diff = theta_m - pos_prev;
 		if(abs_f(diff) >= diff_thresh)

@@ -64,12 +64,14 @@ int main(void)
 	TIMER_UPDATE_DUTY(500,500,500);
 
 	t_data[0] = MAIN_LOOP_READY;
+
 	while(1)
 	{
 		handle_comms();
 
 		/*After parsing I2C and SPI, perform motor control functions*/
 		float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev) - m_q_offset;	//necessary to multiply internal offset by 2, because master expects format of 2*theta (from KMZ60 encoder)
+
 		tx_format.v = theta_m;	//in all cases, send position
 		mcur_format.v = gl_iq_meas;
 		
@@ -80,13 +82,12 @@ int main(void)
 			/***********************************Parse torque*************************************/
 			/**********load iq torque component, set id torque component for high speed**********/
 			float iq_u = rx_format.v;
-			float id_u = 0;
 			/***************limit iq and id to avoid overheating, run FOC************************/
 			if(iq_u > iq_limit)
 				iq_u = iq_limit;
 			if(iq_u < -iq_limit)
 				iq_u = -iq_limit;
-			foc(iq_u,id_u);		//run foc!!!
+			foc(iq_u);		//run foc!!!
 			/******************************parse motor angle*************************************/
 			break;
 		}
@@ -103,7 +104,7 @@ int main(void)
 				iq_u = iq_limit;
 			if(iq_u < -iq_limit)
 				iq_u = -iq_limit;
-			foc(iq_u,0);
+			foc(iq_u);
 			break;
 		}
 		case CMD_FORCE_ENCODER:
@@ -148,12 +149,12 @@ void test_foc()
 		uint32_t ts = HAL_GetTick()+spin_time;
 		while(HAL_GetTick() < ts)
 		{
-			foc(25,0);
+			foc(25);
 		}
 		ts = HAL_GetTick() + spin_time;
 		while(HAL_GetTick() < ts)
 		{
-			foc(-25,0);
+			foc(-25);
 		}
 	}
 }
