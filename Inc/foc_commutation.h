@@ -11,7 +11,7 @@
 #include "mag-encoder.h"
 
 extern float foc_theta_prev;	//
-extern float mech_theta_prev;
+//extern float mech_theta_prev;
 
 
 extern float gl_iq_meas;
@@ -51,6 +51,7 @@ float gl_I;
 float gl_T;
 float gl_V;
 
+extern float gl_theta_enc;
 
 int32_t gl_current_input_offset_A;
 int32_t gl_current_input_offset_B;

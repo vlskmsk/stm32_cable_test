@@ -70,7 +70,8 @@ int main(void)
 		handle_comms();
 
 		/*After parsing I2C and SPI, perform motor control functions*/
-		float theta_m = unwrap(theta_abs_rad(), &mech_theta_prev) - m_q_offset;	//necessary to multiply internal offset by 2, because master expects format of 2*theta (from KMZ60 encoder)
+		float theta_m = gl_theta_enc - m_q_offset;//unwrap(theta_abs_rad(), &mech_theta_prev) - m_q_offset;	//necessary to multiply internal offset by 2, because master expects format of 2*theta (from KMZ60 encoder)
+		//mech_theta_prev = theta_m;
 
 		tx_format.v = theta_m;	//in all cases, send position
 		mcur_format.v = gl_iq_meas;
