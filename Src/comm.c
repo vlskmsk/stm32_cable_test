@@ -6,7 +6,7 @@
  */
 #include "comm.h"
 
-float iq_limit = 80.0f;
+float iq_limit = 90.0f;
 float kd_gain = .5f;
 float m_q_offset = 0;
 float m_gear_ratio_conv = 0.134497135f;

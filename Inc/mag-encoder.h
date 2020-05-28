@@ -11,14 +11,14 @@
 #define ADC_SIN_CHAN 	4
 #define ADC_COS_CHAN 	3
 
-#define ONE_BY_THREE_FACTORIAL 	0.16666666666
-#define ONE_BY_FIVE_FACTORIAL 	0.00833333333
-#define HALF_PI 				1.57079632679
-#define PI						3.14159265359
-#define THREE_BY_TWO_PI     	4.71238898038
-#define TWO_PI              	6.28318530718
-#define ONE_BY_TWO_PI 			0.1591549
-#define ONE_BY_THREE_PI			1.04719755
+#define ONE_BY_THREE_FACTORIAL 	0.16666666666f
+#define ONE_BY_FIVE_FACTORIAL 	0.00833333333f
+#define HALF_PI 				1.57079632679f
+#define PI						3.14159265359f
+#define THREE_BY_TWO_PI     	4.71238898038f
+#define TWO_PI              	6.28318530718f
+#define ONE_BY_TWO_PI 			0.1591549f
+#define ONE_BY_THREE_PI			1.04719755f
 
 extern const float elec_conv_ratio;
 

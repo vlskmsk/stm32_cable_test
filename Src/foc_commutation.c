@@ -49,19 +49,10 @@ float gl_iq_meas = 0;
 static float prev_theta_m_dq = 0;
 static uint32_t dq_ts = 0;
 static float phase_advance_angle = 0;
-static float qm_prev_unwrap = 0;
 float gl_theta_enc = 0;
 void foc(float iq_ref)
 {
 
-	float theta_m = unwrap(theta_abs_rad(), &qm_prev_unwrap)*0.5f;	//necessary to multiply internal offset by 2, because master expects format of 2*theta (from KMZ60 encoder)
-	if(HAL_GetTick() > dq_ts) //in this implementation, mechanical theta is computed outside the loop and shared with foc.
-	{
-		float dq = (theta_m-prev_theta_m_dq)*25.0f;
-		prev_theta_m_dq = theta_m;
-		phase_advance_angle = dq/3500.0f;//division yields more accurate advance angle for better performance.
-		dq_ts = HAL_GetTick()+40;
-	}
 
 	conv_raw_current(&i_c, &i_b, &i_a);
 	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
@@ -69,8 +60,10 @@ void foc(float iq_ref)
 	float theta_enc = unwrap( theta_rel_rad(), &foc_theta_prev);
 	float theta_elec = theta_enc*elec_conv_ratio + phase_advance_angle;
 	theta_elec = fmod_2pi(theta_elec + PI) - PI;		//re-modulate theta_m. ensure that the angle is constrained from -pi to pi!!
-	float sin_theta = sin_lookup(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
-	float cos_theta = cos_lookup(theta_elec);				//and the cosine for park and inverse park domains
+//	float sin_theta = sin_lookup(theta_elec);				//calculate the sin of the electrical (magnetic flux) angle
+//	float cos_theta = cos_lookup(theta_elec);				//and the cosine for park and inverse park domains
+	float sin_theta = sin_fast(theta_elec);
+	float cos_theta = cos_fast(theta_elec);
 
 	gl_theta_enc = theta_enc;
 
@@ -82,6 +75,15 @@ void foc(float iq_ref)
 	controller_PI(iq_ref, i_q, 0.01, 0.0, &x_iq_PI, &uq);		//this sort of works
 //	controller_PI(id_ref, i_d, 0.01, 0.0, &x_id_PI, &ud);		//ud effort can be hard set to zero without any effect on performance
 	
+	float theta_m = gl_theta_enc*.5f;	//float theta_m = unwrap(theta_abs_rad(), &qm_prev_unwrap)*0.5f;	//necessary to multiply internal offset by 2, because master expects format of 2*theta (from KMZ60 encoder)
+	if(HAL_GetTick() > dq_ts) //in this implementation, mechanical theta is computed outside the loop and shared with foc.
+	{
+		float dq = (theta_m-prev_theta_m_dq)*40.0f;
+		prev_theta_m_dq = theta_m;
+		phase_advance_angle = dq/11999.0f;//division yields more accurate advance angle for better performance.
+		dq_ts = HAL_GetTick()+25;
+	}
+
 	inverse_park_transform(uq, 0, sin_theta, cos_theta, &i_alpha, &i_beta);	//maybe call theta rel again?
 	if(i_alpha > .86f)
 		i_alpha = .86f;

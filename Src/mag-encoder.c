@@ -20,6 +20,8 @@ int16_t sin_mid = 1931;
 //const int16_t sin_mid = 1250;		//steven encoder
 //const int16_t cos_mid = 1243.5;
 
+#define PI_BY_FOUR				0.785398163f
+#define THREE_PI_BY_FOUR 		2.35619449f
 
 //from 0 to pi/2
 float atan2_approx(float sinVal, float cosVal)
@@ -37,9 +39,12 @@ float atan2_approx(float sinVal, float cosVal)
 		min_v = abs_s;
 		max_v = abs_c;
 	}
+	if(max_v == 0)
+		max_v = .00000001f;//kludge for div by zero
 	float a = min_v/max_v;
 	float sv = a*a;
-	float r = ((-0.0464964749 * sv + 0.15931422)*sv- 0.327622764) * sv * a + a;
+//	float r = ((-0.0464964749f * sv + 0.15931422f)*sv- 0.327622764) * sv * a + a;
+	float r = ((-0.0464964749f * sv + 0.15931422f)*sv- 0.327622764) * sv * a + a;
 	if(abs_s > abs_c)
 		r = 1.57079637 -r;
 	if(cosVal < 0)
@@ -47,13 +52,41 @@ float atan2_approx(float sinVal, float cosVal)
 	if(sinVal < 0)
 		r = -r;
 	return r;
+
+
+//	float angle;
+//	float abs_y;
+//	if(sinVal > 0)
+//		abs_y = sinVal;
+//	else if (sinVal < 0)
+//		abs_y = -sinVal;
+//	else
+//		abs_y = .0000000001f;	//divide by zero kludge
+//	if (cosVal>=0)
+//	{
+//		float r = (cosVal - abs_y) / (cosVal + abs_y);
+//		float rr = r*r;
+//		angle = (.1963f*rr - .9817f)*r+PI_BY_FOUR;
+////		angle = PI_BY_FOUR - PI_BY_FOUR * r;
+//	}
+//	else
+//	{
+//		float r = (cosVal + abs_y) / (abs_y - cosVal);
+//		float rr = r*r;
+//		angle = (.1953f*rr - .9817f)*r+THREE_PI_BY_FOUR;
+////		angle = THREE_PI_BY_FOUR - PI_BY_FOUR * r;
+//	}
+//	if (sinVal < 0)
+//		return(-angle);     // negate if in quad III or IV
+//	else
+//		return(angle);
 }
 
 float theta_abs_rad()
 {
 	int16_t sinVal = dma_adc_foc[ADC_SIN_CHAN]-sin_mid;
 	int16_t cosVal = dma_adc_foc[ADC_COS_CHAN]-cos_mid;
-//	return atan2((float)sinVal,(float)cosVal);
+	//	return atan2((float)sinVal,(float)cosVal);
 	return atan2_approx((float)sinVal,(float)cosVal);
 }
 
