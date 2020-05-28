@@ -55,7 +55,7 @@ void foc(float iq_ref)
 
 
 	conv_raw_current(&i_c, &i_b, &i_a);
-	clarke_transform(i_a,i_b,i_c,&i_alpha, &i_beta);
+	clarke_transform(i_a, i_b, i_c, &i_alpha, &i_beta);
 
 	float theta_enc = unwrap( theta_rel_rad(), &foc_theta_prev);
 	float theta_elec = theta_enc*elec_conv_ratio + phase_advance_angle;

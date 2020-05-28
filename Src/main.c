@@ -68,7 +68,9 @@ int main(void)
 
 	t_data[0] = MAIN_LOOP_READY;
 
-
+	/*
+	 * TODO: use faster (commented) atan2 and remove or significantly reduce compensator
+	 */
 	while(1)
 	{
 		handle_comms();
