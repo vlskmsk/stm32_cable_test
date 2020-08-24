@@ -185,7 +185,7 @@ static float abs_f(float in)
 void force_encoder_region()
 {
 	uint8_t retc = VERIFY_FAILED;
-	float tau = 30.0f;
+	float tau = 5.0f;
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 	while(retc != VERIFY_PASSED)
 	{
