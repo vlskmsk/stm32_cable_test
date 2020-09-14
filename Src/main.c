@@ -19,6 +19,8 @@ void start_pwm();
 
 volatile uint32_t time_exp;
 
+
+
 int main(void)
 {
 	HAL_Init();
@@ -36,7 +38,7 @@ int main(void)
 //	gl_ts_cnt = htim2.Instance->CNT;
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
-	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,0);
+	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN, 1);
 
 	HAL_GPIO_WritePin(ENABLE_PORT, ENABLE_PIN, 1);	//enable BLDC Driver
 
@@ -62,7 +64,10 @@ int main(void)
 
 	/*Anti lockup and encoder region alignment absorbed into a new force procedure.*/
 	t_data[0] = BUSY_FORCE_ENCODER_REGION;
-	force_encoder_region();
+	if(check_motor_valid()==0x7)
+		force_encoder_region();
+	else
+		HAL_GPIO_WritePin(STAT_PORT,STAT_PIN, 0);
 
 	TIMER_UPDATE_DUTY(500,500,500);
 

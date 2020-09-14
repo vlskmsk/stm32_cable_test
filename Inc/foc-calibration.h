@@ -22,8 +22,9 @@ uint8_t check_encoder_region(float start_step, uint32_t settle_time, float settl
 uint8_t check_encoder_region_2(uint32_t track_time, uint32_t timeout);
 
 void force_encoder_region();
-uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thresh, uint32_t timeout);
+uint8_t check_motor_valid();
 
+uint8_t verify_encoder_region(float tau, float diff_thresh, int pass_count_thresh, uint32_t timeout);
 void test_foc();
 
 #endif /* FOC_CALIBRATION_H_ */

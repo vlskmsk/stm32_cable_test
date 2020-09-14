@@ -182,10 +182,38 @@ static float abs_f(float in)
 		return in;
 }
 
+uint8_t check_motor_valid()
+{
+	float i_init[3];
+	TIMER_UPDATE_DUTY(0,0,0);
+	for(uint32_t run_ts = HAL_GetTick() + 10; HAL_GetTick() < run_ts; )
+		conv_raw_current(&(i_init[0]),&(i_init[1]),&(i_init[2]));
+
+	uint8_t phase_ok = 0;
+	float i_m[3] = {0,0,0};
+	for(int phase = 0; phase < 3; phase++)
+	{
+		if(phase == 0)
+		{TIMER_UPDATE_DUTY(550,550,450);}
+		else if (phase == 1)
+		{TIMER_UPDATE_DUTY(550,450,550);}
+		else if (phase == 2)
+		{TIMER_UPDATE_DUTY(450,550,550);}
+
+		for(uint32_t run_ts = HAL_GetTick() + 1; HAL_GetTick() <= run_ts; )
+			conv_raw_current(&(i_m[0]),&(i_m[1]),&(i_m[2]));
+
+		float absdiff = i_m[phase] - i_init[phase];
+		if(absdiff < -0.8f)
+			phase_ok |= 1 << phase;
+	}
+	return phase_ok;
+}
+
 void force_encoder_region()
 {
 	uint8_t retc = VERIFY_FAILED;
-	float tau = 5.0f;
+	float tau = 15.0f;
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN,1);
 	while(retc != VERIFY_PASSED)
 	{
