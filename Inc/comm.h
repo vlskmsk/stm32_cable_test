@@ -21,6 +21,12 @@ typedef union
 	uint8_t d[4];
 }floatsend_t;
 
+typedef union
+{
+	uint32_t v;
+	uint8_t d[4];
+}uint32send_t;
+
 extern float m_q_offset;
 extern float kd_gain;
 extern float iq_limit;
@@ -113,14 +119,16 @@ void uart_print_float(float v);
 void parse_master_cmd();
 void execute_master_cmd();
 
+extern uint32_t gl_fall_cnt;
+extern uint32_t gl_rise_cnt;
 
 inline void handle_comms()
 {
 	/*Handle SPI Interrupt Packets*/
 	HAL_SPI_TransmitReceive_IT(&hspi3, t_data, r_data, NUM_MOTOR_BYTES+num_uart_bytes);
 
-	if(HAL_GetTick() > uart_it_ts)
-		HAL_UART_Receive_IT(&huart1, uart_read_buffer, num_uart_bytes);
+//	if(HAL_GetTick() > uart_it_ts)
+//		HAL_UART_Receive_IT(&huart1, uart_read_buffer, num_uart_bytes);
 
 	if(new_spi_packet == 1)
 	{
@@ -136,8 +144,16 @@ inline void handle_comms()
 		if(enable_pressure_flag)
 		{
 			//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
-			for(int i = NUM_MOTOR_BYTES; i < (NUM_MOTOR_BYTES+num_uart_bytes); i++)
-				t_data[i] = uart_read_buffer[i-5];
+			//for(int i = NUM_MOTOR_BYTES; i < (NUM_MOTOR_BYTES+num_uart_bytes); i++)
+			//	t_data[i] = uart_read_buffer[i-5];
+			uint32send_t u32_fmt;
+			int i = NUM_MOTOR_BYTES;
+			u32_fmt.v = gl_fall_cnt;
+			for(int start = i; i-start < 4; i++)
+				t_data[i] = u32_fmt.d[i-start];
+			u32_fmt.v = gl_rise_cnt;
+			for(int start = i; i-start < 4; i++)
+				t_data[i] = u32_fmt.d[i-start];
 		}
 		new_uart_packet = 0;
 	}

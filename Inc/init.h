@@ -33,7 +33,7 @@ SPI_HandleTypeDef hspi3;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 
-UART_HandleTypeDef huart1;
+
 
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);

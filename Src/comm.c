@@ -30,12 +30,12 @@ int num_uart_bytes = BARO_SENSE_SIZE;
 
 static int gl_num_cursense_bytes = 0;
 
-void uart_print_float(float v)
-{
-	floatsend_t ft;
-	ft.v = v;
-	HAL_UART_Transmit(&huart1, ft.d, 4, 10);
-}
+//void uart_print_float(float v)
+//{
+//	floatsend_t ft;
+//	ft.v = v;
+//	HAL_UART_Transmit(&huart1, ft.d, 4, 10);
+//}
 
 /*
  * Command structure is determined by the highest 4 bits
@@ -55,12 +55,12 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)  //Bird
 	new_spi_packet = 1;
 }
 
-uint32_t uart_it_ts = 0;
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
-{
-	uart_it_ts = HAL_GetTick()+4;
-	new_uart_packet = 1;
-}
+//uint32_t uart_it_ts = 0;
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  //Bird
+//{
+//	uart_it_ts = HAL_GetTick()+4;
+//	new_uart_packet = 1;
+//}
 
 uint8_t control_mode = CMD_CHANGE_IQ;
 void parse_master_cmd()

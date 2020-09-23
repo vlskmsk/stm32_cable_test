@@ -19,7 +19,15 @@ void start_pwm();
 
 volatile uint32_t time_exp;
 
-
+uint32_t gl_fall_cnt = 0;
+uint32_t gl_rise_cnt = 0;
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7) == GPIO_PIN_SET)
+		gl_rise_cnt++;
+	else
+		gl_fall_cnt++;
+}
 
 int main(void)
 {
@@ -30,12 +38,6 @@ int main(void)
 	MX_ADC1_Init();
 	MX_SPI3_Init();
 	MX_TIM1_Init();
-	MX_USART1_UART_Init();
-
-//	MX_TIM2_Init();
-//	HAL_TIM_Base_Start(&htim2);
-//	htim2.Instance->EGR |= 0x01;
-//	gl_ts_cnt = htim2.Instance->CNT;
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)dma_adc_foc, NUM_ADC_FOC);
 	HAL_GPIO_WritePin(STAT_PORT,STAT_PIN, 1);
