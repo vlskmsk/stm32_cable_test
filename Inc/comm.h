@@ -43,7 +43,7 @@ extern int num_uart_bytes;
 
 extern uint8_t control_mode;
 
-uint8_t new_uart_packet;
+//uint8_t new_uart_packet;
 uint8_t new_spi_packet;
 
 
@@ -121,7 +121,7 @@ void execute_master_cmd();
 
 extern uint32_t gl_fall_cnt;
 extern uint32_t gl_rise_cnt;
-
+extern uint8_t gl_gpio_evt_flag;
 inline void handle_comms()
 {
 	/*Handle SPI Interrupt Packets*/
@@ -139,24 +139,20 @@ inline void handle_comms()
 	}
 
 	/*TODO: Enable/test UART!!! This should be INTERRUPT based, not DMA based.*/
-	if(new_uart_packet == 1)
+	if(gl_gpio_evt_flag == 1)
 	{
-		if(enable_pressure_flag)
-		{
-			//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
-			//for(int i = NUM_MOTOR_BYTES; i < (NUM_MOTOR_BYTES+num_uart_bytes); i++)
-			//	t_data[i] = uart_read_buffer[i-5];
-			uint32send_t u32_fmt;
-			int i = NUM_MOTOR_BYTES;
-			u32_fmt.v = gl_fall_cnt;
-			for(int start = i; i-start < 4; i++)
-				t_data[i] = u32_fmt.d[i-start];
-			u32_fmt.v = gl_rise_cnt;
-			for(int start = i; i-start < 4; i++)
-				t_data[i] = u32_fmt.d[i-start];
-		}
-		new_uart_packet = 0;
+		uint32send_t u32_fmt;
+		int i = NUM_MOTOR_BYTES;
+		u32_fmt.v = gl_fall_cnt;
+		for(int start = i; i-start < 4; i++)
+			t_data[i] = u32_fmt.d[i-start];
+		u32_fmt.v = gl_rise_cnt;
+		for(int start = i; i-start < 4; i++)
+			t_data[i] = u32_fmt.d[i-start];
+
+		gl_gpio_evt_flag = 0;
 	}
+	t_data[13] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7);
 }
 
 

@@ -19,6 +19,7 @@ void start_pwm();
 
 volatile uint32_t time_exp;
 
+uint8_t gl_gpio_evt_flag = 0;
 uint32_t gl_fall_cnt = 0;
 uint32_t gl_rise_cnt = 0;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -27,6 +28,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		gl_rise_cnt++;
 	else
 		gl_fall_cnt++;
+	gl_gpio_evt_flag = 1;
 }
 
 int main(void)
@@ -202,13 +204,13 @@ void low_power_mode()
 		/*
 		 * Handle new uart double buffer
 		 */
-		if(new_uart_packet == 1)
+		if(gl_gpio_evt_flag == 1)
 		{
 			//first 5 bytes of r_data and t_data are RESERVED for motor control, and must not be overwritten
 			for(int i = NUM_MOTOR_BYTES; i < (NUM_MOTOR_BYTES+num_uart_bytes); i++)
 				t_data[i] = uart_read_buffer[i-5];
 
-			new_uart_packet = 0;
+			gl_gpio_evt_flag = 0;
 		}
 	}
 
