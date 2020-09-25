@@ -139,10 +139,11 @@ inline void handle_comms()
 	}
 
 	/*TODO: Enable/test UART!!! This should be INTERRUPT based, not DMA based.*/
+	t_data[NUM_MOTOR_BYTES] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7);
 	if(gl_gpio_evt_flag == 1)
 	{
 		uint32send_t u32_fmt;
-		int i = NUM_MOTOR_BYTES;
+		int i = NUM_MOTOR_BYTES+1;
 		u32_fmt.v = gl_fall_cnt;
 		for(int start = i; i-start < 4; i++)
 			t_data[i] = u32_fmt.d[i-start];
@@ -152,7 +153,7 @@ inline void handle_comms()
 
 		gl_gpio_evt_flag = 0;
 	}
-	t_data[13] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7);
+
 }
 
 
