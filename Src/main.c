@@ -19,7 +19,7 @@ void start_pwm();
 
 volatile uint32_t time_exp;
 
-uint8_t gl_gpio_evt_flag = 0;
+uint8_t gl_gpio_evt_flag = 1;
 uint32_t gl_fall_cnt = 0;
 uint32_t gl_rise_cnt = 0;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
